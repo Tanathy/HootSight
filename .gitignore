@@ -6,7 +6,9 @@ cache/
 **/__pycache__/
 
 # Demo project data (keep config structure clean, exclude real datasets/models)
-projects/*/
+projects/*
+!projects/
+!projects/.gitkeep
 
 # Tooling and automation
 .github/
