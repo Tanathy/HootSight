@@ -13,6 +13,7 @@ projects/*/
 
 # One-off helper scripts that shouldn't ship
 backup.py
+generate_checksums.py
 
 # Python bytecode
 *.pyc
