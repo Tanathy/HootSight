@@ -1,0 +1,712 @@
+{
+    "general": {
+        "language": "en"
+    },
+    "api": {
+        "host": "127.0.0.1",
+        "port": 8000
+    },
+    "ui": {
+        "title": "Hootsight",
+        "width": 1200,
+        "height": 800,
+        "resizable": true
+    },
+    "paths": {
+        "projects_dir": "projects",
+        "ui_dir": "ui",
+        "config_dir": "config",
+        "localizations_dir": "config/localizations",
+        "packages_file": "config/packages.jsonc",
+        "mappings_file": "config/mappings.json",
+        "cache_dir": "cache"
+    },
+    "system": {
+        "max_threads": "auto",
+        "fallback_batch_size": 8,
+        "memory_cleanup_interval": 300,
+        "thread_pool_timeout": 30,
+        "startup_wait_seconds": 2
+    },
+    "memory": {
+        "target_memory_usage": 0.8,
+        "safety_margin": 0.9,
+        "augmentation_threads": "auto"
+    },
+    "training": {
+        "model_type": "resnet",
+        "model_name": "resnet50",
+        "pretrained": true,
+        "task": "multi_label",
+        "batch_size": "auto",
+        "epochs": "auto",
+        "learning_rate": 0.001,
+        "weight_decay": 0.0001,
+        "input_size": 224,
+        "normalize": {
+            "mean": [
+                0.485,
+                0.456,
+                0.406
+            ],
+            "std": [
+                0.229,
+                0.224,
+                0.225
+            ]
+        },
+        "val_ratio": 0.2,
+        "dataloader": {
+            "num_workers": 0,
+            "pin_memory": true,
+            "persistent_workers": false,
+            "prefetch_factor": 2
+        },
+        "augmentation": {
+            "train": [
+                {
+                    "type": "random_resized_crop",
+                    "params": {
+                        "size": 224
+                    }
+                },
+                {
+                    "type": "random_horizontal_flip",
+                    "params": {
+                        "p": 0.5
+                    }
+                },
+                {
+                    "type": "to_tensor"
+                },
+                {
+                    "type": "normalize",
+                    "params": {
+                        "mean": [
+                            0.485,
+                            0.456,
+                            0.406
+                        ],
+                        "std": [
+                            0.229,
+                            0.224,
+                            0.225
+                        ]
+                    }
+                }
+            ],
+            "val": [
+                {
+                    "type": "center_crop",
+                    "params": {
+                        "size": 224
+                    }
+                },
+                {
+                    "type": "to_tensor"
+                },
+                {
+                    "type": "normalize",
+                    "params": {
+                        "mean": [
+                            0.485,
+                            0.456,
+                            0.406
+                        ],
+                        "std": [
+                            0.229,
+                            0.224,
+                            0.225
+                        ]
+                    }
+                }
+            ]
+        },
+        "optimizer_type": "adamw",
+        "optimizer_lr": 0.001,
+        "optimizer_weight_decay": 0.01,
+        "optimizer_params": {
+            "adamw": {
+                "lr": 0.001,
+                "betas": [
+                    0.9,
+                    0.999
+                ],
+                "eps": 1e-8,
+                "weight_decay": 0.01,
+                "amsgrad": false
+            }
+        },
+        "scheduler_type": "step_lr",
+        "scheduler_step_size": 7,
+        "scheduler_gamma": 0.1,
+        "scheduler_params": {
+            "step_lr": {
+                "step_size": 7,
+                "gamma": 0.1
+            }
+        },
+        "loss_type": "bce_with_logits",
+        "loss_reduction": "mean",
+        "loss_params": {
+            "bce_with_logits": {
+                "reduction": "mean"
+            }
+        },
+        "weight_init": {
+            "type": "kaiming_normal",
+            "params": {
+                "a": 0,
+                "mode": "fan_in",
+                "nonlinearity": "leaky_relu"
+            }
+        },
+        "checkpoint": {
+            "save_best_only": true,
+            "save_frequency": 1,
+            "max_checkpoints": 5,
+            "checkpoint_dir": "model",
+            "best_model_filename": "best_model.pth",
+            "training_history_filename": "training_history.json"
+        },
+        "early_stopping": {
+            "enabled": false,
+            "patience": 10,
+            "min_delta": 0.001,
+            "monitor": "val_loss"
+        },
+        "gradient": {
+            "clip_norm": null,
+            "clip_value": null,
+            "accumulation_steps": 1
+        },
+        "runtime": {
+            "mixed_precision": true,
+            "channels_last": true,
+            "allow_tf32": true,
+            "cudnn_benchmark": true
+        }
+    },
+    "dataset": {
+        "image_extensions": [
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".bmp",
+            ".gif",
+            ".tiff",
+            ".webp"
+        ]
+    },
+    "optimizers": {
+        "defaults": {
+            "sgd": {
+                "lr": 0.01,
+                "momentum": 0.9,
+                "weight_decay": 1e-4,
+                "nesterov": true,
+                "dampening": 0
+            },
+            "adam": {
+                "lr": 0.001,
+                "betas": [
+                    0.9,
+                    0.999
+                ],
+                "eps": 1e-8,
+                "weight_decay": 0,
+                "amsgrad": false
+            },
+            "adamw": {
+                "lr": 0.001,
+                "betas": [
+                    0.9,
+                    0.999
+                ],
+                "eps": 1e-8,
+                "weight_decay": 0.01,
+                "amsgrad": false
+            },
+            "adamax": {
+                "lr": 0.002,
+                "betas": [
+                    0.9,
+                    0.999
+                ],
+                "eps": 1e-8,
+                "weight_decay": 0
+            },
+            "nadam": {
+                "lr": 0.002,
+                "betas": [
+                    0.9,
+                    0.999
+                ],
+                "eps": 1e-8,
+                "weight_decay": 0,
+                "momentum_decay": 0.004
+            },
+            "radam": {
+                "lr": 0.001,
+                "betas": [
+                    0.9,
+                    0.999
+                ],
+                "eps": 1e-8,
+                "weight_decay": 0
+            },
+            "rmsprop": {
+                "lr": 0.01,
+                "alpha": 0.99,
+                "eps": 1e-8,
+                "weight_decay": 0,
+                "momentum": 0,
+                "centered": false
+            },
+            "rprop": {
+                "lr": 0.01,
+                "etas": [
+                    0.5,
+                    1.2
+                ],
+                "step_sizes": [
+                    1e-6,
+                    50
+                ]
+            },
+            "adagrad": {
+                "lr": 0.01,
+                "lr_decay": 0,
+                "weight_decay": 0,
+                "initial_accumulator_value": 0,
+                "eps": 1e-10
+            },
+            "adadelta": {
+                "lr": 1.0,
+                "rho": 0.9,
+                "eps": 1e-6,
+                "weight_decay": 0
+            },
+            "sparse_adam": {
+                "lr": 0.001,
+                "betas": [
+                    0.9,
+                    0.999
+                ],
+                "eps": 1e-8
+            },
+            "lbfgs": {
+                "lr": 1,
+                "max_iter": 20,
+                "max_eval": null,
+                "tolerance_grad": 1e-7,
+                "tolerance_change": 1e-9,
+                "history_size": 100,
+                "line_search_fn": null
+            },
+            "asgd": {
+                "lr": 0.01,
+                "lambd": 1e-4,
+                "alpha": 0.75,
+                "t0": 1000000,
+                "weight_decay": 0
+            }
+        }
+    },
+    "schedulers": {
+        "defaults": {
+            "step_lr": {
+                "step_size": 30,
+                "gamma": 0.1
+            },
+            "multi_step_lr": {
+                "milestones": [
+                    30,
+                    60,
+                    90
+                ],
+                "gamma": 0.1
+            },
+            "exponential_lr": {
+                "gamma": 0.95
+            },
+            "cosine_annealing_lr": {
+                "T_max": 100,
+                "eta_min": 0
+            },
+            "cosine_annealing_warm_restarts": {
+                "T_0": 100,
+                "T_mult": 2,
+                "eta_min": 0
+            },
+            "reduce_lr_on_plateau": {
+                "mode": "min",
+                "factor": 0.1,
+                "patience": 10,
+                "threshold": 0.0001,
+                "threshold_mode": "rel",
+                "cooldown": 0,
+                "min_lr": 0,
+                "eps": 1e-8
+            },
+            "cyclic_lr": {
+                "base_lr": 0.001,
+                "max_lr": 0.01,
+                "step_size_up": 2000,
+                "step_size_down": null,
+                "mode": "triangular",
+                "gamma": 1.0,
+                "scale_fn": null,
+                "scale_mode": "cycle",
+                "cycle_momentum": true,
+                "base_momentum": 0.8,
+                "max_momentum": 0.9
+            },
+            "one_cycle_lr": {
+                "max_lr": 0.01,
+                "total_steps": null,
+                "epochs": null,
+                "steps_per_epoch": null,
+                "pct_start": 0.3,
+                "anneal_strategy": "cos",
+                "cycle_momentum": true,
+                "base_momentum": 0.85,
+                "max_momentum": 0.95,
+                "div_factor": 25.0,
+                "final_div_factor": 10000.0,
+                "three_phase": false
+            },
+            "polynomial_lr": {
+                "total_iters": 100,
+                "power": 1.0
+            },
+            "linear_lr": {
+                "start_factor": 0.3333333333333333,
+                "end_factor": 1.0,
+                "total_iters": 100
+            },
+            "lambda_lr": {
+                "lr_lambda": "lambda epoch: 0.95 ** epoch"
+            },
+            "multiplicative_lr": {
+                "lr_lambda": "lambda epoch: 0.95"
+            }
+        }
+    },
+    "losses": {
+        "defaults": {
+            "cross_entropy": {
+                "reduction": "mean"
+            },
+            "nll_loss": {
+                "reduction": "mean"
+            },
+            "bce_loss": {
+                "reduction": "mean"
+            },
+            "bce_with_logits": {
+                "reduction": "mean"
+            },
+            "multi_margin": {
+                "p": 1,
+                "margin": 1.0,
+                "weight": null,
+                "size_average": null,
+                "reduce": null,
+                "reduction": "mean"
+            },
+            "multi_label_margin": {
+                "reduction": "mean"
+            },
+            "multi_label_soft_margin": {
+                "reduction": "mean"
+            },
+            "mse_loss": {
+                "reduction": "mean"
+            },
+            "l1_loss": {
+                "reduction": "mean"
+            },
+            "smooth_l1": {
+                "reduction": "mean",
+                "beta": 1.0
+            },
+            "huber_loss": {
+                "reduction": "mean",
+                "delta": 1.0
+            },
+            "kl_div": {
+                "reduction": "batchmean"
+            },
+            "margin_ranking": {
+                "margin": 0.0,
+                "reduction": "mean"
+            },
+            "hinge_embedding": {
+                "margin": 1.0,
+                "reduction": "mean"
+            },
+            "triplet_margin": {
+                "margin": 1.0,
+                "p": 2.0,
+                "eps": 1e-6,
+                "swap": false,
+                "reduction": "mean"
+            },
+            "cosine_embedding": {
+                "margin": 0.0,
+                "reduction": "mean"
+            },
+            "ctc_loss": {
+                "blank": 0,
+                "reduction": "mean",
+                "zero_infinity": false
+            },
+            "poisson_nll": {
+                "log_input": true,
+                "full": false,
+                "eps": 1e-8,
+                "reduction": "mean"
+            },
+            "gaussian_nll": {
+                "full": false,
+                "eps": 1e-8,
+                "reduction": "mean"
+            }
+        }
+    },
+    "models": {
+        "resnet": {
+            "variants": {
+                "resnet18": {
+                    "params": 11689512,
+                    "recommended_batch_size": 64,
+                    "input_size": 224
+                },
+                "resnet34": {
+                    "params": 21822304,
+                    "recommended_batch_size": 32,
+                    "input_size": 224
+                },
+                "resnet50": {
+                    "params": 25557032,
+                    "recommended_batch_size": 32,
+                    "input_size": 224
+                },
+                "resnet101": {
+                    "params": 44549160,
+                    "recommended_batch_size": 16,
+                    "input_size": 224
+                },
+                "resnet152": {
+                    "params": 60192808,
+                    "recommended_batch_size": 8,
+                    "input_size": 224
+                }
+            },
+            "default_optimizer": {
+                "type": "adamw",
+                "lr": 0.001,
+                "weight_decay": 0.0001
+            },
+            "default_scheduler": {
+                "type": "step_lr",
+                "step_size": 7,
+                "gamma": 0.1
+            }
+        },
+        "resnext": {
+            "variants": {
+                "resnext50_32x4d": {
+                    "params": 25028904,
+                    "recommended_batch_size": 32,
+                    "input_size": 224
+                },
+                "resnext101_32x8d": {
+                    "params": 88791336,
+                    "recommended_batch_size": 16,
+                    "input_size": 224
+                },
+                "resnext101_64x4d": {
+                    "params": 83668584,
+                    "recommended_batch_size": 16,
+                    "input_size": 224
+                }
+            },
+            "default_optimizer": {
+                "type": "adamw",
+                "lr": 0.001,
+                "weight_decay": 0.0001
+            },
+            "default_scheduler": {
+                "type": "step_lr",
+                "step_size": 7,
+                "gamma": 0.1
+            }
+        },
+        "mobilenet": {
+            "variants": {
+                "mobilenet_v2": {
+                    "params": 3504872,
+                    "recommended_batch_size": 128,
+                    "input_size": 224
+                },
+                "mobilenet_v3_small": {
+                    "params": 2542856,
+                    "recommended_batch_size": 256,
+                    "input_size": 224
+                },
+                "mobilenet_v3_large": {
+                    "params": 5483032,
+                    "recommended_batch_size": 128,
+                    "input_size": 224
+                }
+            },
+            "default_optimizer": {
+                "type": "adamw",
+                "lr": 0.001,
+                "weight_decay": 0.0001
+            },
+            "default_scheduler": {
+                "type": "step_lr",
+                "step_size": 7,
+                "gamma": 0.1
+            }
+        },
+        "shufflenet": {
+            "variants": {
+                "shufflenet_v2_x0_5": {
+                    "params": 1366792,
+                    "recommended_batch_size": 512,
+                    "input_size": 224
+                },
+                "shufflenet_v2_x1_0": {
+                    "params": 2278604,
+                    "recommended_batch_size": 256,
+                    "input_size": 224
+                },
+                "shufflenet_v2_x1_5": {
+                    "params": 3503624,
+                    "recommended_batch_size": 128,
+                    "input_size": 224
+                },
+                "shufflenet_v2_x2_0": {
+                    "params": 7393996,
+                    "recommended_batch_size": 64,
+                    "input_size": 224
+                }
+            },
+            "default_optimizer": {
+                "type": "adamw",
+                "lr": 0.001,
+                "weight_decay": 0.0001
+            },
+            "default_scheduler": {
+                "type": "step_lr",
+                "step_size": 7,
+                "gamma": 0.1
+            }
+        },
+        "squeezenet": {
+            "variants": {
+                "squeezenet1_0": {
+                    "params": 1248424,
+                    "recommended_batch_size": 512,
+                    "input_size": 224
+                },
+                "squeezenet1_1": {
+                    "params": 1235496,
+                    "recommended_batch_size": 512,
+                    "input_size": 224
+                }
+            },
+            "default_optimizer": {
+                "type": "adamw",
+                "lr": 0.001,
+                "weight_decay": 0.0001
+            },
+            "default_scheduler": {
+                "type": "step_lr",
+                "step_size": 7,
+                "gamma": 0.1
+            }
+        },
+        "efficientnet": {
+            "variants": {
+                "efficientnet_b0": {
+                    "params": 5288548,
+                    "recommended_batch_size": 128,
+                    "input_size": 224
+                },
+                "efficientnet_b1": {
+                    "params": 7794184,
+                    "recommended_batch_size": 64,
+                    "input_size": 240
+                },
+                "efficientnet_b2": {
+                    "params": 9109994,
+                    "recommended_batch_size": 64,
+                    "input_size": 260
+                },
+                "efficientnet_b3": {
+                    "params": 12233232,
+                    "recommended_batch_size": 32,
+                    "input_size": 300
+                },
+                "efficientnet_b4": {
+                    "params": 19341616,
+                    "recommended_batch_size": 16,
+                    "input_size": 380
+                },
+                "efficientnet_b5": {
+                    "params": 30389784,
+                    "recommended_batch_size": 8,
+                    "input_size": 456
+                },
+                "efficientnet_b6": {
+                    "params": 43040704,
+                    "recommended_batch_size": 8,
+                    "input_size": 528
+                },
+                "efficientnet_b7": {
+                    "params": 66347960,
+                    "recommended_batch_size": 4,
+                    "input_size": 600
+                },
+                "efficientnet_v2_s": {
+                    "params": 21458488,
+                    "recommended_batch_size": 16,
+                    "input_size": 384
+                },
+                "efficientnet_v2_m": {
+                    "params": 54139356,
+                    "recommended_batch_size": 8,
+                    "input_size": 480
+                },
+                "efficientnet_v2_l": {
+                    "params": 118515272,
+                    "recommended_batch_size": 4,
+                    "input_size": 480
+                }
+            },
+            "default_optimizer": {
+                "type": "adamw",
+                "lr": 0.001,
+                "weight_decay": 0.0001
+            },
+            "default_scheduler": {
+                "type": "step_lr",
+                "step_size": 7,
+                "gamma": 0.1
+            }
+        },
+        "supported_types": [
+            "resnet",
+            "resnext",
+            "mobilenet",
+            "shufflenet",
+            "squeezenet",
+            "efficientnet"
+        ]
+    }
+}

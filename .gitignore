@@ -1,0 +1,24 @@
+# Environment directories
+venv/
+
+# Project archives and generated caches
+cache/
+**/__pycache__/
+
+# Demo project data (keep config structure clean, exclude real datasets/models)
+projects/*/
+
+# Tooling and automation
+.github/
+
+# One-off helper scripts that shouldn't ship
+backup.py
+
+# Python bytecode
+*.pyc
+*.pyo
+*.pyd
+
+# Platform-specific cruft
+.DS_Store
+Thumbs.db

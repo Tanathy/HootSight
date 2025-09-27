@@ -1,0 +1,1676 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hootsight.ai/config-schema.json",
+  "title": "Hootsight Configuration Schema",
+  "description": "schema.description",
+  "type": "object",
+  "properties": {
+    "general": {
+      "type": "object",
+      "description": "schema.general_description",
+      "properties": {
+        "language": {
+          "type": "string",
+          "description": "schema.general_language_description",
+          "enum": ["en"],
+          "enum_descriptor": {
+            "en": "schema.general_language_enum_descriptor.en"
+          },
+          "default": "en"
+        }
+      },
+      "additionalProperties": false
+    },
+    "api": {
+      "type": "object",
+      "description": "schema.api_description",
+      "properties": {
+        "host": {
+          "type": "string",
+          "description": "schema.api_host_description",
+          "format": "hostname",
+          "default": "127.0.0.1"
+        },
+        "port": {
+          "type": "integer",
+          "description": "schema.api_port_description",
+          "minimum": 1,
+          "maximum": 65535,
+          "default": 8000
+        }
+      },
+      "additionalProperties": false
+    },
+    "ui": {
+      "type": "object",
+      "description": "schema.ui_description",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "schema.ui_title_description",
+          "minLength": 1,
+          "maxLength": 100,
+          "default": "Hootsight"
+        },
+        "width": {
+          "type": "integer",
+          "description": "schema.ui_width_description",
+          "minimum": 800,
+          "maximum": 3840,
+          "default": 1200
+        },
+        "height": {
+          "type": "integer",
+          "description": "schema.ui_height_description",
+          "minimum": 600,
+          "maximum": 2160,
+          "default": 800
+        },
+        "resizable": {
+          "type": "boolean",
+          "description": "schema.ui_resizable_description",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "paths": {
+      "type": "object",
+      "description": "schema.paths_description",
+      "properties": {
+        "projects_dir": {
+          "type": "string",
+          "description": "schema.paths_projects_dir_description",
+          "minLength": 1,
+          "default": "projects"
+        },
+        "ui_dir": {
+          "type": "string",
+          "description": "schema.paths_ui_dir_description",
+          "minLength": 1,
+          "default": "ui"
+        },
+        "config_dir": {
+          "type": "string",
+          "description": "schema.paths_config_dir_description",
+          "minLength": 1,
+          "default": "config"
+        },
+        "localizations_dir": {
+          "type": "string",
+          "description": "schema.paths_localizations_dir_description",
+          "minLength": 1,
+          "default": "config/localizations"
+        },
+        "packages_file": {
+          "type": "string",
+          "description": "schema.paths_packages_file_description",
+          "minLength": 1,
+          "default": "config/packages.jsonc"
+        },
+        "mappings_file": {
+          "type": "string",
+          "description": "schema.paths_mappings_file_description",
+          "minLength": 1,
+          "default": "config/mappings.json"
+        },
+        "cache_dir": {
+          "type": "string",
+          "description": "schema.paths_cache_dir_description",
+          "minLength": 1,
+          "default": "cache"
+        }
+      },
+      "additionalProperties": false
+    },
+    "system": {
+      "type": "object",
+      "description": "schema.system_description",
+      "properties": {
+        "max_threads": {
+          "oneOf": [
+            { "type": "string", "enum": ["auto"] },
+            { "type": "integer", "minimum": 1, "maximum": 128 }
+          ],
+          "description": "schema.system_max_threads_description",
+          "enum_descriptor": {
+            "auto": "schema.system_max_threads_enum_descriptor.auto"
+          },
+          "default": "auto"
+        },
+        "fallback_batch_size": {
+          "type": "integer",
+          "description": "schema.system_fallback_batch_size_description",
+          "minimum": 1,
+          "maximum": 512,
+          "default": 8
+        },
+        "memory_cleanup_interval": {
+          "type": "integer",
+          "description": "schema.system_memory_cleanup_interval_description",
+          "minimum": 60,
+          "maximum": 3600,
+          "default": 300
+        },
+        "thread_pool_timeout": {
+          "type": "integer",
+          "description": "schema.system_thread_pool_timeout_description",
+          "minimum": 1,
+          "maximum": 300,
+          "default": 30
+        },
+        "startup_wait_seconds": {
+          "type": "integer",
+          "description": "schema.system_startup_wait_seconds_description",
+          "minimum": 0,
+          "maximum": 60,
+          "default": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    "memory": {
+      "type": "object",
+      "description": "schema.memory_description",
+      "properties": {
+        "target_memory_usage": {
+          "type": "number",
+          "description": "schema.memory_target_memory_usage_description",
+          "minimum": 0.1,
+          "maximum": 1.0,
+          "default": 0.8
+        },
+        "safety_margin": {
+          "type": "number",
+          "description": "schema.memory_safety_margin_description",
+          "minimum": 0.1,
+          "maximum": 1.0,
+          "default": 0.9
+        },
+        "augmentation_threads": {
+          "oneOf": [
+            { "type": "string", "enum": ["auto"] },
+            { "type": "integer", "minimum": 1, "maximum": 64 }
+          ],
+          "description": "schema.memory_augmentation_threads_description",
+          "enum_descriptor": {
+            "auto": "schema.memory_augmentation_threads_enum_descriptor.auto"
+          },
+          "default": "auto"
+        }
+      },
+      "additionalProperties": false
+    },
+    "training": {
+      "type": "object",
+      "description": "schema.training_description",
+      "properties": {
+        "model_type": {
+          "type": "string",
+          "description": "schema.training_model_type_description",
+          "enum": ["resnet", "resnext", "mobilenet", "shufflenet", "squeezenet", "efficientnet"],
+          "enum_descriptor": {
+            "resnet": "schema.training_model_type_enum_descriptor.resnet",
+            "resnext": "schema.training_model_type_enum_descriptor.resnext",
+            "mobilenet": "schema.training_model_type_enum_descriptor.mobilenet",
+            "shufflenet": "schema.training_model_type_enum_descriptor.shufflenet",
+            "squeezenet": "schema.training_model_type_enum_descriptor.squeezenet",
+            "efficientnet": "schema.training_model_type_enum_descriptor.efficientnet"
+          },
+          "default": "resnet"
+        },
+        "model_name": {
+          "type": "string",
+          "description": "schema.training_model_name_description",
+          "enum": [
+            "resnet18", "resnet34", "resnet50", "resnet101", "resnet152",
+            "resnext50_32x4d", "resnext101_32x8d", "resnext101_64x4d",
+            "mobilenet_v2", "mobilenet_v3_small", "mobilenet_v3_large",
+            "shufflenet_v2_x0_5", "shufflenet_v2_x1_0", "shufflenet_v2_x1_5", "shufflenet_v2_x2_0",
+            "squeezenet1_0", "squeezenet1_1",
+            "efficientnet_b0", "efficientnet_b1", "efficientnet_b2", "efficientnet_b3", "efficientnet_b4", "efficientnet_b5", "efficientnet_b6", "efficientnet_b7", "efficientnet_v2_s", "efficientnet_v2_m", "efficientnet_v2_l"
+          ],
+          "model_type_variants": {
+            "resnet": ["resnet18", "resnet34", "resnet50", "resnet101", "resnet152"],
+            "resnext": ["resnext50_32x4d", "resnext101_32x8d", "resnext101_64x4d"],
+            "mobilenet": ["mobilenet_v2", "mobilenet_v3_small", "mobilenet_v3_large"],
+            "shufflenet": ["shufflenet_v2_x0_5", "shufflenet_v2_x1_0", "shufflenet_v2_x1_5", "shufflenet_v2_x2_0"],
+            "squeezenet": ["squeezenet1_0", "squeezenet1_1"],
+            "efficientnet": ["efficientnet_b0", "efficientnet_b1", "efficientnet_b2", "efficientnet_b3", "efficientnet_b4", "efficientnet_b5", "efficientnet_b6", "efficientnet_b7", "efficientnet_v2_s", "efficientnet_v2_m", "efficientnet_v2_l"]
+          },
+          "default": "resnet50"
+        },
+        "pretrained": {
+          "type": "boolean",
+          "description": "schema.training_pretrained_description",
+          "default": true
+        },
+        "task": {
+          "type": "string",
+          "description": "schema.training_task_description",
+          "enum": ["classification", "multi_label", "detection", "segmentation"],
+          "enum_descriptor": {
+            "classification": "schema.training_task_enum_descriptor.classification",
+            "multi_label": "schema.training_task_enum_descriptor.multi_label",
+            "detection": "schema.training_task_enum_descriptor.detection",
+            "segmentation": "schema.training_task_enum_descriptor.segmentation"
+          },
+          "default": "multi_label"
+        },
+        "batch_size": {
+          "oneOf": [
+            { "type": "string", "enum": ["auto"] },
+            { "type": "integer", "minimum": 1, "maximum": 512 }
+          ],
+          "description": "schema.training_batch_size_description",
+          "default": "auto"
+        },
+        "epochs": {
+          "oneOf": [
+            { "type": "string", "enum": ["auto"] },
+            { "type": "integer", "minimum": 1, "maximum": 1000 }
+          ],
+          "description": "schema.training_epochs_description",
+          "enum_descriptor": {
+            "auto": "schema.training_epochs_enum_descriptor.auto"
+          },
+          "default": "auto"
+        },
+        "learning_rate": {
+          "type": "number",
+          "description": "schema.training_learning_rate_description",
+          "minimum": 1e-8,
+          "maximum": 1.0,
+          "default": 0.001
+        },
+        "weight_decay": {
+          "type": "number",
+          "description": "schema.training_weight_decay_description",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.0001
+        },
+        "input_size": {
+          "type": "integer",
+          "description": "schema.training_input_size_description",
+          "minimum": 32,
+          "maximum": 1024,
+          "default": 224
+        },
+        "normalize": {
+          "type": "object",
+          "description": "schema.training_normalize_description",
+          "properties": {
+            "mean": {
+              "type": "array",
+              "description": "schema.training_normalize_mean_description",
+              "items": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "std": {
+              "type": "array",
+              "description": "schema.training_normalize_std_description",
+              "items": { "type": "number", "minimum": 0.001, "maximum": 1.0 },
+              "minItems": 3,
+              "maxItems": 3
+            }
+          },
+          "required": ["mean", "std"],
+          "additionalProperties": false
+        },
+        "val_ratio": {
+          "type": "number",
+          "description": "schema.training_val_ratio_description",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.2
+        },
+        "dataloader": {
+          "type": "object",
+          "description": "schema.training_dataloader_description",
+          "properties": {
+            "num_workers": {
+              "type": "integer",
+              "description": "schema.training_dataloader_num_workers_description",
+              "minimum": 0,
+              "maximum": 32,
+              "default": 0
+            },
+            "pin_memory": {
+              "type": "boolean",
+              "description": "schema.training_dataloader_pin_memory_description",
+              "default": true
+            },
+            "persistent_workers": {
+              "type": "boolean",
+              "description": "schema.training_dataloader_persistent_workers_description",
+              "default": false
+            },
+            "prefetch_factor": {
+              "type": "integer",
+              "description": "schema.training_dataloader_prefetch_factor_description",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 2
+            }
+          },
+          "additionalProperties": false
+        },
+        "augmentation": {
+          "type": "object",
+          "description": "schema.training_augmentation_description",
+          "properties": {
+            "train": {
+              "type": "array",
+              "description": "schema.training_augmentation_train_description",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string" },
+                  "params": { "type": "object" }
+                },
+                "required": ["type"]
+              }
+            },
+            "val": {
+              "type": "array",
+              "description": "schema.training_augmentation_val_description",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string" },
+                  "params": { "type": "object" }
+                },
+                "required": ["type"]
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "optimizer_type": {
+          "type": "string",
+          "description": "schema.training_optimizer_type_description",
+          "enum": ["sgd", "adam", "adamw", "adamax", "nadam", "radam", "rmsprop", "rprop", "adagrad", "adadelta", "sparse_adam", "lbfgs", "asgd"],
+          "enum_descriptor": {
+            "sgd": "schema.training_optimizer_type_enum_descriptor.sgd",
+            "adam": "schema.training_optimizer_type_enum_descriptor.adam",
+            "adamw": "schema.training_optimizer_type_enum_descriptor.adamw",
+            "adamax": "schema.training_optimizer_type_enum_descriptor.adamax",
+            "nadam": "schema.training_optimizer_type_enum_descriptor.nadam",
+            "radam": "schema.training_optimizer_type_enum_descriptor.radam",
+            "rmsprop": "schema.training_optimizer_type_enum_descriptor.rmsprop",
+            "rprop": "schema.training_optimizer_type_enum_descriptor.rprop",
+            "adagrad": "schema.training_optimizer_type_enum_descriptor.adagrad",
+            "adadelta": "schema.training_optimizer_type_enum_descriptor.adadelta",
+            "sparse_adam": "schema.training_optimizer_type_enum_descriptor.sparse_adam",
+            "lbfgs": "schema.training_optimizer_type_enum_descriptor.lbfgs",
+            "asgd": "schema.training_optimizer_type_enum_descriptor.asgd"
+          },
+          "default": "adamw"
+        },
+        "optimizer_lr": {
+          "type": "number",
+          "description": "schema.training_optimizer_lr_description",
+          "minimum": 1e-8,
+          "maximum": 1.0,
+          "default": 0.001
+        },
+        "optimizer_weight_decay": {
+          "type": "number",
+          "description": "schema.training_optimizer_weight_decay_description",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.01
+        },
+        "optimizer_params": {
+          "type": "object",
+          "description": "schema.training_optimizer_params_description",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "visible": false
+        },
+        "scheduler_type": {
+          "type": "string",
+          "description": "schema.training_scheduler_type_description",
+          "enum": ["step_lr", "multi_step_lr", "exponential_lr", "cosine_annealing_lr", "cosine_annealing_warm_restarts", "reduce_lr_on_plateau", "cyclic_lr", "one_cycle_lr", "polynomial_lr", "linear_lr", "lambda_lr", "multiplicative_lr"],
+          "enum_descriptor": {
+            "step_lr": "schema.training_scheduler_type_enum_descriptor.step_lr",
+            "multi_step_lr": "schema.training_scheduler_type_enum_descriptor.multi_step_lr",
+            "exponential_lr": "schema.training_scheduler_type_enum_descriptor.exponential_lr",
+            "cosine_annealing_lr": "schema.training_scheduler_type_enum_descriptor.cosine_annealing_lr",
+            "cosine_annealing_warm_restarts": "schema.training_scheduler_type_enum_descriptor.cosine_annealing_warm_restarts",
+            "reduce_lr_on_plateau": "schema.training_scheduler_type_enum_descriptor.reduce_lr_on_plateau",
+            "cyclic_lr": "schema.training_scheduler_type_enum_descriptor.cyclic_lr",
+            "one_cycle_lr": "schema.training_scheduler_type_enum_descriptor.one_cycle_lr",
+            "polynomial_lr": "schema.training_scheduler_type_enum_descriptor.polynomial_lr",
+            "linear_lr": "schema.training_scheduler_type_enum_descriptor.linear_lr",
+            "lambda_lr": "schema.training_scheduler_type_enum_descriptor.lambda_lr",
+            "multiplicative_lr": "schema.training_scheduler_type_enum_descriptor.multiplicative_lr"
+          },
+          "default": "step_lr"
+        },
+        "scheduler_step_size": {
+          "type": "integer",
+          "description": "schema.training_scheduler_step_size_description",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 7
+        },
+        "scheduler_gamma": {
+          "type": "number",
+          "description": "schema.training_scheduler_gamma_description",
+          "minimum": 0.001,
+          "maximum": 1.0,
+          "default": 0.1
+        },
+        "scheduler_params": {
+          "type": "object",
+          "description": "schema.training_scheduler_params_description",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "visible": false
+        },
+        "loss_type": {
+          "type": "string",
+          "description": "schema.training_loss_type_description",
+          "enum": ["cross_entropy", "nll_loss", "bce_loss", "bce_with_logits", "multi_margin", "multi_label_margin", "multi_label_soft_margin", "mse_loss", "l1_loss", "smooth_l1", "huber_loss", "kl_div", "margin_ranking", "hinge_embedding", "triplet_margin", "cosine_embedding", "ctc_loss", "poisson_nll", "gaussian_nll"],
+          "enum_descriptor": {
+            "cross_entropy": "schema.training_loss_type_enum_descriptor.cross_entropy",
+            "nll_loss": "schema.training_loss_type_enum_descriptor.nll_loss",
+            "bce_loss": "schema.training_loss_type_enum_descriptor.bce_loss",
+            "bce_with_logits": "schema.training_loss_type_enum_descriptor.bce_with_logits",
+            "multi_margin": "schema.training_loss_type_enum_descriptor.multi_margin",
+            "multi_label_margin": "schema.training_loss_type_enum_descriptor.multi_label_margin",
+            "multi_label_soft_margin": "schema.training_loss_type_enum_descriptor.multi_label_soft_margin",
+            "mse_loss": "schema.training_loss_type_enum_descriptor.mse_loss",
+            "l1_loss": "schema.training_loss_type_enum_descriptor.l1_loss",
+            "smooth_l1": "schema.training_loss_type_enum_descriptor.smooth_l1",
+            "huber_loss": "schema.training_loss_type_enum_descriptor.huber_loss",
+            "kl_div": "schema.training_loss_type_enum_descriptor.kl_div",
+            "margin_ranking": "schema.training_loss_type_enum_descriptor.margin_ranking",
+            "hinge_embedding": "schema.training_loss_type_enum_descriptor.hinge_embedding",
+            "triplet_margin": "schema.training_loss_type_enum_descriptor.triplet_margin",
+            "cosine_embedding": "schema.training_loss_type_enum_descriptor.cosine_embedding",
+            "ctc_loss": "schema.training_loss_type_enum_descriptor.ctc_loss",
+            "poisson_nll": "schema.training_loss_type_enum_descriptor.poisson_nll",
+            "gaussian_nll": "schema.training_loss_type_enum_descriptor.gaussian_nll"
+          },
+          "default": "cross_entropy"
+        },
+        "loss_reduction": {
+          "type": "string",
+          "description": "schema.training_loss_reduction_description",
+          "enum": ["mean", "sum", "none"],
+          "enum_descriptor": {
+            "mean": "schema.training_loss_reduction_enum_descriptor.mean",
+            "sum": "schema.training_loss_reduction_enum_descriptor.sum",
+            "none": "schema.training_loss_reduction_enum_descriptor.none"
+          },
+          "default": "mean"
+        },
+        "loss_params": {
+          "type": "object",
+          "description": "schema.training_loss_params_description",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "visible": false
+        },
+        "weight_init": {
+           "type": "object",
+           "description": "schema.training_weight_init_description",
+           "properties": {
+              "type": { "type": "string" },
+              "params": { "type": "object" }
+           },
+           "required": ["type"],
+           "additionalProperties": false
+        },
+        "checkpoint": {
+           "type": "object",
+           "description": "schema.training_checkpoint_description",
+           "properties": {
+              "save_best_only": { "type": "boolean", "default": true },
+              "save_frequency": { "type": "integer", "minimum": 1, "maximum": 100, "default": 1 },
+              "max_checkpoints": { "type": "integer", "minimum": 1, "maximum": 50, "default": 5 },
+              "checkpoint_dir": { "type": "string", "default": "model" },
+              "best_model_filename": { "type": "string", "default": "best_model.pth" },
+              "training_history_filename": { "type": "string", "default": "training_history.json" }
+           },
+           "additionalProperties": false
+        },
+        "early_stopping": {
+           "type": "object",
+           "description": "schema.training_early_stopping_description",
+           "properties": {
+              "enabled": { "type": "boolean", "default": false },
+              "patience": { "type": "integer", "minimum": 1, "maximum": 100, "default": 10 },
+              "min_delta": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.001 },
+              "monitor": {
+                 "type": "string",
+                 "enum": ["val_loss", "val_accuracy"],
+                 "enum_descriptor": {
+                    "val_loss": "schema.training_early_stopping_monitor_enum_descriptor.val_loss",
+                    "val_accuracy": "schema.training_early_stopping_monitor_enum_descriptor.val_accuracy"
+                 },
+                 "default": "val_loss"
+              }
+           },
+           "additionalProperties": false
+        },
+        "gradient": {
+           "type": "object",
+           "description": "schema.training_gradient_description",
+           "properties": {
+              "clip_norm": { "oneOf": [{ "type": "null" }, { "type": "number", "minimum": 0.0, "maximum": 10.0 }] },
+              "clip_value": { "oneOf": [{ "type": "null" }, { "type": "number", "minimum": 0.0, "maximum": 10.0 }] },
+              "accumulation_steps": { "type": "integer", "minimum": 1, "maximum": 100, "default": 1 }
+           },
+           "additionalProperties": false
+        },
+        "runtime": {
+           "type": "object",
+           "description": "schema.training_runtime_description",
+           "properties": {
+              "mixed_precision": {
+                 "type": "boolean",
+                 "description": "schema.training_runtime_mixed_precision_description",
+                 "default": true
+              },
+              "channels_last": {
+                 "type": "boolean",
+                 "description": "schema.training_runtime_channels_last_description",
+                 "default": true
+              },
+              "allow_tf32": {
+                 "type": "boolean",
+                 "description": "schema.training_runtime_allow_tf32_description",
+                 "default": true
+              },
+              "cudnn_benchmark": {
+                 "type": "boolean",
+                 "description": "schema.training_runtime_cudnn_benchmark_description",
+                 "default": true
+              }
+           },
+           "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "dataset": {
+       "type": "object",
+       "description": "schema.dataset_description",
+       "properties": {
+         "image_extensions": {
+           "type": "array",
+           "description": "schema.dataset_image_extensions_description",
+           "items": { "type": "string", "pattern": "^\\..+$" },
+           "default": [".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".webp"]
+         }
+       },
+       "additionalProperties": false
+     },
+    "optimizers": {
+       "type": "object",
+       "description": "schema.optimizers_description",
+       "properties": {
+         "defaults": {
+           "type": "object",
+           "description": "schema.optimizers_defaults_description",
+          "properties": {
+            "sgd": {
+              "type": "object",
+              "properties": {
+                "lr": { "type": "number", "minimum": 1e-8, "maximum": 1.0, "default": 0.01 },
+                "momentum": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.9 },
+                "weight_decay": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.0001 },
+                "nesterov": { "type": "boolean", "default": true },
+                "dampening": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0 }
+              },
+              "additionalProperties": false
+            },
+            "adam": {
+              "type": "object",
+              "properties": {
+                "lr": { "type": "number", "minimum": 1e-8, "maximum": 1.0, "default": 0.001 },
+                "betas": { "type": "array", "items": { "type": "number", "minimum": 0.0, "maximum": 1.0 }, "minItems": 2, "maxItems": 2, "default": [0.9, 0.999] },
+                "eps": { "type": "number", "minimum": 1e-12, "maximum": 1e-4, "default": 1e-8 },
+                "weight_decay": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0 },
+                "amsgrad": { "type": "boolean", "default": false }
+              },
+              "additionalProperties": false
+            },
+            "adamw": {
+              "type": "object",
+              "properties": {
+                "lr": { "type": "number", "minimum": 1e-8, "maximum": 1.0, "default": 0.001 },
+                "betas": { "type": "array", "items": { "type": "number", "minimum": 0.0, "maximum": 1.0 }, "minItems": 2, "maxItems": 2, "default": [0.9, 0.999] },
+                "eps": { "type": "number", "minimum": 1e-12, "maximum": 1e-4, "default": 1e-8 },
+                "weight_decay": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.01 },
+                "amsgrad": { "type": "boolean", "default": false }
+              },
+              "additionalProperties": false
+            },
+            "adamax": {
+              "type": "object",
+              "properties": {
+                "lr": { "type": "number", "minimum": 1e-8, "maximum": 1.0, "default": 0.002 },
+                "betas": { "type": "array", "items": { "type": "number", "minimum": 0.0, "maximum": 1.0 }, "minItems": 2, "maxItems": 2, "default": [0.9, 0.999] },
+                "eps": { "type": "number", "minimum": 1e-12, "maximum": 1e-4, "default": 1e-8 },
+                "weight_decay": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0 }
+              },
+              "additionalProperties": false
+            },
+            "nadam": {
+              "type": "object",
+              "properties": {
+                "lr": { "type": "number", "minimum": 1e-8, "maximum": 1.0, "default": 0.002 },
+                "betas": { "type": "array", "items": { "type": "number", "minimum": 0.0, "maximum": 1.0 }, "minItems": 2, "maxItems": 2, "default": [0.9, 0.999] },
+                "eps": { "type": "number", "minimum": 1e-12, "maximum": 1e-4, "default": 1e-8 },
+                "weight_decay": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0 },
+                "momentum_decay": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.004 }
+              },
+              "additionalProperties": false
+            },
+            "radam": {
+              "type": "object",
+              "properties": {
+                "lr": { "type": "number", "minimum": 1e-8, "maximum": 1.0, "default": 0.001 },
+                "betas": { "type": "array", "items": { "type": "number", "minimum": 0.0, "maximum": 1.0 }, "minItems": 2, "maxItems": 2, "default": [0.9, 0.999] },
+                "eps": { "type": "number", "minimum": 1e-12, "maximum": 1e-4, "default": 1e-8 },
+                "weight_decay": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0 }
+              },
+              "additionalProperties": false
+            },
+            "rmsprop": {
+              "type": "object",
+              "properties": {
+                "lr": { "type": "number", "minimum": 1e-8, "maximum": 1.0, "default": 0.01 },
+                "alpha": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.99 },
+                "eps": { "type": "number", "minimum": 1e-12, "maximum": 1e-4, "default": 1e-8 },
+                "weight_decay": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0 },
+                "momentum": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0 },
+                "centered": { "type": "boolean", "default": false }
+              },
+              "additionalProperties": false
+            },
+            "rprop": {
+              "type": "object",
+              "properties": {
+                "lr": { "type": "number", "minimum": 1e-8, "maximum": 1.0, "default": 0.01 },
+                "etas": { "type": "array", "items": { "type": "number", "minimum": 0.0, "maximum": 2.0 }, "minItems": 2, "maxItems": 2, "default": [0.5, 1.2] },
+                "step_sizes": { "type": "array", "items": { "type": "number", "minimum": 1e-10, "maximum": 100 }, "minItems": 2, "maxItems": 2, "default": [1e-6, 50] }
+              },
+              "additionalProperties": false
+            },
+            "adagrad": {
+              "type": "object",
+              "properties": {
+                "lr": { "type": "number", "minimum": 1e-8, "maximum": 1.0, "default": 0.01 },
+                "lr_decay": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0 },
+                "weight_decay": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0 },
+                "initial_accumulator_value": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0 },
+                "eps": { "type": "number", "minimum": 1e-12, "maximum": 1e-4, "default": 1e-10 }
+              },
+              "additionalProperties": false
+            },
+            "adadelta": {
+              "type": "object",
+              "properties": {
+                "lr": { "type": "number", "minimum": 1e-8, "maximum": 1.0, "default": 1.0 },
+                "rho": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.9 },
+                "eps": { "type": "number", "minimum": 1e-12, "maximum": 1e-4, "default": 1e-6 },
+                "weight_decay": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0 }
+              },
+              "additionalProperties": false
+            },
+            "sparse_adam": {
+              "type": "object",
+              "properties": {
+                "lr": { "type": "number", "minimum": 1e-8, "maximum": 1.0, "default": 0.001 },
+                "betas": { "type": "array", "items": { "type": "number", "minimum": 0.0, "maximum": 1.0 }, "minItems": 2, "maxItems": 2, "default": [0.9, 0.999] },
+                "eps": { "type": "number", "minimum": 1e-12, "maximum": 1e-4, "default": 1e-8 }
+              },
+              "additionalProperties": false
+            },
+            "lbfgs": {
+              "type": "object",
+              "properties": {
+                "lr": { "type": "number", "minimum": 1e-8, "maximum": 1.0, "default": 1 },
+                "max_iter": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 20 },
+                "max_eval": { "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 1, "maximum": 10000 }] },
+                "tolerance_grad": { "type": "number", "minimum": 1e-12, "maximum": 1.0, "default": 1e-7 },
+                "tolerance_change": { "type": "number", "minimum": 1e-12, "maximum": 1.0, "default": 1e-9 },
+                "history_size": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 100 },
+                "line_search_fn": {
+                  "oneOf": [
+                    { "type": "null" },
+                    {
+                      "type": "string",
+                      "enum": ["strong_wolfe"],
+                      "enum_descriptor": {
+                        "strong_wolfe": "Strong Wolfe Line Search - Advanced line search algorithm for L-BFGS optimization that ensures both sufficient decrease (Armijo condition) and curvature conditions (strong Wolfe conditions). Affects optimization convergence quality by guaranteeing appropriate step sizes that satisfy mathematical optimality criteria. Controls step length selection through rigorous mathematical conditions that ensure convergence properties while maintaining computational efficiency. Essential for L-BFGS theoretical guarantees and provides robust step size selection for quasi-Newton optimization methods."
+                      }
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            "asgd": {
+              "type": "object",
+              "properties": {
+                "lr": { "type": "number", "minimum": 1e-8, "maximum": 1.0, "default": 0.01 },
+                "lambd": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.0001 },
+                "alpha": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.75 },
+                "t0": { "type": "number", "minimum": 0.0, "maximum": 1e10, "default": 1000000 },
+                "weight_decay": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "schedulers": {
+       "type": "object",
+       "description": "schema.schedulers_description",
+       "properties": {
+         "defaults": {
+           "type": "object",
+           "description": "schema.schedulers_defaults_description",
+          "properties": {
+            "step_lr": {
+              "type": "object",
+              "properties": {
+                "step_size": { "type": "integer", "minimum": 1, "maximum": 10000, "default": 30 },
+                "gamma": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.1 },
+                "last_epoch": { "type": "integer", "minimum": -1, "maximum": 10000, "default": -1 }
+              },
+              "additionalProperties": false
+            },
+            "multi_step_lr": {
+              "type": "object",
+              "properties": {
+                "milestones": { "type": "array", "items": { "type": "integer", "minimum": 1, "maximum": 10000 }, "minItems": 1, "default": [30, 60, 90] },
+                "gamma": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.1 },
+                "last_epoch": { "type": "integer", "minimum": -1, "maximum": 10000, "default": -1 }
+              },
+              "additionalProperties": false
+            },
+            "exponential_lr": {
+              "type": "object",
+              "properties": {
+                "gamma": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.95 },
+                "last_epoch": { "type": "integer", "minimum": -1, "maximum": 10000, "default": -1 }
+              },
+              "additionalProperties": false
+            },
+            "cosine_annealing_lr": {
+              "type": "object",
+              "properties": {
+                "T_max": { "type": "integer", "minimum": 1, "maximum": 10000, "default": 100 },
+                "eta_min": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0 },
+                "last_epoch": { "type": "integer", "minimum": -1, "maximum": 10000, "default": -1 }
+              },
+              "additionalProperties": false
+            },
+            "cosine_annealing_warm_restarts": {
+              "type": "object",
+              "properties": {
+                "T_0": { "type": "integer", "minimum": 1, "maximum": 10000, "default": 100 },
+                "T_mult": { "type": "integer", "minimum": 1, "maximum": 100, "default": 2 },
+                "eta_min": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0 },
+                "last_epoch": { "type": "integer", "minimum": -1, "maximum": 10000, "default": -1 }
+              },
+              "additionalProperties": false
+            },
+            "reduce_lr_on_plateau": {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "enum": ["min", "max"],
+                  "enum_descriptor": {
+                    "min": "schema.schedulers_defaults_reduce_lr_on_plateau_mode_enum_descriptor.min",
+                    "max": "schema.schedulers_defaults_reduce_lr_on_plateau_mode_enum_descriptor.max"
+                  },
+                  "default": "min"
+                },
+                "factor": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.1 },
+                "patience": { "type": "integer", "minimum": 0, "maximum": 1000, "default": 10 },
+                "threshold": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 1e-4 },
+                "threshold_mode": {
+                  "type": "string",
+                  "enum": ["rel", "abs"],
+                  "enum_descriptor": {
+                    "rel": "schema.schedulers_defaults_reduce_lr_on_plateau_threshold_mode_enum_descriptor.rel",
+                    "abs": "schema.schedulers_defaults_reduce_lr_on_plateau_threshold_mode_enum_descriptor.abs"
+                  },
+                  "default": "rel"
+                },
+                "cooldown": { "type": "integer", "minimum": 0, "maximum": 1000, "default": 0 },
+                "min_lr": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0 },
+                "eps": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 1e-8 }
+              },
+              "additionalProperties": false
+            },
+            "cyclic_lr": {
+              "type": "object",
+              "properties": {
+                "base_lr": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.001 },
+                "max_lr": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.01 },
+                "step_size_up": { "type": "integer", "minimum": 1, "maximum": 100000, "default": 2000 },
+                "step_size_down": { "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 1, "maximum": 100000 }] },
+                "mode": {
+                  "type": "string",
+                  "enum": ["triangular", "triangular2", "exp_range"],
+                  "enum_descriptor": {
+                    "triangular": "schema.schedulers_defaults_cyclic_lr_mode_enum_descriptor.triangular",
+                    "triangular2": "schema.schedulers_defaults_cyclic_lr_mode_enum_descriptor.triangular2",
+                    "exp_range": "schema.schedulers_defaults_cyclic_lr_mode_enum_descriptor.exp_range"
+                  },
+                  "default": "triangular"
+                },
+                "gamma": { "type": "number", "minimum": 0.0, "maximum": 2.0, "default": 1.0 },
+                "scale_fn": { "type": "null" },
+                "scale_mode": {
+                  "type": "string",
+                  "enum": ["cycle", "iterations"],
+                  "enum_descriptor": {
+                    "cycle": "schema.schedulers_defaults_cyclic_lr_scale_mode_enum_descriptor.cycle",
+                    "iterations": "schema.schedulers_defaults_cyclic_lr_scale_mode_enum_descriptor.iterations"
+                  },
+                  "default": "cycle"
+                },
+                "cycle_momentum": { "type": "boolean", "default": true },
+                "base_momentum": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.8 },
+                "max_momentum": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.9 },
+                "last_epoch": { "type": "integer", "minimum": -1, "maximum": 10000, "default": -1 }
+              },
+              "additionalProperties": false
+            },
+            "one_cycle_lr": {
+              "type": "object",
+              "properties": {
+                "max_lr": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.01 },
+                "total_steps": { "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 1, "maximum": 1000000 }] },
+                "epochs": { "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 1, "maximum": 10000 }] },
+                "steps_per_epoch": { "oneOf": [{ "type": "null" }, { "type": "integer", "minimum": 1, "maximum": 100000 }] },
+                "pct_start": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.3 },
+                "anneal_strategy": {
+                  "type": "string",
+                  "enum": ["cos", "linear"],
+                  "enum_descriptor": {
+                    "cos": "schema.schedulers_defaults_one_cycle_lr_anneal_strategy_enum_descriptor.cos",
+                    "linear": "schema.schedulers_defaults_one_cycle_lr_anneal_strategy_enum_descriptor.linear"
+                  },
+                  "default": "cos"
+                },
+                "cycle_momentum": { "type": "boolean", "default": true },
+                "base_momentum": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.85 },
+                "max_momentum": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.95 },
+                "div_factor": { "type": "number", "minimum": 1.0, "maximum": 100.0, "default": 25.0 },
+                "final_div_factor": { "type": "number", "minimum": 1.0, "maximum": 100000.0, "default": 10000.0 },
+                "three_phase": { "type": "boolean", "default": false },
+                "last_epoch": { "type": "integer", "minimum": -1, "maximum": 10000, "default": -1 }
+              },
+              "additionalProperties": false
+            },
+            "polynomial_lr": {
+              "type": "object",
+              "properties": {
+                "total_iters": { "type": "integer", "minimum": 1, "maximum": 100000, "default": 100 },
+                "power": { "type": "number", "minimum": 0.0, "maximum": 10.0, "default": 1.0 },
+                "last_epoch": { "type": "integer", "minimum": -1, "maximum": 10000, "default": -1 }
+              },
+              "additionalProperties": false
+            },
+            "linear_lr": {
+              "type": "object",
+              "properties": {
+                "start_factor": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.333333 },
+                "end_factor": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 1.0 },
+                "total_iters": { "type": "integer", "minimum": 1, "maximum": 100000, "default": 100 },
+                "last_epoch": { "type": "integer", "minimum": -1, "maximum": 10000, "default": -1 }
+              },
+              "additionalProperties": false
+            },
+            "lambda_lr": {
+               "type": "object",
+               "properties": {
+                 "lr_lambda": { "type": "string", "description": "schema.schedulers_defaults_lambda_lr_lr_lambda_description" },
+                 "last_epoch": { "type": "integer", "minimum": -1, "maximum": 10000, "default": -1 }
+               },
+               "additionalProperties": false
+             },
+             "multiplicative_lr": {
+               "type": "object",
+               "properties": {
+                 "lr_lambda": { "type": "string", "description": "schema.schedulers_defaults_multiplicative_lr_lr_lambda_description" },
+                 "last_epoch": { "type": "integer", "minimum": -1, "maximum": 10000, "default": -1 }
+               },
+               "additionalProperties": false
+             }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "losses": {
+       "type": "object",
+       "description": "schema.losses_description",
+       "properties": {
+         "defaults": {
+           "type": "object",
+           "description": "schema.losses_defaults_description",
+          "properties": {
+            "cross_entropy": {
+              "type": "object",
+              "properties": {
+                "weight": { "type": ["array", "null"], "items": { "type": "number", "minimum": 0.0 } },
+                "size_average": { "type": ["boolean", "null"] },
+                "ignore_index": { "type": "integer", "minimum": -100, "maximum": 1000, "default": -100 },
+                "reduce": { "type": ["boolean", "null"] },
+                "reduction": { "type": "string", "enum": ["none", "mean", "sum"], "default": "mean" },
+                "label_smoothing": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.0 }
+              },
+              "additionalProperties": false
+            },
+            "nll_loss": {
+              "type": "object",
+              "properties": {
+                "weight": { "type": ["array", "null"], "items": { "type": "number", "minimum": 0.0 } },
+                "size_average": { "type": ["boolean", "null"] },
+                "ignore_index": { "type": "integer", "minimum": -100, "maximum": 1000, "default": -100 },
+                "reduce": { "type": ["boolean", "null"] },
+                "reduction": { "type": "string", "enum": ["none", "mean", "sum"], "default": "mean" }
+              },
+              "additionalProperties": false
+            },
+            "bce_loss": {
+              "type": "object",
+              "properties": {
+                "weight": { "type": ["array", "null"], "items": { "type": "number", "minimum": 0.0 } },
+                "size_average": { "type": ["boolean", "null"] },
+                "reduce": { "type": ["boolean", "null"] },
+                "reduction": { "type": "string", "enum": ["none", "mean", "sum"], "default": "mean" },
+                "pos_weight": { "type": ["array", "null"], "items": { "type": "number", "minimum": 0.0 } }
+              },
+              "additionalProperties": false
+            },
+            "bce_with_logits": {
+              "type": "object",
+              "properties": {
+                "weight": { "type": ["array", "null"], "items": { "type": "number", "minimum": 0.0 } },
+                "size_average": { "type": ["boolean", "null"] },
+                "reduce": { "type": ["boolean", "null"] },
+                "reduction": { "type": "string", "enum": ["none", "mean", "sum"], "default": "mean" },
+                "pos_weight": { "type": ["array", "null"], "items": { "type": "number", "minimum": 0.0 } }
+              },
+              "additionalProperties": false
+            },
+            "multi_margin": {
+              "type": "object",
+              "properties": {
+                "p": {
+                  "type": "integer",
+                  "enum": [1, 2],
+                  "enum_descriptor": {
+                    "1": "schema.losses_defaults_multi_margin_p_enum_descriptor.1",
+                    "2": "schema.losses_defaults_multi_margin_p_enum_descriptor.2"
+                  },
+                  "default": 1
+                },
+                "margin": { "type": "number", "minimum": 0.0, "maximum": 100.0, "default": 1.0 },
+                "weight": { "type": ["array", "null"], "items": { "type": "number", "minimum": 0.0 } },
+                "size_average": { "type": ["boolean", "null"] },
+                "reduce": { "type": ["boolean", "null"] },
+                "reduction": { "type": "string", "enum": ["none", "mean", "sum"], "default": "mean" }
+              },
+              "additionalProperties": false
+            },
+            "multi_label_margin": {
+              "type": "object",
+              "properties": {
+                "size_average": { "type": ["boolean", "null"] },
+                "reduce": { "type": ["boolean", "null"] },
+                "reduction": { "type": "string", "enum": ["none", "mean", "sum"], "default": "mean" }
+              },
+              "additionalProperties": false
+            },
+            "multi_label_soft_margin": {
+              "type": "object",
+              "properties": {
+                "weight": { "type": ["array", "null"], "items": { "type": "number", "minimum": 0.0 } },
+                "size_average": { "type": ["boolean", "null"] },
+                "reduce": { "type": ["boolean", "null"] },
+                "reduction": { "type": "string", "enum": ["none", "mean", "sum"], "default": "mean" }
+              },
+              "additionalProperties": false
+            },
+            "mse_loss": {
+              "type": "object",
+              "properties": {
+                "size_average": { "type": ["boolean", "null"] },
+                "reduce": { "type": ["boolean", "null"] },
+                "reduction": { "type": "string", "enum": ["none", "mean", "sum"], "default": "mean" }
+              },
+              "additionalProperties": false
+            },
+            "l1_loss": {
+              "type": "object",
+              "properties": {
+                "size_average": { "type": ["boolean", "null"] },
+                "reduce": { "type": ["boolean", "null"] },
+                "reduction": { "type": "string", "enum": ["none", "mean", "sum"], "default": "mean" }
+              },
+              "additionalProperties": false
+            },
+            "smooth_l1": {
+              "type": "object",
+              "properties": {
+                "size_average": { "type": ["boolean", "null"] },
+                "reduce": { "type": ["boolean", "null"] },
+                "reduction": { "type": "string", "enum": ["none", "mean", "sum"], "default": "mean" },
+                "beta": { "type": "number", "minimum": 0.0, "maximum": 100.0, "default": 1.0 }
+              },
+              "additionalProperties": false
+            },
+            "huber_loss": {
+              "type": "object",
+              "properties": {
+                "reduction": { "type": "string", "enum": ["none", "mean", "sum"], "default": "mean" },
+                "delta": { "type": "number", "minimum": 0.0, "maximum": 100.0, "default": 1.0 }
+              },
+              "additionalProperties": false
+            },
+            "kl_div": {
+              "type": "object",
+              "properties": {
+                "size_average": { "type": ["boolean", "null"] },
+                "reduce": { "type": ["boolean", "null"] },
+                "reduction": {
+                  "type": "string",
+                  "enum": ["none", "mean", "sum", "batchmean"],
+                  "enum_descriptor": {
+                    "none": "schema.losses_defaults_kl_div_reduction_enum_descriptor.none",
+                    "mean": "schema.losses_defaults_kl_div_reduction_enum_descriptor.mean",
+                    "sum": "schema.losses_defaults_kl_div_reduction_enum_descriptor.sum",
+                    "batchmean": "schema.losses_defaults_kl_div_reduction_enum_descriptor.batchmean"
+                  },
+                  "default": "batchmean"
+                },
+                "log_target": { "type": "boolean", "default": false }
+              },
+              "additionalProperties": false
+            },
+            "margin_ranking": {
+              "type": "object",
+              "properties": {
+                "margin": { "type": "number", "minimum": 0.0, "maximum": 100.0, "default": 0.0 },
+                "size_average": { "type": ["boolean", "null"] },
+                "reduce": { "type": ["boolean", "null"] },
+                "reduction": { "type": "string", "enum": ["none", "mean", "sum"], "default": "mean" }
+              },
+              "additionalProperties": false
+            },
+            "hinge_embedding": {
+              "type": "object",
+              "properties": {
+                "margin": { "type": "number", "minimum": 0.0, "maximum": 100.0, "default": 1.0 },
+                "size_average": { "type": ["boolean", "null"] },
+                "reduce": { "type": ["boolean", "null"] },
+                "reduction": { "type": "string", "enum": ["none", "mean", "sum"], "default": "mean" }
+              },
+              "additionalProperties": false
+            },
+            "triplet_margin": {
+              "type": "object",
+              "properties": {
+                "margin": { "type": "number", "minimum": 0.0, "maximum": 100.0, "default": 1.0 },
+                "p": { "type": "number", "minimum": 1.0, "maximum": 100.0, "default": 2.0 },
+                "eps": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 1e-6 },
+                "swap": { "type": "boolean", "default": false },
+                "size_average": { "type": ["boolean", "null"] },
+                "reduce": { "type": ["boolean", "null"] },
+                "reduction": { "type": "string", "enum": ["none", "mean", "sum"], "default": "mean" }
+              },
+              "additionalProperties": false
+            },
+            "cosine_embedding": {
+              "type": "object",
+              "properties": {
+                "margin": { "type": "number", "minimum": 0.0, "maximum": 100.0, "default": 0.0 },
+                "size_average": { "type": ["boolean", "null"] },
+                "reduce": { "type": ["boolean", "null"] },
+                "reduction": { "type": "string", "enum": ["none", "mean", "sum"], "default": "mean" }
+              },
+              "additionalProperties": false
+            },
+            "ctc_loss": {
+              "type": "object",
+              "properties": {
+                "blank": { "type": "integer", "minimum": 0, "maximum": 10000, "default": 0 },
+                "reduction": { "type": "string", "enum": ["none", "mean", "sum"], "default": "mean" },
+                "zero_infinity": { "type": "boolean", "default": false }
+              },
+              "additionalProperties": false
+            },
+            "poisson_nll": {
+              "type": "object",
+              "properties": {
+                "log_input": { "type": "boolean", "default": true },
+                "full": { "type": "boolean", "default": false },
+                "eps": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 1e-8 },
+                "size_average": { "type": ["boolean", "null"] },
+                "reduce": { "type": ["boolean", "null"] },
+                "reduction": { "type": "string", "enum": ["none", "mean", "sum"], "default": "mean" }
+              },
+              "additionalProperties": false
+            },
+            "gaussian_nll": {
+              "type": "object",
+              "properties": {
+                "full": { "type": "boolean", "default": false },
+                "eps": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 1e-8 },
+                "reduction": { "type": "string", "enum": ["none", "mean", "sum"], "default": "mean" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "models": {
+       "type": "object",
+       "description": "schema.models_description",
+       "properties": {
+         "resnet": {
+           "type": "object",
+           "description": "schema.models_resnet_description",
+           "properties": {
+             "variants": {
+               "type": "object",
+               "description": "schema.models_resnet_variants_description",
+              "properties": {
+                "resnet18": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 11689512 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 64 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "resnet34": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 21822304 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 32 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "resnet50": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 25557032 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 32 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "resnet101": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 44549160 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 16 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "resnet152": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 60192808 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 8 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "default_optimizer": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["adamw", "adam", "sgd"],
+                  "enum_descriptor": {
+                    "adamw": "schema.models_resnet_default_optimizer_type_enum_descriptor.adamw",
+                    "adam": "schema.models_resnet_default_optimizer_type_enum_descriptor.adam",
+                    "sgd": "schema.models_resnet_default_optimizer_type_enum_descriptor.sgd"
+                  },
+                  "default": "adamw"
+                },
+                "lr": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.001 },
+                "weight_decay": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.0001 }
+              },
+              "additionalProperties": false
+            },
+            "default_scheduler": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["step_lr", "cosine_annealing_lr", "reduce_lr_on_plateau"],
+                  "enum_descriptor": {
+                    "step_lr": "schema.models_resnet_default_scheduler_type_enum_descriptor.step_lr",
+                    "cosine_annealing_lr": "schema.models_resnet_default_scheduler_type_enum_descriptor.cosine_annealing_lr",
+                    "reduce_lr_on_plateau": "schema.models_resnet_default_scheduler_type_enum_descriptor.reduce_lr_on_plateau"
+                  },
+                  "default": "step_lr"
+                },
+                "step_size": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 7 },
+                "gamma": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.1 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "resnext": {
+          "type": "object",
+          "description": "schema.models_resnext_description",
+          "properties": {
+            "variants": {
+              "type": "object",
+              "description": "schema.models_resnext_variants_description",
+              "properties": {
+                "resnext50_32x4d": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 25028904 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 32 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "resnext101_32x8d": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 88791336 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 16 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "resnext101_64x4d": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 83668584 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 16 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "default_optimizer": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["adamw", "adam", "sgd"], "default": "adamw" },
+                "lr": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.001 },
+                "weight_decay": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.0001 }
+              },
+              "additionalProperties": false
+            },
+            "default_scheduler": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["step_lr", "cosine_annealing_lr", "reduce_lr_on_plateau"], "default": "step_lr" },
+                "step_size": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 7 },
+                "gamma": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.1 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "mobilenet": {
+          "type": "object",
+          "description": "schema.models_mobilenet_description",
+          "properties": {
+            "variants": {
+              "type": "object",
+              "description": "schema.models_mobilenet_variants_description",
+              "properties": {
+                "mobilenet_v2": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 3504872 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 128 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "mobilenet_v3_small": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 2542856 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 256 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "mobilenet_v3_large": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 5483032 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 128 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "default_optimizer": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["adamw", "adam", "sgd"], "default": "adamw" },
+                "lr": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.001 },
+                "weight_decay": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.0001 }
+              },
+              "additionalProperties": false
+            },
+            "default_scheduler": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["step_lr", "cosine_annealing_lr", "reduce_lr_on_plateau"], "default": "step_lr" },
+                "step_size": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 7 },
+                "gamma": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.1 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "shufflenet": {
+          "type": "object",
+          "description": "schema.models_shufflenet_description",
+          "properties": {
+            "variants": {
+              "type": "object",
+              "description": "schema.models_shufflenet_variants_description",
+              "properties": {
+                "shufflenet_v2_x0_5": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 1366792 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 512 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "shufflenet_v2_x1_0": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 2278604 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 256 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "shufflenet_v2_x1_5": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 3503624 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 128 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "shufflenet_v2_x2_0": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 7393996 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 64 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "default_optimizer": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["adamw", "adam", "sgd"], "default": "adamw" },
+                "lr": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.001 },
+                "weight_decay": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.0001 }
+              },
+              "additionalProperties": false
+            },
+            "default_scheduler": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["step_lr", "cosine_annealing_lr", "reduce_lr_on_plateau"], "default": "step_lr" },
+                "step_size": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 7 },
+                "gamma": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.1 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "squeezenet": {
+          "type": "object",
+          "description": "schema.models_squeezenet_description",
+          "properties": {
+            "variants": {
+              "type": "object",
+              "description": "schema.models_squeezenet_variants_description",
+              "properties": {
+                "squeezenet1_0": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 1248424 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 512 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "squeezenet1_1": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 1235496 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 512 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "default_optimizer": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["adamw", "adam", "sgd"], "default": "adamw" },
+                "lr": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.001 },
+                "weight_decay": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.0001 }
+              },
+              "additionalProperties": false
+            },
+            "default_scheduler": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["step_lr", "cosine_annealing_lr", "reduce_lr_on_plateau"], "default": "step_lr" },
+                "step_size": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 7 },
+                "gamma": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.1 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "efficientnet": {
+          "type": "object",
+          "description": "schema.models_efficientnet_description",
+          "properties": {
+            "variants": {
+              "type": "object",
+              "description": "schema.models_efficientnet_variants_description",
+              "properties": {
+                "efficientnet_b0": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 5288548 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 128 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "efficientnet_b1": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 7794184 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 64 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 240 }
+                  },
+                  "additionalProperties": false
+                },
+                "efficientnet_b2": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 9109994 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 64 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 260 }
+                  },
+                  "additionalProperties": false
+                },
+                "efficientnet_b3": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 12233232 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 32 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 300 }
+                  },
+                  "additionalProperties": false
+                },
+                "efficientnet_b4": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 19341616 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 16 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 380 }
+                  },
+                  "additionalProperties": false
+                },
+                "efficientnet_b5": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 30389784 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 8 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 456 }
+                  },
+                  "additionalProperties": false
+                },
+                "efficientnet_b6": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 43040704 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 8 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 528 }
+                  },
+                  "additionalProperties": false
+                },
+                "efficientnet_b7": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 66347960 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default":  4 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 600 }
+                  },
+                  "additionalProperties": false
+                },
+                "efficientnet_v2_s": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 21458488 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 16 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 384 }
+                  },
+                  "additionalProperties": false
+                },
+                "efficientnet_v2_m": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 54139356 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 8 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 480 }
+                  },
+                  "additionalProperties": false
+                },
+                "efficientnet_v2_l": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 118515272 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 4 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 480 }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "default_optimizer": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["adamw", "adam", "sgd"], "default": "adamw" },
+                "lr": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.001 },
+                "weight_decay": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.0001 }
+              },
+              "additionalProperties": false
+            },
+            "default_scheduler": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["step_lr", "cosine_annealing_lr", "reduce_lr_on_plateau"], "default": "step_lr" },
+                "step_size": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 7 },
+                "gamma": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.1 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "supported_types": {
+          "type": "array",
+          "description": "schema.models_supported_types_description",
+          "items": { "type": "string", "enum": ["resnet", "resnext", "mobilenet", "shufflenet", "squeezenet", "efficientnet"] },
+          "default": ["resnet", "resnext", "mobilenet", "shufflenet", "squeezenet", "efficientnet"],
+          "visible": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "required": ["general", "api", "ui", "paths", "system", "memory", "training", "dataset", "optimizers", "schedulers", "losses", "models"]
+}
