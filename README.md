@@ -16,6 +16,7 @@ Notes:
 - No global installs. On first run, a local virtual environment (venv) is created and all packages are installed there.
 - PyTorch and xFormers CUDA wheels are auto‑selected either by autodetection or via `config/packages.jsonc` → `pytorch_cuda_version` (default: `cu129`). If you’re CPU‑only, remove that key (or leave it empty) and install a CPU build of torch.
 - If your installed CUDA runtime differs from the configured one, adjust `pytorch_cuda_version` accordingly; otherwise CUDA‑specific wheels (xFormers) may fail to install.
+- Platform/testing status: we have not yet been able to test on Linux environments or with AMD GPUs. We aim for multi‑compatibility and a friendly UX, but this is still very early; issues may occur.
 
 
 ## Quick start
