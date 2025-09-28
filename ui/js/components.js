@@ -5,6 +5,7 @@
   const text = hs.text || {};
   const t = text.t || ((key, fallback)=> fallback ?? key);
   const actions = hs.actions || {};
+  const markdown = hs.markdown || null;
 
   // Global click handler for custom dropdowns
   Q(document).on('click', (e) => {
@@ -19,7 +20,7 @@
     }
     
     // Special handling for pages with titles and descriptions
-  const pagesWithDescriptions = ['augmentation', 'training', 'dataset', 'projects', 'status', 'heatmap', 'memory', 'updates'];
+  const pagesWithDescriptions = ['augmentation', 'training', 'dataset', 'projects', 'status', 'heatmap', 'memory', 'updates', 'about'];
     if(pagesWithDescriptions.includes(name)){
       const title = t(`${name}_ui.page_title`, name.charAt(0).toUpperCase() + name.slice(1));
       const description = t(`${name}_ui.page_description`, '');
@@ -102,6 +103,9 @@
         break;
       case 'updates':
         state.pages[name] = buildUpdatesPage();
+        break;
+      case 'about':
+        state.pages[name] = buildAboutPage();
         break;
       default:
         state.pages[name] = Q('<div>').text(t('ui.page_not_implemented', 'Page not implemented')).elements[0];
@@ -389,7 +393,7 @@
   function buildOptimizerSettingsCard(groupName, trainingSchema, trainingConfig){
     const card = Q('<div class="card">');
     Q('<h3 class="card-header">').text(groupName).appendTo(card);
-    const body = Q('<div class="card-body column gap">');
+  const body = Q('<div class="card-body">');
 
     const typeSchema = trainingSchema.properties.optimizer_type;
     const currentType = trainingConfig.optimizer_type || typeSchema?.default || 'adamw';
@@ -1052,6 +1056,35 @@
     checkBtn.on('click', () => actions.runUpdatesCheck());
     applyBtn.on('click', () => actions.applySystemUpdates());
     setTimeout(() => actions.renderUpdatesState(), 0);
+
+    return wrap.elements[0];
+  }
+
+  function buildAboutPage(){
+    const wrap = Q('<div class="about-page">');
+    const card = Q('<div class="card">');
+    Q('<h3 class="card-header">').text(t('about_ui.card_title', 'About Hootsight')).appendTo(card);
+
+    const body = Q('<div class="card-body column gap">');
+    const introText = t('about_ui.intro', '');
+    if(introText && introText !== 'about_ui.intro'){
+      Q('<p class="about-intro muted">').text(introText).appendTo(body);
+    }
+
+    let contentSource = t('about_ui.content_markdown', '');
+    if(!contentSource || contentSource === 'about_ui.content_markdown'){
+      contentSource = '';
+    }
+    const content = Q('<div class="markdown-body">');
+    if(markdown && typeof markdown.render === 'function'){
+      content.html(markdown.render(contentSource));
+    } else {
+      content.text(contentSource);
+    }
+
+    body.append(content);
+    card.append(body);
+    wrap.append(card);
 
     return wrap.elements[0];
   }

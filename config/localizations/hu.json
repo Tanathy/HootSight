@@ -1,104 +1,104 @@
 {
   "language_name": "Magyar",
   "activations": {
-  "not_supported": "Nem támogatott aktiváció: {activation}. Elérhető opciók: {available}",
-  "created": "Aktivációs függvényt létrehoztuk: {activation}, paraméterek: {params}",
-  "creation_failed": "Nem sikerült létrehozni az aktivációt: {error}",
-  "invalid_params": "Érvénytelen paraméterek az aktivációhoz: {error}",
-  "config_missing_type": "Hiányzik a 'type' az aktiváció konfigurációjából",
-  "recommendations_removed": "Az aktivációs ajánlásokat eltávolítottuk a rendszerből"
+    "not_supported": "Nem támogatott aktiváció: {activation}. Elérhető opciók: {available}",
+    "created": "Aktivációs függvényt létrehoztuk: {activation}, paraméterek: {params}",
+    "creation_failed": "Nem sikerült létrehozni az aktivációt: {error}",
+    "invalid_params": "Érvénytelen paraméterek az aktivációhoz: {error}",
+    "config_missing_type": "Hiányzik a 'type' az aktiváció konfigurációjából",
+    "recommendations_removed": "Az aktivációs ajánlásokat eltávolítottuk a rendszerből"
   },
   "augmentation": {
-  "not_supported": "Nem támogatott augmentáció: {aug}. Elérhető opciók: {available}",
-  "created": "Augmentációt létrehoztuk: {aug}, paraméterek: {params}",
-  "creation_failed": "Nem sikerült létrehozni az augmentációt: {error}",
-  "invalid_params": "Érvénytelen paraméterek az augmentációhoz: {error}",
-  "config_missing_type": "Hiányzik a 'type' az augmentáció konfigurációjából",
-  "preview_invalid_phase": "Érvénytelen augmentációs fázis: {phase}",
-  "preview_no_images": "Nincsenek képek a {project} projekthez az előnézethez.",
-  "preview_failed": "Nem sikerült előállítani az előnézetet: {error}",
-  "preview_generated": "Előnézet elkészült a {phase} fázishoz"
+    "not_supported": "Nem támogatott augmentáció: {aug}. Elérhető opciók: {available}",
+    "created": "Augmentációt létrehoztuk: {aug}, paraméterek: {params}",
+    "creation_failed": "Nem sikerült létrehozni az augmentációt: {error}",
+    "invalid_params": "Érvénytelen paraméterek az augmentációhoz: {error}",
+    "config_missing_type": "Hiányzik a 'type' az augmentáció konfigurációjából",
+    "preview_invalid_phase": "Érvénytelen augmentációs fázis: {phase}",
+    "preview_no_images": "Nincsenek képek a {project} projekthez az előnézethez.",
+    "preview_failed": "Nem sikerült előállítani az előnézetet: {error}",
+    "preview_generated": "Előnézet elkészült a {phase} fázishoz"
   },
   "coordinator_settings": {
-  "user_settings_saved": "A beállításaidat elmentettük ide: {path}",
-  "user_settings_save_failed": "Nem sikerült elmenteni a beállításokat: {error}"
+    "user_settings_saved": "A beállításaidat elmentettük ide: {path}",
+    "user_settings_save_failed": "Nem sikerült elmenteni a beállításokat: {error}"
   },
   "recommendations": {
-  "critical_shortage": "Kritikus adathiány: {labels}",
-  "reduce_oversampled": "Csökkentsd a túlmintázott címkéket: {labels}",
-  "augment_undersampled": "Augmentáld az alulreprezentált címkéket: {labels}",
-  "weighted_loss": "Használj súlyozott loss-t",
-  "stratified_sampling": "Fontold meg a rétegzett mintavételezést",
-  "hierarchical_imbalance": "Hierarchikus egyensúlyhiány: {categories}",
-  "small_dataset": "Kis adathalmaz — érdemes augmentálni",
-  "tiny_dataset": "Nagyon kis adathalmaz — magas az overfitting kockázata"
+    "critical_shortage": "Kritikus adathiány: {labels}",
+    "reduce_oversampled": "Csökkentsd a túlmintázott címkéket: {labels}",
+    "augment_undersampled": "Augmentáld az alulreprezentált címkéket: {labels}",
+    "weighted_loss": "Használj súlyozott loss-t",
+    "stratified_sampling": "Fontold meg a rétegzett mintavételezést",
+    "hierarchical_imbalance": "Hierarchikus egyensúlyhiány: {categories}",
+    "small_dataset": "Kis adathalmaz — érdemes augmentálni",
+    "tiny_dataset": "Nagyon kis adathalmaz — magas az overfitting kockázata"
   },
   "losses": {
-  "not_supported": "Nem támogatott loss: {loss}. Elérhető opciók: {available}",
-  "created": "Loss-t létrehoztuk: {loss}, paraméterek: {params}",
-  "creation_failed": "Nem sikerült létrehozni a loss-t: {error}",
-  "invalid_params": "Érvénytelen paraméterek a loss-hoz: {error}",
-  "config_missing_type": "Hiányzik a 'type' a loss konfigurációjából",
-  "recommendations_removed": "A loss-ajánlásokat eltávolítottuk"
+    "not_supported": "Nem támogatott loss: {loss}. Elérhető opciók: {available}",
+    "created": "Loss-t létrehoztuk: {loss}, paraméterek: {params}",
+    "creation_failed": "Nem sikerült létrehozni a loss-t: {error}",
+    "invalid_params": "Érvénytelen paraméterek a loss-hoz: {error}",
+    "config_missing_type": "Hiányzik a 'type' a loss konfigurációjából",
+    "recommendations_removed": "A loss-ajánlásokat eltávolítottuk"
   },
   "normalization": {
-  "not_supported": "Nem támogatott normalizáció: {norm}. Elérhető opciók: {available}",
-  "missing_num_features": "Hiányzik a 'num_features' paraméter: {norm}",
-  "missing_num_channels": "Hiányzik a 'num_channels' paraméter: {norm}",
-  "missing_normalized_shape": "Hiányzik a 'normalized_shape' paraméter: {norm}",
-  "created": "Normalizációs réteget létrehoztuk: {norm}, paraméterek: {params}",
-  "creation_failed": "Nem sikerült létrehozni a normalizációs réteget: {error}",
-  "invalid_params": "Érvénytelen paraméterek a normalizációhoz: {error}",
-  "config_missing_type": "Hiányzik a 'type' a normalizáció konfigurációjából",
-  "recommendations_removed": "A normalizációs ajánlásokat eltávolítottuk"
+    "not_supported": "Nem támogatott normalizáció: {norm}. Elérhető opciók: {available}",
+    "missing_num_features": "Hiányzik a 'num_features' paraméter: {norm}",
+    "missing_num_channels": "Hiányzik a 'num_channels' paraméter: {norm}",
+    "missing_normalized_shape": "Hiányzik a 'normalized_shape' paraméter: {norm}",
+    "created": "Normalizációs réteget létrehoztuk: {norm}, paraméterek: {params}",
+    "creation_failed": "Nem sikerült létrehozni a normalizációs réteget: {error}",
+    "invalid_params": "Érvénytelen paraméterek a normalizációhoz: {error}",
+    "config_missing_type": "Hiányzik a 'type' a normalizáció konfigurációjából",
+    "recommendations_removed": "A normalizációs ajánlásokat eltávolítottuk"
   },
   "optimizers": {
-  "not_supported": "Nem támogatott optimizer: {optimizer}. Elérhető opciók: {available}",
-  "created": "Optimiert létrehozva: {optimizer}, paraméterek: {params}",
-  "creation_failed": "Nem sikerült létrehozni az optimalizálót: {error}",
-  "invalid_params": "Érvénytelen paraméterek az optimalizálóhoz: {error}",
-  "config_missing_type": "Hiányzik a 'type' az optimizer konfigurációjából",
-  "recommendations_removed": "Az optimizer-ajánlásokat eltávolítottuk"
+    "not_supported": "Nem támogatott optimizer: {optimizer}. Elérhető opciók: {available}",
+    "created": "Optimiert létrehozva: {optimizer}, paraméterek: {params}",
+    "creation_failed": "Nem sikerült létrehozni az optimalizálót: {error}",
+    "invalid_params": "Érvénytelen paraméterek az optimalizálóhoz: {error}",
+    "config_missing_type": "Hiányzik a 'type' az optimizer konfigurációjából",
+    "recommendations_removed": "Az optimizer-ajánlásokat eltávolítottuk"
   },
   "pooling": {
-  "not_supported": "Nem támogatott pooling: {pool}. Elérhető opciók: {available}",
-  "created": "Pooling réteget létrehoztuk: {pool}, paraméterek: {params}",
-  "creation_failed": "Nem sikerült létrehozni a pooling réteget: {error}",
-  "invalid_params": "Érvénytelen paraméterek a poolinghoz: {error}",
-  "config_missing_type": "Hiányzik a 'type' a pooling konfigurációjából",
-  "recommendations_removed": "A pooling-ajánlásokat eltávolítottuk"
+    "not_supported": "Nem támogatott pooling: {pool}. Elérhető opciók: {available}",
+    "created": "Pooling réteget létrehoztuk: {pool}, paraméterek: {params}",
+    "creation_failed": "Nem sikerült létrehozni a pooling réteget: {error}",
+    "invalid_params": "Érvénytelen paraméterek a poolinghoz: {error}",
+    "config_missing_type": "Hiányzik a 'type' a pooling konfigurációjából",
+    "recommendations_removed": "A pooling-ajánlásokat eltávolítottuk"
   },
   "regularization": {
-  "not_supported": "Nem támogatott regularizáció: {reg}. Elérhető opciók: {available}",
-  "created": "Regularizációs réteget létrehoztuk: {reg}, paraméterek: {params}",
-  "creation_failed": "Nem sikerült létrehozni a regularizációt: {error}",
-  "invalid_params": "Érvénytelen paraméterek a regularizációhoz: {error}",
-  "config_missing_type": "Hiányzik a 'type' a regularizáció konfigurációjából",
-  "recommendations_removed": "A regularizációs ajánlásokat eltávolítottuk"
+    "not_supported": "Nem támogatott regularizáció: {reg}. Elérhető opciók: {available}",
+    "created": "Regularizációs réteget létrehoztuk: {reg}, paraméterek: {params}",
+    "creation_failed": "Nem sikerült létrehozni a regularizációt: {error}",
+    "invalid_params": "Érvénytelen paraméterek a regularizációhoz: {error}",
+    "config_missing_type": "Hiányzik a 'type' a regularizáció konfigurációjából",
+    "recommendations_removed": "A regularizációs ajánlásokat eltávolítottuk"
   },
   "schedulers": {
-  "not_supported": "Nem támogatott scheduler: {scheduler}. Elérhető opciók: {available}",
-  "created": "Schedulert létrehoztuk: {scheduler}, paraméterek: {params}",
-  "creation_failed": "Nem sikerült létrehozni a schedulert: {error}",
-  "invalid_params": "Érvénytelen paraméterek a schedulerhez: {error}",
-  "config_missing_type": "Hiányzik a 'type' a scheduler konfigurációjából",
-  "recommendations_removed": "A scheduler-ajánlásokat eltávolítottuk"
+    "not_supported": "Nem támogatott scheduler: {scheduler}. Elérhető opciók: {available}",
+    "created": "Schedulert létrehoztuk: {scheduler}, paraméterek: {params}",
+    "creation_failed": "Nem sikerült létrehozni a schedulert: {error}",
+    "invalid_params": "Érvénytelen paraméterek a schedulerhez: {error}",
+    "config_missing_type": "Hiányzik a 'type' a scheduler konfigurációjából",
+    "recommendations_removed": "A scheduler-ajánlásokat eltávolítottuk"
   },
   "weight_init": {
-  "not_supported": "Nem támogatott súly-inicializáció: {init}. Elérhető opciók: {available}",
-  "applied": "Súly-inicializáció alkalmazva: {init} a(z) {module}-on, paraméterek: {params}",
-  "application_failed": "Nem sikerült alkalmazni az inicializációt: {error}",
-  "invalid_params": "Érvénytelen paraméterek az inicializációhoz: {error}",
-  "recommendations_removed": "A súly-inicializációs ajánlásokat eltávolítottuk"
+    "not_supported": "Nem támogatott súly-inicializáció: {init}. Elérhető opciók: {available}",
+    "applied": "Súly-inicializáció alkalmazva: {init} a(z) {module}-on, paraméterek: {params}",
+    "application_failed": "Nem sikerült alkalmazni az inicializációt: {error}",
+    "invalid_params": "Érvénytelen paraméterek az inicializációhoz: {error}",
+    "recommendations_removed": "A súly-inicializációs ajánlásokat eltávolítottuk"
   },
   "heatmap": {
-  "no_images": "Nincsenek képek a(z) {project} projekthez",
-  "checkpoint_missing": "Modell-ellenőrzőpont nem található a könyvtárban: {dir}",
-  "project_or_dataset_missing": "A(z) {project} projekt vagy az adathalmaza nem található",
-  "generated": "Hőtérképet készítettünk a(z) {project} projekthez: {image} (osztály {clazz})"
+    "no_images": "Nincsenek képek a(z) {project} projekthez",
+    "checkpoint_missing": "Modell-ellenőrzőpont nem található a könyvtárban: {dir}",
+    "project_or_dataset_missing": "A(z) {project} projekt vagy az adathalmaza nem található",
+    "generated": "Hőtérképet készítettünk a(z) {project} projekthez: {image} (osztály {clazz})"
   },
   "app": {
-  "brand": "Hootsight"
+    "brand": "Hootsight"
   },
   "nav": {
     "training_group": "Tanítás",
@@ -111,7 +111,8 @@
     "heatmap": "Hőtérkép",
     "memory": "Memória",
     "system_group": "Rendszer",
-    "updates": "Frissítések"
+    "updates": "Frissítések",
+    "about": "Névjegy"
   },
   "page": {
     "projects": "Projektek",
@@ -121,7 +122,8 @@
     "status": "Állapot",
     "heatmap": "Hőtérkép",
     "memory": "Memória",
-    "updates": "Frissítések"
+    "updates": "Frissítések",
+    "about": "Névjegy"
   },
   "config": {
     "sections": {
@@ -388,6 +390,13 @@
     "preview_augmented_label": "Augmentált",
     "preview_image_path_label": "Kép útvonal"
   },
+  "about_ui": {
+    "page_title": "Hootsight névjegye",
+    "page_description": "Ismerd meg a célt, az alapvető architektúrát és a fejlesztési elveket, amelyek alakítják a Hootsightot.",
+    "card_title": "Képaugmentációs eszközkészlet offline-first tanításhoz",
+    "intro": "A Hootsight egy offline-first képosztályozó eszközkészlet, amely PyTorch tanítást párosít FastAPI backenddel és konfigurációvezérelt felülettel.",
+    "content_markdown": "## Hootsight névjegye\n\nSzia, Tanathy vagyok! Az egyedüli fejlesztő, aki a Hootsightot életben tartja. Azért építettem fel, mert egy megbízható, offline-first képosztályozó eszközkészletet akartam, amiben megbízhatok a saját hardveremen, és úgy gondoltam, mások is megérdemlik ezt a szabadságot.\n\n### Filozófia\n- Az adataid soha nem hagyják el a gépedet, hacsak te nem mozgatod őket. Nincsenek háttérszinkronizációs feladatok vagy meglepő felhőhívások.\n- Visszautasítom a telemetria vagy nyomkövetési hookszok szállítását. A diagnosztika helyben marad, így te választhatod meg, mit osztasz meg.\n- Minden beállítás JSON-ben él. Verzionázd, diff-eld, dobd Gitbe — bármi, ami őszintén tartja a munkafolyamatodat.\n- A telepítő egy elkülönített virtuális környezetet hoz létre, tisztán tartva a globális Python-odat.\n- Az előre tanított súlyok a `cache/` alatt élnek, így másodpercek alatt biztonsági mentést készíthetsz róluk, auditálhatod vagy törölheted őket.\n- Az útitervek követik a valós életet. A kiadások akkor történnek, amikor van kapacitásom, nem azért, mert egy sprint tábla azt mondja.\n- Az eszközök semlegesek; az számít, hogyan használod őket. Elvárjam mindenkitől, magamtól is, hogy gondosan bánjunk velük.\n\n>Felelősségi nyilatkozat: Minden adathalmaz, amit betöltesz, minden címke, amit megjósoltál, és minden modell, amit exportálsz, a te felelősségeid. Légy tudatában a beleegyezésnek, jogszerűségnek és az embereknek, akiket a munkád érint.\n\n### Fejlesztési státusz\n- A Hootsight határozottan alfa állapotban van. Számíts frissítésekre, kísérletekre és időnkénti durva élekre.\n- A ResNet teljes végpontok közötti validációval rendelkezik. A ResNeXt, EfficientNet és a többi architektúra még hosszú távú tesztelés alatt áll, amikor van időm.\n- Hibát találtál? Kérlek, jelentsd a [GitHub Issues](https://github.com/Tanathy/HootSight/issues)-nál. A tiszta jelentések segítenek gyorsabban javítani.\n\n### Technikai alapok\n- **Backend**: A FastAPI szolgáltatások koordinálják az adathalmaz-felfedezést, tanítás-orkesztrálást és állapot végpontokat.\n- **ML mag**: A PyTorch kezeli a tanítási hurokat, következtetést és augmentációs pipeline-okat.\n- **Frontend**: Egy könnyű HTML/JS/CSS felület, amit egy apró segédkönyvtár (`qte.js`) hajt meg egy nehézsúlyú keretrendszer helyett.\n- **Konfiguráció**: Minden konfigurációvezérelt — nincsenek árnyék alapértelmezések a kódban elrejtve.\n- **Offline működés**: Az alkalmazás internet-hozzáférés nélkül működik. Az opcionális frissítés-ellenőrzések csak akkor hívják a GitHubot, amikor kéred.\n- **Memóriakezelés**: Az egyedi segédprogramok menet közben hangolják a batch méreteket és figyelik a GPU/CPU használatot az out-of-memory összeomlások elkerülése érdekében.\n- **Adatkezelés**: A projektek, adathalmazok, ellenőrzőpontok és naplók a fájlrendszered irányítása alatt maradnak. Nincs auto-szink, nincsenek távoli tükrök.\n\n### Adatvédelem és megfelelőség\n- GDPR elvárásokkal szem előtt tervezve: alapértelmezetten személyes adatok nem hagyják el a környezetedet.\n- Te döntöd el, mit importálsz, és teljes irányítást tartasz a szerkesztés, exportálás vagy törlés felett.\n- A konfiguráció, naplók és ellenőrzőpontok a lemezen maradnak, hacsak szándékosan nem osztod meg őket.\n- A frissítés-ellenőrzések opt-in alapúak és csak kérés metaadatokat továbbítanak; a projekt tartalma sosem utazik velük.\n- Ha érzékeny kategóriákat kezelsz (biometrikus, orvosi, bármi szabályozott), térképezd fel ezeket a kötelezettségeket a saját irányelveid szerint tanítás előtt.\n- Nincsenek analitikai SDK-k, crash riporterek vagy harmadik féltől származó nyomkövetők csomagolva az alkalmazásba.\n\n### Támogatás\nÖrömmel osztom meg veled ezt a projektet szabad használatra. Ha támogatni szeretnéd a munkámat, vehetsz nekem egy kávét itt: [ko-fi.com/tanathy](https://ko-fi.com/tanathy).\n\n### Licensz és kreditek\nA Hootsight a [Roboto](https://fonts.google.com/specimen/Roboto/license) betűtípussal érkezik, amely az SIL Open Font License, Version 1.1 alatt kerül terjesztésre."
+  },
   "training_ui": {
     "page_title": "Tanítási Beállítás",
     "page_description": "Konfiguráld a modell architektúrát, tanítási paramétereket és optimalizálási beállításokat.",
@@ -565,13 +574,11 @@
     "training_augmentation_train_description": "Tanítási augmentációk",
     "training_augmentation_val_description": "Validációs augmentációk",
     "training_optimizer_type_description": "Optimalizáló típusa",
-    "training_optimizer_lr_description": "Optimalizáló tanulási ráta",
-    "training_optimizer_weight_decay_description": "Optimalizáló súly csökkenés",
+    "training_optimizer_params_description": "Optimizer parameters",
     "training_scheduler_type_description": "Tanulási ráta scheduler típusa",
-    "training_scheduler_step_size_description": "Lépés méret step_lr schedulerhez",
-    "training_scheduler_gamma_description": "Gamma step_lr schedulerhez",
+    "training_scheduler_params_description": "Scheduler parameters",
     "training_loss_type_description": "Veszteségfüggvény típusa",
-    "training_loss_reduction_description": "Veszteség redukciós módszer",
+    "training_loss_params_description": "Loss function parameters",
     "training_weight_init_description": "Súly inicializációs konfiguráció",
     "training_checkpoint_description": "Ellenőrzőpont konfiguráció",
     "training_early_stopping_description": "Korai leállítás konfiguráció",
@@ -733,7 +740,15 @@
       "step_lr": "Lépéses Tanulási Ráta ResNet-hez - Előre meghatározott mérföldkő epoch-okkal tanulási ráta csökkenés ResNet tanítási fázisokhoz igazítva. Befolyásolja tanulási ráta csökkentést specifikus tanítási stádiumokban megfelelő ResNet konvergencia mintáknak. Szabályozza determinisztikus tanulási ráta ütemezést ami igazodik tipikus ResNet tanítási progresszióhoz és veszteség táj jellemzőihez. Megfelelő amikor optimális csökkenés időzítés ismert korábbi ResNet kísérletekből vagy kutatási papírokból hasonló adathalmazokkal és architektúrákkal.",
       "cosine_annealing_lr": "Koszinusz Annealing ResNet-hez - Sima koszinusz-alapú tanulási ráta ütemezés ami gyakran javít ResNet végső pontosság fokozatos tanulási ráta csökkenéssel. Befolyásolja tanítási dinamikát hogy biztosítson sima átmeneteket segítve ResNet modelleket jobb végső konvergencia elérésében. Szabályozza szinuszoidális tanulási ráta progressziót ami csökkenti tanítási oszcillációkat és lehetővé teszi finom paraméter igazítást későbbi tanítási fázisokban. Gyakran kiváló végső pontosságot ér el hagyományos lépés-alapú ütemezésekhez képest ResNet architektúrákhoz.",
       "reduce_lr_on_plateau": "Adaptív Ütemezés ResNet-hez - Fennsík-alapú tanulási ráta csökkentés ami automatikusan reagál ResNet tanítási stagnálási periódusokra. Befolyásolja tanulási ráta adaptációt validációs metrika monitorozás által, csökkentve tanulási rátát amikor ResNet tanítási progresszió stagnál. Szabályozza automatikus ütemezés igazítást ami reagál aktuális tanítási dinamikákra helyett előre meghatározott mérföldkövekre. Optimális ResNet tanításhoz amikor optimális csökkenés időzítés ismeretlen vagy tanítási jellemzők változnak különböző adathalmazokon vagy kísérleti feltételek között."
-    }
+    },
+    "paths_description": "Paths configuration",
+    "paths_projects_dir_description": "Directory containing project folders",
+    "paths_ui_dir_description": "Directory containing UI assets",
+    "paths_config_dir_description": "Directory containing configuration files",
+    "paths_localizations_dir_description": "Directory containing localization files",
+    "paths_packages_file_description": "Path to packages.jsonc file",
+    "paths_mappings_file_description": "Path to mappings file",
+    "paths_cache_dir_description": "Directory for cache files"
   },
   "status_graph": {
     "epoch_accuracy": "Epoch Pontosság",

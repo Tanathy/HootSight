@@ -111,7 +111,8 @@
     "heatmap": "Heatmap",
     "memory": "Speicher",
     "system_group": "System",
-    "updates": "Updates"
+    "updates": "Updates",
+    "about": "Über"
   },
   "page": {
     "projects": "Projekte",
@@ -121,7 +122,8 @@
     "status": "Status",
     "heatmap": "Heatmap",
     "memory": "Speicher",
-    "updates": "Updates"
+    "updates": "Updates",
+    "about": "Über"
   },
   "config": {
     "sections": {
@@ -387,6 +389,13 @@
     "preview_original_label": "Original",
     "preview_augmented_label": "Augmentiert",
     "preview_image_path_label": "Bildpfad"
+  },
+  "about_ui": {
+    "page_title": "Über Hootsight",
+    "page_description": "Verstehe den Zweck, die Kernarchitektur und die Entwicklungsprinzipien, die Hootsight prägen.",
+    "card_title": "Bild-Augmentations-Toolkit für offline-first Training",
+    "intro": "Hootsight ist ein offline-first Bildklassifizierungs-Toolkit, das PyTorch-Training mit einem FastAPI-Backend und einer konfigurationsgesteuerten UI kombiniert.",
+    "content_markdown": "## Über Hootsight\n\nHi, ich bin Tanathy! Die Solo-Entwicklerin, die Hootsight am Laufen hält. Ich habe es gebaut, weil ich ein zuverlässiges, offline-first Bildklassifizierungs-Toolkit wollte, dem ich auf meiner eigenen Hardware vertrauen kann, und dachte, andere verdienen diese Freiheit auch.\n\n### Philosophie\n- Deine Daten verlassen niemals deine Maschine, es sei denn, du bewegst sie. Es gibt keine Hintergrund-Sync-Jobs oder überraschende Cloud-Aufrufe.\n- Ich weigere mich, Telemetrie oder Tracking-Hooks zu liefern. Diagnosen bleiben lokal, damit du wählen kannst, was geteilt wird.\n- Jede Einstellung lebt in JSON. Versioniere es, diff es, wirf es in Git – was auch immer deinen Workflow ehrlich hält.\n- Das Installationsprogramm richtet eine isolierte virtuelle Umgebung ein und hält dein globales Python sauber.\n- Vortrainierte Gewichte leben unter `cache/`, damit du sie in Sekunden sichern, auditieren oder löschen kannst.\n- Roadmaps folgen dem echten Leben. Releases passieren, wenn ich die Bandbreite habe, nicht weil ein Sprint-Board es sagt.\n- Werkzeuge sind neutral; wie du sie verwendest, zählt. Ich erwarte von jedem, mich eingeschlossen, dass wir sie mit Sorgfalt einsetzen.\n\n>Haftungsausschluss: Jeder Datensatz, den du einliest, jedes Label, das du vorhersagst, und jedes Modell, das du exportierst, liegt in deiner Verantwortung. Sei dir bewusst über Einverständnis, Legalität und die Menschen, die deine Arbeit betrifft.\n\n### Entwicklungsstatus\n- Hootsight ist fest im Alpha-Stadium. Erwarte Updates, Experimente und gelegentliche raue Kanten.\n- ResNet hat vollständige End-to-End-Validierung. ResNeXt, EfficientNet und die verbleibenden Architekturen sind noch in Langzeittests, wenn die Zeit es erlaubt.\n- Einen Bug gefunden? Bitte melde ihn bei [GitHub Issues](https://github.com/Tanathy/HootSight/issues). Klare Berichte helfen mir, Dinge schneller zu reparieren.\n\n### Technische Grundlagen\n- **Backend**: FastAPI-Dienste koordinieren Dataset-Entdeckung, Training-Orchestrierung und Status-Endpunkte.\n- **ML-Kern**: PyTorch handhabt Trainingsschleifen, Inferenz und Augmentations-Pipelines.\n- **Frontend**: Eine leichtgewichtige HTML/JS/CSS-Schnittstelle, angetrieben von einer winzigen Hilfsbibliothek (`qte.js`) anstatt eines schwergewichtigen Frameworks.\n- **Konfiguration**: Alles ist konfigurationsgesteuert – keine versteckten Schatten-Defaults im Code.\n- **Offline-Betrieb**: Die App funktioniert ohne Internetzugang. Optionale Update-Checks rufen GitHub nur auf, wenn du fragst.\n- **Speicherverwaltung**: Benutzerdefinierte Utilities stimmen Batch-Größen im laufenden Betrieb ab und überwachen GPU/CPU-Nutzung, um Out-of-Memory-Abstürze zu vermeiden.\n- **Datenbehandlung**: Projekte, Datensätze, Checkpoints und Logs bleiben unter deiner Dateisystem-Kontrolle. Keine Auto-Sync, keine entfernten Spiegel.\n\n### Datenschutz & Compliance\n- Mit GDPR-Erwartungen im Hinterkopf entworfen: Standardmäßig verlassen keine persönlichen Daten deine Umgebung.\n- Du entscheidest, was du importierst, und behältst die volle Kontrolle über Bearbeitung, Export oder Löschung.\n- Konfiguration, Logs und Checkpoints bleiben auf der Festplatte, es sei denn, du teilst sie absichtlich.\n- Update-Checks sind opt-in und übertragen nur Request-Metadaten; Projektinhalte fahren niemals mit.\n- Wenn du sensible Kategorien bearbeitest (biometrisch, medizinisch, alles Regulierte), ordne diese Verpflichtungen gegen deine eigenen Richtlinien vor dem Training zu.\n- Keine Analytics-SDKs, Crash-Reporter oder Drittanbieter-Tracker sind in der App gebündelt.\n\n### Unterstützung\n- Ich teile gerne dieses Projekt mit dir zur freien Nutzung. Wenn du meine Arbeit unterstützen möchtest, kannst du mir einen Kaffee kaufen unter [ko-fi.com/tanathy](https://ko-fi.com/tanathy).\n\n### Lizenz & Credits\nHootsight wird mit der [Roboto](https://fonts.google.com/specimen/Roboto/license)-Schriftart geliefert, verteilt unter der SIL Open Font License, Version 1.1."
   },
   "training_ui": {
     "page_title": "Training einrichten",
