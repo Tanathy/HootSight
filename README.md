@@ -1,6 +1,7 @@
 # HootSight
 
 A modular, configuration‑driven image recognition and training system built on PyTorch + FastAPI with a simple web UI (pywebview). It auto‑discovers projects, supports multiple model families and multi‑label datasets, includes memory‑aware batch‑size calculation to prevent OOM, and aims to be “run and go.”
+
 ![App Screenshot](https://raw.githubusercontent.com/Tanathy/HootSight/refs/heads/main/docs/imgs/app.png)
 
 
