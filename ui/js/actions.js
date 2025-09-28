@@ -1064,16 +1064,16 @@
   }
 
   async function initLanguageSelector(){
-    const select = dom.languageSelect;
-    if(!select || !select.get()) return;
-    const nativeSelect = select.get();
+    const container = dom.languageSelect;
+    if(!container || !container.get()) return;
+    const containerEl = container.get();
     const languageTitle = t('ui.language_select_title', 'Select language');
     if(languageTitle){
-      select.attr('title', languageTitle);
-      select.attr('aria-label', languageTitle);
-      if(nativeSelect){
-        nativeSelect.setAttribute('title', languageTitle);
-        nativeSelect.setAttribute('aria-label', languageTitle);
+      container.attr('title', languageTitle);
+      container.attr('aria-label', languageTitle);
+      if(containerEl){
+        containerEl.setAttribute('title', languageTitle);
+        containerEl.setAttribute('aria-label', languageTitle);
       }
     }
 
@@ -1086,25 +1086,56 @@
         current = languageEntries[0].code;
       }
 
-      select.html('');
-      languageEntries.forEach(entry => {
-        const option = Q('<option>').attr('value', entry.code).text(entry.name);
-        if(entry.code === current){
-          option.attr('selected', 'selected');
-        }
-        select.append(option);
-      });
-      nativeSelect.value = current;
+      // Clear existing content
+      container.html('');
 
-      select.on('change', function(){
-        const newLang = (this.value || '').toLowerCase();
-        if(newLang && newLang !== current){
-          current = newLang;
-          switchLanguage(newLang);
-        } else {
-          this.value = current;
+      // Create custom dropdown
+      const dropdownContainer = Q('<div class="custom-dropdown">');
+      const dropdownButton = Q('<div class="custom-dropdown-button">');
+      const dropdownValue = Q('<span class="custom-dropdown-value">');
+      const dropdownArrow = Q('<span class="custom-dropdown-arrow">▼</span>');
+
+      dropdownButton.append(dropdownValue, dropdownArrow);
+
+      const dropdownList = Q('<div class="custom-dropdown-list">');
+
+      // Find current language name
+      const currentEntry = languageEntries.find(entry => entry.code === current);
+      const currentName = currentEntry ? currentEntry.name : current.toUpperCase();
+      dropdownValue.text(currentName);
+
+      languageEntries.forEach(entry => {
+        const optionEl = Q('<div class="custom-dropdown-option">').text(entry.name).attr('data-value', entry.code);
+        if(entry.code === current) optionEl.addClass('selected');
+        optionEl.on('click', (e) => {
+          e.stopPropagation();
+          dropdownValue.text(entry.name);
+          dropdownContainer.removeClass('open');
+          const newLang = entry.code;
+          if(newLang && newLang !== current){
+            current = newLang;
+            switchLanguage(newLang);
+          }
+          // Update selected state
+          dropdownList.find('.custom-dropdown-option').removeClass('selected');
+          optionEl.addClass('selected');
+        });
+        dropdownList.append(optionEl);
+      });
+
+      dropdownButton.on('click', (e) => {
+        e.stopPropagation();
+        const isOpen = dropdownContainer.hasClass('open');
+        // Close all other dropdowns first
+        Q('.custom-dropdown').removeClass('open');
+        if(!isOpen){
+          dropdownContainer.addClass('open');
         }
       });
+
+      dropdownContainer.append(dropdownButton, dropdownList);
+      container.append(dropdownContainer);
+
     } catch (err) {
       log('Failed to load languages:', err);
     }
@@ -1992,7 +2023,7 @@
       return '';
     }
     if(preferInteger){
-      return Math.round(value).toLocaleString();
+           return Math.round(value).toLocaleString();
     }
     const abs = Math.abs(value);
     if(abs >= 1000){

@@ -17,9 +17,9 @@
   <div class="nav-item" data-page="training" data-i18n="nav.training_setup">Training Setup</div>
   <div class="nav-item" data-page="augmentation" data-i18n="nav.augmentation">Augmentation</div>
   <div class="language-selector">
-      <select id="language-select">
-        <!-- Languages will be populated by JavaScript -->
-      </select>
+      <div id="language-select" class="custom-dropdown">
+        <!-- Custom dropdown will be populated by JavaScript -->
+      </div>
     <div class="language-warning" data-i18n="ui.language_warning">Language change refreshes the system</div>
   </div>
     </div>
@@ -45,7 +45,7 @@
       <!-- Pages injected here -->
     </main>
     <footer>
-  <span data-i18n="footer.tagline">Config-driven ResNet Trainer UI</span> • <span data-i18n="footer.generated">Generated dynamically from schema</span> • <span id="footer-status" data-i18n="footer.ready">Ready</span>
+  <span data-i18n="footer.tagline"></span> • <span data-i18n="footer.generated"></span> • <span id="footer-status" data-i18n="footer.ready"></span>
     </footer>
   </div>
   <script src="/static/js/qte.js"></script>

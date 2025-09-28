@@ -2,17 +2,17 @@
   const hs = window.Hootsight || (window.Hootsight = {});
   const state = hs.state;
 
-  function t(key, fallback){
+  function t(key){
     const parts = key.split('.');
     let cur = state.i18n;
     for(const part of parts){
       if(cur && typeof cur === 'object' && Object.prototype.hasOwnProperty.call(cur, part)){
         cur = cur[part];
       } else {
-        return fallback !== undefined ? fallback : key;
+        return key;
       }
     }
-    return typeof cur === 'string' ? cur : (fallback !== undefined ? fallback : key);
+    return typeof cur === 'string' ? cur : key;
   }
 
   function applyLocalization(){

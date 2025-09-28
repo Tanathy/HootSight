@@ -251,14 +251,12 @@ def analyze_dataset_type(dataset_path: str) -> tuple[str, List[str], int, Dict[s
     min_coverage = SETTINGS.get('dataset', {}).get('discovery', {}).get('annotation_formats', {}).get('txt_annotations', {}).get('min_coverage_percent', 90)
     
     if txt_percentage >= min_coverage:
-        info(f"Found txt annotation dataset ({txt_percentage:.1f}% coverage >= {min_coverage}%) - using txt-based multi-label")
         # Extract labels and count distribution from txt files
         labels, label_distribution = extract_labels_from_txt_files_with_counts(dataset_path, image_files)
         
         # Also get recursive folder structure for additional insight
         folder_structure = get_recursive_folder_structure(dataset_path)
         if folder_structure:
-            info(f"Recursive folder structure: {folder_structure}")
             # Merge folder structure into label distribution for complete picture
             combined_distribution = {**label_distribution, **{f"folder:{k}": v for k, v in folder_structure.items()}}
             # Add folder info to labels
@@ -273,12 +271,9 @@ def analyze_dataset_type(dataset_path: str) -> tuple[str, List[str], int, Dict[s
             label_distribution, combined_distribution, DatasetType.TXT_ANNOTATIONS
         )
         
-        info(f"Balance score: {balance_score:.3f}, Recommendations: {len(recommendations)}")
         return (DatasetType.TXT_ANNOTATIONS, combined_labels, image_count, 
                label_distribution, balance_score, combined_distribution, balance_analysis, recommendations)
     
-    # Fallback to folder-based labels if txt coverage is insufficient
-    info(f"Insufficient txt coverage ({txt_percentage:.1f}% < {min_coverage}%) - using folder-based labels")
     subdirs = [d for d in os.listdir(dataset_path) 
                if os.path.isdir(os.path.join(dataset_path, d))]
     
@@ -325,10 +320,6 @@ def analyze_dataset_type(dataset_path: str) -> tuple[str, List[str], int, Dict[s
                 transformed_label_distribution, detailed_structure, DatasetType.FOLDER_LABELS
             )
             
-            info(f"Found folder-based dataset with labels: {folder_with_images}")
-            info(f"Detailed structure: {detailed_structure}")
-            info(f"Balance score: {balance_score:.3f}, Recommendations: {len(recommendations)}")
-            
             # Return comprehensive information
             # Transform folder names for labels list
             transformed_labels = [folder.replace(' ', '_').replace('/', '.') for folder in folder_with_images]
@@ -340,7 +331,6 @@ def analyze_dataset_type(dataset_path: str) -> tuple[str, List[str], int, Dict[s
     # Check for JSON annotations
     json_files = [f for f in os.listdir(dataset_path) if f.endswith('.json')]
     if json_files:
-        info(f"Found JSON annotation files: {json_files}")
         labels, label_distribution = extract_labels_from_json_with_counts(os.path.join(dataset_path, json_files[0]))
         
         # Comprehensive balance analysis
@@ -348,20 +338,17 @@ def analyze_dataset_type(dataset_path: str) -> tuple[str, List[str], int, Dict[s
             label_distribution, label_distribution, DatasetType.JSON_ANNOTATIONS
         )
         
-        info(f"Balance score: {balance_score:.3f}, Recommendations: {len(recommendations)}")
         return (DatasetType.JSON_ANNOTATIONS, labels, image_count, 
                label_distribution, balance_score, label_distribution, balance_analysis, recommendations)
     
     # Check for CSV annotations
     csv_files = [f for f in os.listdir(dataset_path) if f.endswith('.csv')]
     if csv_files:
-        info(f"Found CSV annotation files: {csv_files}")
         labels, label_distribution = extract_labels_from_csv_with_counts(os.path.join(dataset_path, csv_files[0]))
         
         # Also get recursive folder structure for additional insight
         folder_structure = get_recursive_folder_structure(dataset_path)
         if folder_structure:
-            info(f"Recursive folder structure: {folder_structure}")
             # Merge folder structure into label distribution
             combined_distribution = {**label_distribution, **{f"folder:{k}": v for k, v in folder_structure.items()}}
             # Add folder info to labels
@@ -375,9 +362,8 @@ def analyze_dataset_type(dataset_path: str) -> tuple[str, List[str], int, Dict[s
         balance_score, balance_analysis, recommendations = analyze_balance_and_generate_recommendations(
             label_distribution, combined_distribution, DatasetType.CSV_ANNOTATIONS
         )
-        
-        info(f"Balance score: {balance_score:.3f}, Recommendations: {len(recommendations)}")
-        return (DatasetType.CSV_ANNOTATIONS, combined_labels, image_count, 
+
+        return (DatasetType.CSV_ANNOTATIONS, combined_labels, image_count,
                label_distribution, balance_score, combined_distribution, balance_analysis, recommendations)
     
     warning(f"Unknown dataset type in {dataset_path}")
@@ -596,8 +582,6 @@ def discover_projects() -> List[ProjectInfo]:
     base_path = os.path.dirname(os.path.dirname(__file__))
     models_path = os.path.join(base_path, models_dir)
     
-    info(f"Scanning for projects in: {models_path}")
-    
     projects = []
     
     if not os.path.exists(models_path):
@@ -629,8 +613,6 @@ def discover_projects() -> List[ProjectInfo]:
                 project.balance_analysis = balance_analysis
                 project.recommendations = recommendations
                 
-                info(f"Project '{item}': {dataset_type}, {image_count} images, balance: {balance_score:.3f}")
-                info(f"Recommendations: {len(recommendations)} suggestions")
             else:
                 warning(f"Project '{item}': No dataset directory found")
             
