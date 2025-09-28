@@ -29,6 +29,7 @@ from system.models.resnet import create_resnet_model
 from system.heatmap import generate_project_heatmap, evaluate_with_heatmap
 from system.coordinator_settings import load_language_data, switch_language, available_languages, lang, get_current_language
 from system.augmentation import DataAugmentationFactory
+from system.updates import check_for_updates, apply_updates
 
 
 def _localize_schema(obj: Any) -> Any:
@@ -312,6 +313,27 @@ def create_app() -> FastAPI:
         except Exception as ex:
             error(f"Batch size calc failed: {ex}")
             return {"error": str(ex)}
+
+    @app.get("/system/updates/check")
+    def system_updates_check() -> Dict[str, Any]:
+        try:
+            return check_for_updates()
+        except Exception as ex:  # noqa: BLE001 - ensure JSON response
+            error(f"System update check failed: {ex}")
+            return {"status": "error", "message": lang("updates.api.check_failed", error=str(ex))}
+
+    @app.post("/system/updates/apply")
+    def system_updates_apply(payload: Optional[Dict[str, Any]] = Body(default=None)) -> Dict[str, Any]:
+        selected_paths = None
+        if payload and isinstance(payload, dict):
+            raw_paths = payload.get("paths")
+            if isinstance(raw_paths, list):
+                selected_paths = [str(item) for item in raw_paths if isinstance(item, (str, bytes))]
+        try:
+            return apply_updates(selected_paths)
+        except Exception as ex:  # noqa: BLE001 - ensure JSON response
+            error(f"System update apply failed: {ex}")
+            return {"status": "error", "message": lang("updates.api.apply_failed", error=str(ex))}
 
     @app.get("/projects/{project_name}/heatmap")
     def project_heatmap(

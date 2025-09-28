@@ -45,6 +45,15 @@
         train: null,
         val: null
       }
+    },
+    updates: {
+      pending: false,
+      applying: false,
+      files: [],
+      orphaned: [],
+      lastCheckedAt: null,
+      lastError: null,
+      message: null
     }
   };
 

@@ -19,7 +19,7 @@
     }
     
     // Special handling for pages with titles and descriptions
-    const pagesWithDescriptions = ['augmentation', 'training', 'dataset', 'projects', 'status', 'heatmap', 'memory'];
+  const pagesWithDescriptions = ['augmentation', 'training', 'dataset', 'projects', 'status', 'heatmap', 'memory', 'updates'];
     if(pagesWithDescriptions.includes(name)){
       const title = t(`${name}_ui.page_title`, name.charAt(0).toUpperCase() + name.slice(1));
       const description = t(`${name}_ui.page_description`, '');
@@ -99,6 +99,9 @@
         break;
       case 'heatmap':
         state.pages[name] = buildHeatmapPage();
+        break;
+      case 'updates':
+        state.pages[name] = buildUpdatesPage();
         break;
       default:
         state.pages[name] = Q('<div>').text(t('ui.page_not_implemented', 'Page not implemented')).elements[0];
@@ -1008,6 +1011,48 @@
     const body = Q('<div class="status-panel" id="status-body">').text(t('status_graph.no_training', 'No active training.'));
     wrap.append(body);
     setTimeout(() => actions.pollStatus(), 0);
+    return wrap.elements[0];
+  }
+
+  function buildUpdatesPage(){
+    const wrap = Q('<div class="updates-page">');
+    const card = Q('<div class="card">');
+    Q('<h3 class="card-header">').text(t('updates_ui.card_title', 'System Updates')).appendTo(card);
+
+    const body = Q('<div class="card-body column gap">');
+    Q('<p class="updates-intro muted">').text(t('updates_ui.intro', 'Compare local files with the upstream reference and synchronize missing fixes.')).appendTo(body);
+
+    const actionsRow = Q('<div class="updates-actions">');
+    const checkBtn = Q('<button type="button" class="primary" id="updates-check-button">')
+      .text(t('updates_ui.check_button', 'Check for updates'));
+    const applyBtn = Q('<button type="button" class="secondary" id="updates-apply-button">')
+      .text(t('updates_ui.apply_button', 'Apply updates'))
+      .prop('disabled', true)
+      .attr('title', t('updates_ui.apply_disabled_hint', 'Run a check to enable updates.'));
+    actionsRow.append(checkBtn, applyBtn);
+    body.append(actionsRow);
+
+    const statusBox = Q('<div class="updates-status" id="updates-status">')
+      .text(t('updates_ui.status_idle', 'No update checks have been run yet.'));
+    body.append(statusBox);
+
+    const errorBox = Q('<div class="updates-error" id="updates-error" hidden>');
+    body.append(errorBox);
+
+    const resultsContainer = Q('<div class="updates-results" id="updates-results">');
+    body.append(resultsContainer);
+
+    const orphanedContainer = Q('<div class="updates-orphaned" id="updates-orphaned">')
+      .text(t('updates_ui.orphaned_none', 'No extra local files detected.'));
+    body.append(orphanedContainer);
+
+    card.append(body);
+    wrap.append(card);
+
+    checkBtn.on('click', () => actions.runUpdatesCheck());
+    applyBtn.on('click', () => actions.applySystemUpdates());
+    setTimeout(() => actions.renderUpdatesState(), 0);
+
     return wrap.elements[0];
   }
 

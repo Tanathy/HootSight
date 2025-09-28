@@ -1443,6 +1443,222 @@
     }
   }
 
+  function ensureUpdatesState(){
+    if(!state.updates){
+      state.updates = {
+        pending: false,
+        applying: false,
+        files: [],
+        orphaned: [],
+        lastCheckedAt: null,
+        lastError: null,
+        message: null,
+        summary: null
+      };
+    }
+    return state.updates;
+  }
+
+  function selectUpdatesDom(){
+    return {
+      status: Q('#updates-status'),
+      results: Q('#updates-results'),
+      orphaned: Q('#updates-orphaned'),
+      error: Q('#updates-error'),
+      checkBtn: Q('#updates-check-button'),
+      applyBtn: Q('#updates-apply-button')
+    };
+  }
+
+  function truncateChecksum(value){
+    if(typeof value !== 'string' || !value.trim()){
+      return t('updates_ui.hash_missing', '—');
+    }
+    return value.trim().slice(0, 10);
+  }
+
+  function renderUpdatesState(){
+    const updatesState = ensureUpdatesState();
+    const domRefs = selectUpdatesDom();
+    if(!domRefs.status || !domRefs.status.elements || !domRefs.status.elements.length){
+      return;
+    }
+
+    const { status, results, orphaned, error, checkBtn, applyBtn } = domRefs;
+    const isBusy = !!(updatesState.pending || updatesState.applying);
+
+    if(checkBtn && checkBtn.prop){
+      checkBtn.prop('disabled', isBusy);
+    }
+
+    if(applyBtn && applyBtn.prop){
+      const hasCandidates = Array.isArray(updatesState.files) && updatesState.files.length > 0;
+      const disabled = isBusy || !hasCandidates;
+      applyBtn.prop('disabled', disabled);
+      if(disabled){
+        applyBtn.attr('title', t('updates_ui.apply_disabled_hint', 'Run a check to enable updates.'));
+      } else {
+        applyBtn.removeAttr('title');
+      }
+    }
+
+    const message = updatesState.message || t('updates_ui.status_idle', 'No update checks have been run yet.');
+    status.text(message);
+    if(isBusy){
+      status.addClass('pending');
+    } else {
+      status.removeClass('pending');
+    }
+
+    if(updatesState.lastError){
+      error.text(updatesState.lastError).removeAttr('hidden');
+      status.addClass('error-text');
+    } else {
+      error.text('').attr('hidden', true);
+      status.removeClass('error-text');
+    }
+
+    if(results && results.html){
+      results.html('');
+      if(Array.isArray(updatesState.files) && updatesState.files.length){
+        const table = Q('<table class="updates-table">');
+        const thead = Q('<thead>');
+        const headerRow = Q('<tr>');
+        Q('<th>').text(t('updates_ui.table_header_file', 'File')).appendTo(headerRow);
+        Q('<th>').text(t('updates_ui.table_header_status', 'Status')).appendTo(headerRow);
+        Q('<th>').text(t('updates_ui.table_header_local', 'Local')).appendTo(headerRow);
+        Q('<th>').text(t('updates_ui.table_header_remote', 'Remote')).appendTo(headerRow);
+        thead.append(headerRow);
+        table.append(thead);
+
+        const tbody = Q('<tbody>');
+        updatesState.files.forEach(entry => {
+          const row = Q('<tr>');
+          Q('<td>').text(entry.path || '?').appendTo(row);
+          const statusLabel = entry.status_label || (entry.status === 'missing'
+            ? t('updates_ui.table_row_missing', 'Missing locally')
+            : t('updates_ui.table_row_outdated', 'Checksum mismatch'));
+          Q('<td>').text(statusLabel).appendTo(row);
+          Q('<td>').text(truncateChecksum(entry.local_checksum)).appendTo(row);
+          Q('<td>').text(truncateChecksum(entry.remote_checksum)).appendTo(row);
+          tbody.append(row);
+        });
+        table.append(tbody);
+
+        results.append(table);
+        Q('<div class="updates-footnote">')
+          .text(t('updates_ui.table_footnote', 'Hashes are truncated for readability.'))
+          .appendTo(results);
+      } else {
+        Q('<div class="updates-empty">')
+          .text(t('updates_ui.no_updates', 'All tracked files are up to date.'))
+          .appendTo(results);
+      }
+    }
+
+    if(orphaned && orphaned.html){
+      orphaned.html('');
+      if(Array.isArray(updatesState.orphaned) && updatesState.orphaned.length){
+        Q('<h4>').text(t('updates_ui.orphaned_title', 'Untracked local files')).appendTo(orphaned);
+        const list = Q('<ul class="updates-orphaned-list">');
+        updatesState.orphaned.forEach(path => {
+          Q('<li>').text(path).appendTo(list);
+        });
+        orphaned.append(list);
+      } else {
+        orphaned.text(t('updates_ui.orphaned_none', 'No extra local files detected.'));
+      }
+    }
+  }
+
+  async function runUpdatesCheck(options = {}){
+    const { silentFooter = false } = options || {};
+    const updatesState = ensureUpdatesState();
+    updatesState.pending = true;
+    updatesState.message = t('updates_ui.status_checking', 'Checking for updates...');
+    updatesState.lastError = null;
+    renderUpdatesState();
+    if(!silentFooter){
+      setStatus(t('status.checking_updates', 'Checking for updates...'));
+    }
+
+    try {
+      const response = await comm.checkSystemUpdates();
+      updatesState.pending = false;
+      updatesState.files = Array.isArray(response.files) ? response.files : [];
+      updatesState.orphaned = Array.isArray(response.orphaned) ? response.orphaned : [];
+      updatesState.lastCheckedAt = response.checked_at || null;
+      updatesState.summary = response;
+      updatesState.message = response.message || (updatesState.files.length
+        ? t('updates_ui.status_ready', 'Update summary prepared.')
+        : t('updates_ui.status_up_to_date', 'Everything is already up to date.'));
+      updatesState.lastError = null;
+      renderUpdatesState();
+
+      if(!silentFooter){
+        const statusKey = updatesState.files.length ? 'status.updates_ready' : 'status.updates_none';
+        setStatus(t(statusKey, updatesState.files.length ? 'Updates available' : 'No updates found'));
+      }
+
+      return response;
+    } catch (err){
+      updatesState.pending = false;
+      updatesState.lastError = err?.message || String(err);
+      updatesState.message = t('updates_ui.status_failed', 'Update check failed.');
+      renderUpdatesState();
+      if(!silentFooter){
+        setStatus(t('status.updates_check_failed', 'Update check failed'), true);
+      }
+      throw err;
+    }
+  }
+
+  async function applySystemUpdates(){
+    const updatesState = ensureUpdatesState();
+    if(updatesState.applying){
+      return null;
+    }
+    const candidates = Array.isArray(updatesState.files) ? updatesState.files.map(entry => entry.path).filter(Boolean) : [];
+    if(!candidates.length){
+      return null;
+    }
+
+    updatesState.applying = true;
+    updatesState.lastError = null;
+    updatesState.message = t('updates_ui.status_applying', 'Updating files...');
+    renderUpdatesState();
+    setStatus(t('status.updates_applying', 'Applying updates...'));
+
+    try {
+      const response = await comm.applySystemUpdates(candidates);
+      updatesState.applying = false;
+
+      const hasFailures = Array.isArray(response.failed) && response.failed.length;
+      if(response.status === 'error' || hasFailures){
+        const failureMessage = response.message || t('updates_ui.status_apply_failed', 'Some updates failed.');
+        updatesState.lastError = hasFailures ? (response.failed[0]?.error || failureMessage) : failureMessage;
+        updatesState.message = failureMessage;
+        renderUpdatesState();
+        setStatus(t('status.updates_apply_failed', 'Update apply failed'), true);
+      } else {
+        updatesState.message = response.message || t('updates_ui.status_applied', 'Updates applied successfully.');
+        updatesState.lastError = null;
+        renderUpdatesState();
+        setStatus(t('status.updates_applied', 'Updates applied successfully'));
+      }
+
+      await runUpdatesCheck({ silentFooter: true }).catch(() => null);
+      return response;
+    } catch (err){
+      updatesState.applying = false;
+      updatesState.lastError = err?.message || String(err);
+      updatesState.message = t('updates_ui.status_apply_failed', 'Some updates failed.');
+      renderUpdatesState();
+      setStatus(t('status.updates_apply_failed', 'Update apply failed'), true);
+      throw err;
+    }
+  }
+
   function hexToRGBA(hex, alpha){
     if(typeof hex !== 'string'){
       return `rgba(255, 255, 255, ${alpha ?? 1})`;
@@ -2275,6 +2491,9 @@
     requestAugmentationPreview,
     refreshDatasetInfo,
     refreshMemory,
+  renderUpdatesState,
+  runUpdatesCheck,
+  applySystemUpdates,
     pollStatus,
     generateHeatmap,
     saveSystemConfig,

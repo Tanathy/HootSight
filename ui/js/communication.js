@@ -103,6 +103,15 @@
     return fetchJSON(`/projects/${projectName}/augmentation/preview`, buildJSONOptions('POST', payload));
   }
 
+  async function checkSystemUpdates(){
+    return fetchJSON('/system/updates/check');
+  }
+
+  async function applySystemUpdates(paths){
+    const payload = Array.isArray(paths) && paths.length ? { paths } : {};
+    return fetchJSON('/system/updates/apply', buildJSONOptions('POST', payload));
+  }
+
   hs.communication = {
     fetchJSON,
     loadInitialData,
@@ -119,6 +128,8 @@
     startTraining,
     stopTraining,
     evaluateProject,
-    previewAugmentation
+    previewAugmentation,
+    checkSystemUpdates,
+    applySystemUpdates
   };
 })();

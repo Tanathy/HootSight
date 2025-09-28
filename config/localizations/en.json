@@ -109,7 +109,9 @@
     "status_group": "Status",
     "status": "Status",
     "heatmap": "Heatmap",
-    "memory": "Memory"
+    "memory": "Memory",
+    "system_group": "System",
+    "updates": "Updates"
   },
   "page": {
     "projects": "Projects",
@@ -118,7 +120,8 @@
     "augmentation": "Augmentation",
     "status": "Status",
     "heatmap": "Heatmap",
-    "memory": "Memory"
+    "memory": "Memory",
+    "updates": "Updates"
   },
   "config": {
     "sections": {
@@ -200,8 +203,8 @@
     "save_system_settings": "Save Global Settings"
   },
   "footer": {
-    "tagline": "Config-driven ResNet Trainer UI",
-    "generated": "Generated dynamically from schema",
+    "tagline": "Config-driven",
+    "generated": "",
     "ready": "Ready"
   },
   "field": {
@@ -414,6 +417,73 @@
   "memory_ui": {
     "page_title": "Memory",
     "page_description": "Monitor system memory usage and optimize batch sizes for efficient training."
+  },
+  "environment": {
+    "venv_creating": "Creating Python virtual environment at {path}...",
+    "venv_created": "Virtual environment ready.",
+    "venv_create_failed": "Virtual environment creation failed: {error}",
+    "venv_exists": "Virtual environment already present.",
+    "pip_upgrading": "Upgrading pip inside the virtual environment...",
+    "pip_upgraded": "Pip upgrade completed.",
+    "pip_upgrade_failed": "Pip upgrade failed: {error}",
+    "cuda_debug_nvcc": "nvcc --version output:\n{output}",
+    "cuda_debug_nvcc_error": "Failed to query nvcc: {error}",
+    "cuda_debug_nvidia_smi": "nvidia-smi output:\n{output}",
+    "cuda_debug_nvidia_smi_error": "Failed to query nvidia-smi: {error}",
+    "cuda_debug_detected": "Detected CUDA version: {version}",
+    "pytorch_install": "Installing PyTorch for CUDA {cuda} on {platform}...",
+    "pytorch_installed": "PyTorch installation finished.",
+    "pytorch_install_failed": "PyTorch installation failed: {error}",
+    "xformers_already_installed": "xFormers is already installed and up to date.",
+    "xformers_installing": "Installing xFormers (CUDA {cuda_version})...",
+    "xformers_installed": "xFormers installation finished.",
+    "xformers_install_failed": "xFormers installation failed: {error}",
+    "pytorch_skip": "Skipping PyTorch install (detected CUDA={cuda}, platform={platform}).",
+    "config_loading": "Loading environment configuration...",
+    "config_loaded": "Environment configuration loaded.",
+    "using_compatible_xformers": "Using CUDA index {cuda_version} for xFormers.",
+    "env_packages_all_installed": "Environment packages are already installed.",
+    "env_packages_progress_desc": "Installing environment packages",
+    "env_package_installing": "Installing environment package {package}...",
+    "env_package_installed": "Environment package installed: {package}",
+    "env_package_install_failed": "Failed to install environment package {package}: {error}",
+    "env_vars_configured": "Prepared {count} environment variable(s) for the training process.",
+    "env_vars_config_failed": "Failed to configure environment variables: {error}",
+    "entry_not_found": "Entry script not found at {path}.",
+    "venv_python_not_found": "Virtual environment Python executable missing: {path}.",
+    "venv_python_test_failed": "Virtual environment Python failed --version sanity check: {error}",
+  "re_exec_starting": "Launching training entry via {venv_python} -> {entry_py} (root {root}).",
+    "re_exec_timeout": "Re-execution timed out.",
+    "re_exec_failed": "Failed to launch training process: {error}",
+    "re_exec_unexpected_error": "Unexpected error while launching training process: {error}"
+  },
+  "updates_ui": {
+    "page_title": "System Updates",
+    "page_description": "Keep your installation aligned with the upstream repository without overwriting project-specific configuration overrides.",
+    "card_title": "Update Manager",
+    "intro": "Compare local files with the reference repository and synchronize missing fixes while leaving config.json untouched.",
+    "check_button": "Check for updates",
+    "apply_button": "Apply updates",
+    "apply_disabled_hint": "Run a check to enable updates.",
+    "status_idle": "No update checks have been run yet.",
+    "status_checking": "Checking for updates...",
+    "status_ready": "Update summary prepared.",
+    "status_up_to_date": "Everything is already up to date.",
+    "status_failed": "Update check failed.",
+    "status_applying": "Updating files...",
+    "status_applied": "Updates applied successfully.",
+    "status_apply_failed": "Some updates failed.",
+    "table_header_file": "File",
+    "table_header_status": "Status",
+    "table_header_local": "Local",
+    "table_header_remote": "Remote",
+    "table_row_missing": "Missing locally",
+    "table_row_outdated": "Checksum mismatch",
+    "table_footnote": "Hashes are truncated for readability.",
+    "no_updates": "All tracked files are up to date.",
+    "hash_missing": "—",
+    "orphaned_title": "Untracked local files",
+    "orphaned_none": "No extra local files detected."
   },
   "schema": {
     "description": "JSON Schema for Hootsight config.json - defines types, ranges, and hierarchical structure for all configurable settings",
@@ -647,6 +717,39 @@
     "badge_training": "Training: {project}",
     "footer_training": "Training {project} — Epoch {epoch} • Step {step}"
   },
+  "updates": {
+    "log": {
+      "check_started": "Checking upstream checksums...",
+      "check_complete": "Update check complete. Pending files: {count}",
+      "check_failed": "Update check failed: {error}",
+      "remote_config_failed": "Failed to download remote config.json: {error}",
+      "remote_checksum_failed": "Failed to download remote checksum manifest: {error}",
+      "remote_payload_invalid": "Remote payload from {url} was not a mapping.",
+      "local_checksum_missing": "Local checksum.json missing; assuming empty manifest.",
+      "local_checksum_invalid": "Failed to parse local checksum.json: {error}",
+      "path_escape": "Blocked unsafe path {path}",
+      "apply_started": "Applying updates...",
+      "apply_failed": "Failed to apply updates: {error}",
+      "apply_nothing": "No updates required.",
+      "apply_file_success": "Updated {path}",
+      "apply_file_failed": "Failed to update {path}: {error}",
+      "apply_partial": "Applied {updated} updates with {failed} failures.",
+      "apply_complete": "Applied {count} updates."
+    },
+    "api": {
+      "check_success": "Update check completed. {count} file(s) pending.",
+      "check_no_updates": "Everything is already up to date.",
+      "check_failed": "Update check failed: {error}",
+      "apply_success": "Updates applied successfully. {updated} file(s) updated.",
+      "apply_partial": "Updates applied with {updated} success and {failed} failure(s).",
+      "apply_failed": "Failed to apply updates: {error}",
+      "apply_nothing": "No updates were necessary."
+    },
+    "status": {
+      "missing": "Missing locally",
+      "outdated": "Checksum mismatch"
+    }
+  },
   "status": {
     "project_load_failed": "Project load failed",
     "project_loading": "Loading project {projectName}...",
@@ -661,6 +764,13 @@
   "loading_schema": "Loading schema & config...",
   "init_failed": "Init failed",
     "memory_load_failed": "Memory load failed",
+    "checking_updates": "Checking for updates...",
+    "updates_ready": "Updates available",
+    "updates_none": "No updates available",
+    "updates_check_failed": "Update check failed",
+    "updates_applying": "Applying updates...",
+    "updates_applied": "Updates applied successfully",
+    "updates_apply_failed": "Update apply failed",
     "generating_heatmap": "Generating heatmap...",
     "heatmap_generated": "Heatmap generated",
     "heatmap_generation_failed": "Heatmap generation failed",

@@ -431,6 +431,68 @@ main {
     padding: var(--space-10) 0;
 }
 
+.updates-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-10);
+}
+
+.updates-status {
+    font-size: var(--font-size-12);
+    color: var(--text-muted);
+}
+
+.updates-status.pending {
+    color: var(--info);
+}
+
+.updates-results {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.updates-empty {
+    color: var(--text-muted);
+    font-size: var(--font-size-12);
+}
+
+.updates-footnote {
+    font-size: var(--font-size-10);
+    color: var(--text-muted);
+}
+
+.updates-error {
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--danger);
+    background: var(--error-bg);
+    padding: var(--space-10);
+    font-size: var(--font-size-12);
+}
+
+.updates-orphaned {
+    font-size: var(--font-size-12);
+    color: var(--text-muted);
+}
+
+.updates-orphaned h4 {
+    margin: 0 0 var(--space-5) 0;
+    color: var(--text);
+    font-size: var(--font-size-12);
+}
+
+.updates-orphaned-list {
+    margin: 0;
+    padding-left: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.updates-table td:first-child {
+    font-family: "Roboto Mono", "Courier New", monospace;
+}
+
 @media (max-width: 960px) {
     .status-graphs-grid {
         grid-template-columns: 1fr;
