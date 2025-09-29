@@ -53,21 +53,20 @@ projects/{project_name}/
 	└─ heatmaps/              # (optional) Grad‑CAM images
 ```
 
-Dataset modes and tips:
-- Two main modes:
-	1) Folder‑based classification
-		 - Recommended: `dataset/train/{label}/images...` and `dataset/val/{label}/images...`
-		 - If there’s no `train/val`, a flat `dataset/{label}/images...` layout is auto‑split into train/val using `training.split.val_ratio` from the global config.
-	2) Multi‑label
-		 - Place a `.txt` file next to each image with the same basename. First line: comma‑separated tags, e.g. `dog, animal, cute`.
-		 - If ≥90% of images have a `.txt` pair, the dataset is treated as multi‑label. For images without `.txt`, the folder name is used as a fallback label.
+Dataset layout and annotations (sample scenario):
+- Create your own project under `projects/{project_name}/dataset`. For example, you might build `projects/reference_library/dataset` with thematic folders such as `creatures/avian/`, `gear/harness/`, or `poses/on_four_limbs/`. The loader walks the tree recursively, so you can nest folders as deep as you like as long as the leaves contain images.
+- To unlock multi-label behaviour, drop a `.txt` file next to each image with the same basename. Put your comma-separated tags on the first non-empty line, trimming whitespace. Example: `glider, winged, nocturnal`.
+- When at least 90% of images in a dataset have these `.txt` companions, HootSight automatically switches to multi-label mode and builds the class list from the union of all discovered tags. Images missing a `.txt` fall back to the name of their leaf folder so nothing is discarded.
+- Explicit `train/` and `val/` folders remain optional. If they’re absent, the coordinator compiles the full image list twice (for train and validation views) and performs a randomized split using `training.val_ratio` (or the legacy `training.split.val_ratio`)—20% by default.
+- Keep a minimum of five samples per label. Anything below the configured threshold (`dataset.discovery.balance_analysis.min_images_per_class`, default 5) is ignored when the training split is generated.
+- Supported image formats stay the same: `.jpg, .jpeg, .png, .bmp, .gif, .tiff, .webp`. Add more via `config/config.json → dataset.image_extensions` if you need other formats.
+- The UI’s dataset analysis may display helper entries prefixed with `folder:`. Those are only for balance insights; they’re stripped before training so the class list contains just your real tags.
 
 Good to know:
-- Minimum images per class: around 5. Fewer than that may be dropped by the loader.
-- Supported image formats: `.jpg, .jpeg, .png, .bmp, .gif, .tiff, .webp` (configurable in `config/config.json` → `dataset.image_extensions`).
-- Label normalization for reports: folder names get normalized (space → `_`, slash `/` → `.`). Example: `awesome fursuits/tania` → `awesome_fursuits.tania`. For multi‑label `.txt` tags, no normalization is applied—be consistent in how you write tags.
-- Task type: global default is `"training.task": "multi_label"`. For single‑label classification, set it to `classification`.
-
+- The global default is multi-label (`"training.task": "multi_label"`). If your dataset is classic single-label classification (one folder = one class, no tag mixing), flip that value to `classification` before launching a run so the coordinator emits integer class indices instead of multi-hot vectors.
+- Images without a `.txt` companion inherit their leaf folder name as a fallback tag. That keeps stragglers in play, but make sure the folder naming actually reflects the concept you want learned.
+- Folder names in analytics are normalized for readability: spaces become `_`, nested folders are joined with `.`. Example: `creatures skyborne/long glider` is rendered as `creatures_skyborne.long_glider`. The raw tag strings inside `.txt` files are left exactly as you typed them, so stay consistent with casing and punctuation.
+- Random train/validation splits are re-generated on every run when you rely on auto splitting.
 
 ## Supported model families and variants
 
