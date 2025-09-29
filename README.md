@@ -43,14 +43,13 @@ Typical project structure:
 
 ```
 projects/{project_name}/
-	├─ config.json            # Project‑specific overrides (merged with the global config)
-	├─ dataset/               # Dataset root
-	│   ├─ train/ ...         # (optional) training split
-	│   └─ val/ ...           # (optional) validation split
-	├─ model/                 # Outputs (checkpoints, history)
-	│   ├─ best_model.pth
-	│   └─ training_history.json
-	└─ heatmaps/              # (optional) Grad‑CAM images
+	config.json             # Optional project overrides; omit to inherit the global config
+	dataset/                # Images + optional .txt tag files (organise either by train/val or nested themes)
+		...
+	model/                  # Created by the trainer when you run a job. Here comes the trained model with its settings also.
+		best_model.pth
+		training_history.json
+	heatmaps/               # Grad-CAM renders land here when you request them
 ```
 
 Dataset layout and annotations (sample scenario):
