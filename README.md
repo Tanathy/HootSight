@@ -44,7 +44,7 @@ Typical project structure:
 ```
 projects/{project_name}/
 	config.json             # Optional project overrides; omit to inherit the global config
-	dataset/                # Images + optional .txt tag files (organise either by train/val or nested themes)
+	dataset/                # Images + optional .txt tag files.
 		...
 	model/                  # Created by the trainer when you run a job. Here comes the trained model with its settings also.
 		best_model.pth
