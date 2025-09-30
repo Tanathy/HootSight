@@ -20,7 +20,7 @@
     }
     
     // Special handling for pages with titles and descriptions
-  const pagesWithDescriptions = ['augmentation', 'training', 'dataset', 'projects', 'status', 'heatmap', 'memory', 'updates', 'about'];
+  const pagesWithDescriptions = ['augmentation', 'training', 'dataset', 'projects', 'status', 'heatmap', 'updates', 'docs', 'about'];
     if(pagesWithDescriptions.includes(name)){
       const title = t(`${name}_ui.page_title`, name.charAt(0).toUpperCase() + name.slice(1));
       const description = t(`${name}_ui.page_description`, '');
@@ -70,6 +70,22 @@
         
         window.app.setPageActions(pageActions);
         break;
+      
+      case 'projects':
+        const canCreateProject = typeof actions.showProjectCreateDialog === 'function';
+        const createProjectAction = {
+          label: t('projects_ui.toolbar_create', 'Create New Project'),
+          type: 'primary',
+          callback: canCreateProject ? actions.showProjectCreateDialog : () => {}
+        };
+
+        if(!canCreateProject){
+          createProjectAction.disabled = true;
+          createProjectAction.title = t('projects_ui.create_disabled_hint', 'Project creation is currently unavailable.');
+        }
+
+        window.app.setPageActions([createProjectAction]);
+        break;
         
       default:
         // Clear page actions for other pages
@@ -92,9 +108,6 @@
       case 'dataset':
         state.pages[name] = buildDatasetPage();
         break;
-      case 'memory':
-        state.pages[name] = buildMemoryPage();
-        break;
       case 'status':
         state.pages[name] = buildStatusPage();
         break;
@@ -103,6 +116,9 @@
         break;
       case 'updates':
         state.pages[name] = buildUpdatesPage();
+        break;
+      case 'docs':
+        state.pages[name] = buildDocsPage();
         break;
       case 'about':
         state.pages[name] = buildAboutPage();
@@ -966,9 +982,18 @@
   }
 
   function buildProjectsPage(){
-    const wrap = Q('<div class="cards" id="projects-cards">');
+    const page = Q('<div class="projects-page">');
+
+    const toolbar = Q('<div class="projects-toolbar">');
+    const hintText = t('projects_ui.toolbar_hint', 'Projects keep datasets, configs, and checkpoints isolated.');
+    Q('<p class="projects-toolbar-hint muted">').text(hintText).appendTo(toolbar);
+    page.append(toolbar);
+
+    const cardsWrap = Q('<div class="cards" id="projects-cards">');
+    page.append(cardsWrap);
+
     setTimeout(() => actions.refreshProjects(), 0);
-    return wrap.elements[0];
+    return page.elements[0];
   }
 
   function buildDatasetPage(){
@@ -997,18 +1022,6 @@
     wrap.append(bottomSection);
     return wrap.elements[0];
   }
-
-  function buildMemoryPage(){
-    const wrap = Q('<div class="cards">');
-    const card = Q('<div class="card">');
-    Q('<h3>').text(t('ui.memory', 'Memory')).appendTo(card);
-    const body = Q('<div class="column gap" id="memory-body">').text(t('ui.loading', 'Loading...'));
-    card.append(body);
-    wrap.append(card);
-    setTimeout(() => actions.refreshMemory(), 0);
-    return wrap.elements[0];
-  }
-
   function buildStatusPage(){
     const wrap = Q('<div class="status-page">');
     Q('<h2 class="status-page-title">').text(t('ui.training_status', 'Training Status')).appendTo(wrap);
@@ -1058,6 +1071,64 @@
     setTimeout(() => actions.renderUpdatesState(), 0);
 
     return wrap.elements[0];
+  }
+
+  function buildDocsPage(){
+    const page = Q('<div class="docs-page">');
+
+    const layout = Q('<div class="docs-layout">');
+
+    const sidebar = Q('<aside class="docs-sidebar card">');
+    Q('<h3 class="card-header">').text(t('docs_ui.sidebar_title', 'Documentation')).appendTo(sidebar);
+    const sidebarBody = Q('<div class="card-body docs-list-container">');
+    const list = Q('<ul class="docs-list" id="docs-list" role="list">');
+    const emptyState = Q('<div class="docs-empty muted" id="docs-empty">')
+      .text(t('docs_ui.empty', 'No documentation files found.'));
+    sidebarBody.append(list, emptyState);
+    sidebar.append(sidebarBody);
+
+    const contentCard = Q('<section class="docs-content card">');
+    const header = Q('<div class="card-header docs-content-header">');
+    const title = Q('<span class="docs-current-title" id="docs-current-title">')
+      .text(t('docs_ui.placeholder_title', 'Documentation'));
+    const openExternal = Q('<a class="docs-open-external" id="docs-open-external" target="_blank" rel="noopener noreferrer">')
+      .text(t('docs_ui.open_externally', 'Open raw file'))
+      .attr('hidden', true);
+    header.append(title, openExternal);
+
+    const body = Q('<div class="card-body docs-content-body">');
+    const status = Q('<div class="docs-status" id="docs-status">')
+      .text(t('docs_ui.loading_placeholder', 'Select a document to view.'));
+    const content = Q('<div class="markdown-body docs-markdown" id="docs-content">');
+    body.append(status, content);
+    contentCard.append(header, body);
+
+    layout.append(sidebar, contentCard);
+    page.append(layout);
+
+    list.on('click', (event) => {
+      const target = event.target && event.target.closest ? event.target.closest('button[data-doc-path]') : null;
+      if(!target) return;
+      const docPath = target.getAttribute('data-doc-path');
+      if(docPath && actions.openDoc){
+        actions.openDoc(docPath);
+      }
+    });
+
+    content.on('click', (event) => {
+      if(!actions.handleDocsLinkClick) return;
+      const anchor = event.target && event.target.closest ? event.target.closest('a') : null;
+      if(!anchor) return;
+      actions.handleDocsLinkClick(event);
+    });
+
+    setTimeout(() => {
+      if(actions.initDocsPage){
+        actions.initDocsPage();
+      }
+    }, 0);
+
+    return page.elements[0];
   }
 
   function buildAboutPage(){

@@ -46,6 +46,15 @@
         val: null
       }
     },
+    docs: {
+      initialized: false,
+      files: [],
+      cache: {},
+      currentPath: null,
+      loading: false,
+      error: null,
+      pendingAnchor: null
+    },
     updates: {
       pending: false,
       applying: false,

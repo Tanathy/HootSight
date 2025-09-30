@@ -55,6 +55,10 @@
     return fetchJSON('/projects');
   }
 
+  async function createProject(name){
+    return fetchJSON('/projects/create', buildJSONOptions('POST', { name }));
+  }
+
   async function fetchProjectConfig(projectName){
     return fetchJSON(`/projects/${projectName}/config`);
   }
@@ -69,10 +73,6 @@
 
   async function saveSystemConfig(config){
     return fetchJSON('/config', buildJSONOptions('POST', config));
-  }
-
-  async function fetchMemoryStatus(){
-    return fetchJSON('/memory/status');
   }
 
   async function fetchTrainingStatus(trainingId){
@@ -112,17 +112,30 @@
     return fetchJSON('/system/updates/apply', buildJSONOptions('POST', payload));
   }
 
+  async function fetchDocsList(){
+    return fetchJSON('/docs/list');
+  }
+
+  async function fetchDocPage(path){
+    const params = new URLSearchParams();
+    if(path){
+      params.set('path', path);
+    }
+    const suffix = params.toString() ? `?${params.toString()}` : '';
+    return fetchJSON(`/docs/page${suffix}`);
+  }
+
   hs.communication = {
     fetchJSON,
     loadInitialData,
     fetchLocalization,
     switchLanguage,
     fetchProjects,
+    createProject,
     fetchProjectConfig,
     fetchConfig,
-    saveProjectConfig,
-    saveSystemConfig,
-    fetchMemoryStatus,
+  saveProjectConfig,
+  saveSystemConfig,
     fetchTrainingStatus,
     fetchTrainingHistory,
     startTraining,
@@ -130,6 +143,8 @@
     evaluateProject,
     previewAugmentation,
     checkSystemUpdates,
-    applySystemUpdates
+    applySystemUpdates,
+    fetchDocsList,
+    fetchDocPage
   };
 })();

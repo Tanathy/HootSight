@@ -109,9 +109,9 @@
     "status_group": "Estado",
     "status": "Estado",
     "heatmap": "Mapa de calor",
-    "memory": "Memoria",
     "system_group": "Sistema",
     "updates": "Actualizaciones",
+    "docs": "Docs",
     "about": "Acerca de"
   },
   "page": {
@@ -121,8 +121,8 @@
     "augmentation": "Aumento",
     "status": "Estado",
     "heatmap": "Mapa de calor",
-    "memory": "Memoria",
     "updates": "Actualizaciones",
+    "docs": "Docs",
     "about": "Acerca de"
   },
   "config": {
@@ -281,7 +281,6 @@
     "stop_training": "Detener entrenamiento",
     "stop_training_disabled": "No hay entrenamiento activo para este proyecto.",
     "training_in_progress": "Entrenamiento en progreso",
-    "memory": "Memoria",
     "loading": "Cargando...",
     "training_status": "Estado del entrenamiento",
     "idle": "Inactivo",
@@ -448,7 +447,27 @@
         "ok": "OK",
         "unstable": "Inestable"
       }
-    }
+    },
+    "toolbar_hint": "Projects keep datasets, configs, and checkpoints isolated.",
+    "toolbar_create": "Create New Project",
+    "create_disabled_hint": "Project creation is currently unavailable.",
+    "empty_title": "No projects yet",
+    "empty_message": "Use Create New Project to scaffold dataset, data_source, model, and heatmap folders.",
+    "create_title": "Create new project",
+    "create_description": "Name your project to scaffold dataset, data_source, model, and heatmap folders.",
+    "create_name_label": "Project name",
+    "create_name_placeholder": "e.g. wildlife_classification",
+    "create_name_hint": "Use letters, numbers, hyphens, and underscores only.",
+    "create_cancel": "Cancel",
+    "create_submit": "Create",
+    "create_creating": "Creating...",
+    "create_validation_required": "Project name is required.",
+    "create_validation_length": "Project name must be between {min} and {max} characters.",
+    "create_validation_pattern": "Use letters, numbers, hyphens, and underscores only.",
+    "create_error_exists": "A project with this name already exists.",
+    "create_success_status": "Project {name} created.",
+    "create_error_unknown": "Project creation failed.",
+    "create_network_error": "Network request failed."
   },
   "status_ui": {
     "page_title": "Estado",
@@ -457,10 +476,6 @@
   "heatmap_ui": {
     "page_title": "Mapa de calor",
     "page_description": "Genera y visualiza mapas de atención del modelo para entender áreas de enfoque de predicción."
-  },
-  "memory_ui": {
-    "page_title": "Memoria",
-    "page_description": "Monitorea uso de memoria del sistema y optimiza tamaños de lote para entrenamiento eficiente."
   },
   "environment": {
     "venv_creating": "Creando entorno virtual Python en {path}...",
@@ -813,7 +828,6 @@
     "save_failed": "Guardado fallido",
     "loading_schema": "Cargando esquema & config...",
     "init_failed": "Init fallido",
-    "memory_load_failed": "Carga de memoria fallida",
     "checking_updates": "Verificando actualizaciones...",
     "updates_ready": "Actualizaciones disponibles",
     "updates_none": "No hay actualizaciones disponibles",
@@ -836,5 +850,36 @@
     "language_switched": "Idioma cambiado exitosamente",
     "language_switch_failed": "Cambio de idioma fallido",
     "augmentation_preview_ready": "Vista previa de aumento generada"
+  },
+  "docs_ui": {
+    "page_title": "Documentation",
+    "page_description": "Browse in-app documentation without leaving Hootsight.",
+    "sidebar_title": "Documentation",
+    "empty": "No documentation files found.",
+    "empty_content": "No documentation files available in the docs folder.",
+    "loading_placeholder": "Select a document to view.",
+    "loading_list": "Loading documentation list...",
+    "loading_file": "Loading document...",
+    "list_failed": "Failed to load documentation list.",
+    "open_externally": "Open raw file",
+    "placeholder_title": "Documentation"
+  },
+  "docs": {
+    "api": {
+      "missing_root": "Documentation directory is not available.",
+      "not_found": "Documentation file {path} was not found.",
+      "decode_error": "The requested documentation file could not be decoded.",
+      "read_failed": "Documentation retrieval failed: {error}"
+    }
+  },
+  "projects": {
+    "api": {
+      "create_missing": "Project name is required.",
+      "create_length": "Project name must be between {min} and {max} characters.",
+      "create_invalid": "Project name must start with a letter or number and may contain letters, numbers, hyphens, and underscores.",
+      "create_exists": "Project {name} already exists.",
+      "create_success": "Project {name} created successfully.",
+      "create_error": "Failed to create project: {error}"
+    }
   }
 }

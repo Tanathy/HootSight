@@ -19,6 +19,9 @@
     if(trimmed.startsWith('#') || trimmed.startsWith('/') || trimmed.startsWith('mailto:') || trimmed.startsWith('tel:')){
       return trimmed;
     }
+    if(/^[A-Za-z0-9._~!$&'()*+,;=:@\/-]+$/.test(trimmed)){
+      return trimmed;
+    }
     return '#';
   }
 
@@ -28,8 +31,21 @@
     }
     const { skipLinks = false } = options;
 
+    const imageTokens = [];
     const codeSpans = [];
-    let working = text.replace(/`([^`]+)`/g, (match, code) => {
+    let working = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => {
+      const token = `@@IMG${imageTokens.length}@@`;
+      const safeUrl = sanitizeUrl(url);
+      const altHtml = escapeHtml(alt || '');
+      if(!safeUrl || safeUrl === '#'){
+        imageTokens.push({ token, html: altHtml });
+      } else {
+        imageTokens.push({ token, html: `<img src="${safeUrl}" alt="${altHtml}" loading="lazy">` });
+      }
+      return token;
+    });
+
+    working = working.replace(/`([^`]+)`/g, (match, code) => {
       const token = `@@CODE${codeSpans.length}@@`;
       codeSpans.push(`<code>${escapeHtml(code)}</code>`);
       return token;
@@ -46,13 +62,30 @@
     if(!skipLinks){
       working = working.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, label, url) => {
         const safeUrl = sanitizeUrl(url);
+        if(!safeUrl || safeUrl === '#'){
+          return formatInline(label, { skipLinks: true });
+        }
         const labelHtml = formatInline(label, { skipLinks: true });
-        return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${labelHtml}</a>`;
+        const isExternal = /^https?:\/\//i.test(safeUrl);
+        const isAnchor = safeUrl.startsWith('#');
+        const attrs = [`href="${safeUrl}"`];
+        if(isExternal){
+          attrs.push('target="_blank"', 'rel="noopener noreferrer"');
+        } else if(isAnchor){
+          attrs.push('data-doc-anchor="true"');
+        } else {
+          attrs.push('data-doc-link="true"');
+        }
+        return `<a ${attrs.join(' ')}>${labelHtml}</a>`;
       });
     }
 
     codeSpans.forEach((html, index) => {
       const token = `@@CODE${index}@@`;
+      working = working.replace(new RegExp(token, 'g'), html);
+    });
+
+    imageTokens.forEach(({ token, html }) => {
       working = working.replace(new RegExp(token, 'g'), html);
     });
 

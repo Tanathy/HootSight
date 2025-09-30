@@ -112,6 +112,7 @@
     "memory": "Speicher",
     "system_group": "System",
     "updates": "Updates",
+    "docs": "Docs",
     "about": "Über"
   },
   "page": {
@@ -123,6 +124,7 @@
     "heatmap": "Heatmap",
     "memory": "Speicher",
     "updates": "Updates",
+    "docs": "Docs",
     "about": "Über"
   },
   "config": {
@@ -430,6 +432,26 @@
   "projects_ui": {
     "page_title": "Projekte",
     "page_description": "Verwalte und wechsle zwüsche verschidene Projekte und ML-Datasets.",
+    "toolbar_hint": "Projects keep datasets, configs, and checkpoints isolated.",
+    "toolbar_create": "Create New Project",
+    "create_disabled_hint": "Project creation is currently unavailable.",
+    "empty_title": "No projects yet",
+    "empty_message": "Use Create New Project to scaffold dataset, data_source, model, and heatmap folders.",
+    "create_title": "Create new project",
+    "create_description": "Name your project to scaffold dataset, data_source, model, and heatmap folders.",
+    "create_name_label": "Project name",
+    "create_name_placeholder": "e.g. wildlife_classification",
+    "create_name_hint": "Use letters, numbers, hyphens, and underscores only.",
+    "create_cancel": "Cancel",
+    "create_submit": "Create",
+    "create_creating": "Creating...",
+    "create_validation_required": "Project name is required.",
+    "create_validation_length": "Project name must be between {min} and {max} characters.",
+    "create_validation_pattern": "Use letters, numbers, hyphens, and underscores only.",
+    "create_error_exists": "A project with this name already exists.",
+    "create_success_status": "Project {name} created.",
+    "create_error_unknown": "Project creation failed.",
+    "create_network_error": "Network request failed.",
     "card": {
       "images": "Bilder",
       "labels": "Labels",
@@ -448,6 +470,16 @@
         "ok": "OK",
         "unstable": "Instabil"
       }
+    }
+  },
+  "projects": {
+    "api": {
+      "create_missing": "Project name is required.",
+      "create_length": "Project name must be between {min} and {max} characters.",
+      "create_invalid": "Project name must start with a letter or number and may contain letters, numbers, hyphens, and underscores.",
+      "create_exists": "Project {name} already exists.",
+      "create_success": "Project {name} created successfully.",
+      "create_error": "Failed to create project: {error}"
     }
   },
   "status_ui": {
@@ -497,7 +529,7 @@
     "venv_python_not_found": "Virtuelle Umgebung Python-Executable fählt: {path}.",
     "venv_python_test_failed": "Virtuelle Umgebung Python gscheitert bim --version Test: {error}",
     "re_exec_starting": "Training via {venv_python} -> {entry_py} starte (Root {root}).",
-  "re_exec_timeout": "Timeout bim erneute Uusfüehre.",
+    "re_exec_timeout": "Timeout bim erneute Uusfüehre.",
     "re_exec_failed": "Fehler bim Start vom Trainingprozess: {error}",
     "re_exec_unexpected_error": "Unerwartete Fehler bim Start vom Trainingprozess: {error}"
   },
@@ -715,7 +747,7 @@
     },
     "schedulers_defaults_cyclic_lr_scale_mode_enum_descriptor": {
       "cycle": "Cycle - Skaliert pro abgeschlossne Zyklus. Änderungen passiere an de Zyklusgrenze.",
-  "iterations": "Iteratione - Skaliert kontinuierlich pro Schritt schafft drum glatte Übergäng."
+      "iterations": "Iteratione - Skaliert kontinuierlich pro Schritt schafft drum glatte Übergäng."
     },
     "schedulers_defaults_one_cycle_lr_anneal_strategy_enum_descriptor": {
       "cos": "Cosine - Nutzt Cosinuskurve für sanfti Übergäng bi de Lernrate.",
@@ -836,5 +868,26 @@
     "language_switched": "Sprach erfolgrich gwechslet",
     "language_switch_failed": "Sprachwechsel gscheitert",
     "augmentation_preview_ready": "Augmentierungsvorschau generiert"
+  },
+  "docs_ui": {
+    "page_title": "Documentation",
+    "page_description": "Browse in-app documentation without leaving Hootsight.",
+    "sidebar_title": "Documentation",
+    "empty": "No documentation files found.",
+    "empty_content": "No documentation files available in the docs folder.",
+    "loading_placeholder": "Select a document to view.",
+    "loading_list": "Loading documentation list...",
+    "loading_file": "Loading document...",
+    "list_failed": "Failed to load documentation list.",
+    "open_externally": "Open raw file",
+    "placeholder_title": "Documentation"
+  },
+  "docs": {
+    "api": {
+      "missing_root": "Documentation directory is not available.",
+      "not_found": "Documentation file {path} was not found.",
+      "decode_error": "The requested documentation file could not be decoded.",
+      "read_failed": "Documentation retrieval failed: {error}"
+    }
   }
 }

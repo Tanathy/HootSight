@@ -109,9 +109,9 @@
     "status_group": "Status",
     "status": "Status",
     "heatmap": "Heatmap",
-    "memory": "Geheugen",
     "system_group": "Systeem",
     "updates": "Updates",
+    "docs": "Docs",
     "about": "Over"
   },
   "page": {
@@ -121,8 +121,8 @@
     "augmentation": "Augmentatie",
     "status": "Status",
     "heatmap": "Heatmap",
-    "memory": "Geheugen",
     "updates": "Updates",
+    "docs": "Docs",
     "about": "Over"
   },
   "config": {
@@ -281,7 +281,6 @@
     "stop_training": "Training stoppen",
     "stop_training_disabled": "Er draait geen training voor dit project.",
     "training_in_progress": "Training bezig",
-    "memory": "Geheugen",
     "loading": "Laden...",
     "training_status": "Trainingsstatus",
     "idle": "Inactief",
@@ -448,7 +447,27 @@
         "ok": "OK",
         "unstable": "Instabiel"
       }
-    }
+    },
+    "toolbar_hint": "Projects keep datasets, configs, and checkpoints isolated.",
+    "toolbar_create": "Create New Project",
+    "create_disabled_hint": "Project creation is currently unavailable.",
+    "empty_title": "No projects yet",
+    "empty_message": "Use Create New Project to scaffold dataset, data_source, model, and heatmap folders.",
+    "create_title": "Create new project",
+    "create_description": "Name your project to scaffold dataset, data_source, model, and heatmap folders.",
+    "create_name_label": "Project name",
+    "create_name_placeholder": "e.g. wildlife_classification",
+    "create_name_hint": "Use letters, numbers, hyphens, and underscores only.",
+    "create_cancel": "Cancel",
+    "create_submit": "Create",
+    "create_creating": "Creating...",
+    "create_validation_required": "Project name is required.",
+    "create_validation_length": "Project name must be between {min} and {max} characters.",
+    "create_validation_pattern": "Use letters, numbers, hyphens, and underscores only.",
+    "create_error_exists": "A project with this name already exists.",
+    "create_success_status": "Project {name} created.",
+    "create_error_unknown": "Project creation failed.",
+    "create_network_error": "Network request failed."
   },
   "status_ui": {
     "page_title": "Status",
@@ -457,10 +476,6 @@
   "heatmap_ui": {
     "page_title": "Heatmap",
     "page_description": "Genereer en visualiseer aandachtskaarten om voorspellingen te begrijpen."
-  },
-  "memory_ui": {
-    "page_title": "Geheugen",
-    "page_description": "Monitor geheugengebruik en optimaliseer batchgroottes voor efficiënte training."
   },
   "environment": {
     "venv_creating": "Virtuele Python-omgeving wordt aangemaakt op {path}...",
@@ -813,7 +828,6 @@
     "save_failed": "Opslaan mislukt",
     "loading_schema": "Schema en config laden...",
     "init_failed": "Initialisatie mislukt",
-    "memory_load_failed": "Geheugenladen mislukt",
     "checking_updates": "Zoeken naar updates...",
     "updates_ready": "Updates beschikbaar",
     "updates_none": "Geen updates beschikbaar",
@@ -836,5 +850,36 @@
     "language_switched": "Taal gewisseld",
     "language_switch_failed": "Taal wisselen mislukt",
     "augmentation_preview_ready": "Augmentatiepreview gegenereerd"
+  },
+  "docs_ui": {
+    "page_title": "Documentation",
+    "page_description": "Browse in-app documentation without leaving Hootsight.",
+    "sidebar_title": "Documentation",
+    "empty": "No documentation files found.",
+    "empty_content": "No documentation files available in the docs folder.",
+    "loading_placeholder": "Select a document to view.",
+    "loading_list": "Loading documentation list...",
+    "loading_file": "Loading document...",
+    "list_failed": "Failed to load documentation list.",
+    "open_externally": "Open raw file",
+    "placeholder_title": "Documentation"
+  },
+  "docs": {
+    "api": {
+      "missing_root": "Documentation directory is not available.",
+      "not_found": "Documentation file {path} was not found.",
+      "decode_error": "The requested documentation file could not be decoded.",
+      "read_failed": "Documentation retrieval failed: {error}"
+    }
+  },
+  "projects": {
+    "api": {
+      "create_missing": "Project name is required.",
+      "create_length": "Project name must be between {min} and {max} characters.",
+      "create_invalid": "Project name must start with a letter or number and may contain letters, numbers, hyphens, and underscores.",
+      "create_exists": "Project {name} already exists.",
+      "create_success": "Project {name} created successfully.",
+      "create_error": "Failed to create project: {error}"
+    }
   }
 }

@@ -112,6 +112,7 @@
     "memory": "Speicher",
     "system_group": "System",
     "updates": "Updates",
+    "docs": "Docs",
     "about": "Über"
   },
   "page": {
@@ -123,6 +124,7 @@
     "heatmap": "Heatmap",
     "memory": "Speicher",
     "updates": "Updates",
+    "docs": "Docs",
     "about": "Über"
   },
   "config": {
@@ -448,7 +450,27 @@
         "ok": "OK",
         "unstable": "Instabil"
       }
-    }
+    },
+    "toolbar_hint": "Projects keep datasets, configs, and checkpoints isolated.",
+    "toolbar_create": "Create New Project",
+    "create_disabled_hint": "Project creation is currently unavailable.",
+    "empty_title": "No projects yet",
+    "empty_message": "Use Create New Project to scaffold dataset, data_source, model, and heatmap folders.",
+    "create_title": "Create new project",
+    "create_description": "Name your project to scaffold dataset, data_source, model, and heatmap folders.",
+    "create_name_label": "Project name",
+    "create_name_placeholder": "e.g. wildlife_classification",
+    "create_name_hint": "Use letters, numbers, hyphens, and underscores only.",
+    "create_cancel": "Cancel",
+    "create_submit": "Create",
+    "create_creating": "Creating...",
+    "create_validation_required": "Project name is required.",
+    "create_validation_length": "Project name must be between {min} and {max} characters.",
+    "create_validation_pattern": "Use letters, numbers, hyphens, and underscores only.",
+    "create_error_exists": "A project with this name already exists.",
+    "create_success_status": "Project {name} created.",
+    "create_error_unknown": "Project creation failed.",
+    "create_network_error": "Network request failed."
   },
   "status_ui": {
     "page_title": "Status",
@@ -836,5 +858,36 @@
     "language_switched": "Sprache erfolgreich gewechselt",
     "language_switch_failed": "Sprachwechsel fehlgeschlagen",
     "augmentation_preview_ready": "Augmentations-Vorschau erstellt"
+  },
+  "docs_ui": {
+    "page_title": "Dokumentation",
+    "page_description": "Durchstöbere die integrierte Dokumentation direkt in Hootsight.",
+    "sidebar_title": "Dokumentation",
+    "empty": "Keine Dokumentationsdateien gefunden.",
+    "empty_content": "Keine Dokumentationsdateien im docs-Ordner verfügbar.",
+    "loading_placeholder": "Wähle ein Dokument zum Anzeigen aus.",
+    "loading_list": "Lade Dokumentationsliste...",
+    "loading_file": "Lade Dokument...",
+    "list_failed": "Dokumentationsliste konnte nicht geladen werden.",
+    "open_externally": "Rohdatei öffnen",
+    "placeholder_title": "Dokumentation"
+  },
+  "docs": {
+    "api": {
+      "missing_root": "Dokumentationsverzeichnis ist nicht verfügbar.",
+      "not_found": "Dokumentationsdatei {path} wurde nicht gefunden.",
+      "decode_error": "Die angeforderte Dokumentationsdatei konnte nicht dekodiert werden.",
+      "read_failed": "Dokumentation konnte nicht geladen werden: {error}"
+    }
+  },
+  "projects": {
+    "api": {
+      "create_missing": "Project name is required.",
+      "create_length": "Project name must be between {min} and {max} characters.",
+      "create_invalid": "Project name must start with a letter or number and may contain letters, numbers, hyphens, and underscores.",
+      "create_exists": "Project {name} already exists.",
+      "create_success": "Project {name} created successfully.",
+      "create_error": "Failed to create project: {error}"
+    }
   }
 }

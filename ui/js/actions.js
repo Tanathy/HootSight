@@ -7,10 +7,14 @@
   const t = text.t || ((key, fallback)=> fallback ?? key);
   const applyLocalization = text.applyLocalization || (()=>{});
   const comm = hs.communication || {};
+  const markdown = hs.markdown || null;
   const STORAGE_KEYS = {
     trainingId: 'hs.activeTrainingId',
     trainingProject: 'hs.activeTrainingProject'
   };
+  const PROJECT_NAME_MIN_LENGTH = 3;
+  const PROJECT_NAME_MAX_LENGTH = 64;
+  const PROJECT_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 
   function formatStatValue(value, fallback = ''){
     if(value === undefined || value === null){
@@ -1149,6 +1153,18 @@
       if(!cont.elements.length) return;
       cont.html('');
 
+      if(!state.projects.length){
+        const empty = Q('<div class="projects-empty">');
+        Q('<strong>').text(t('projects_ui.empty_title', 'No projects yet')).appendTo(empty);
+        Q('<p>').text(t('projects_ui.empty_message', 'Use Create New Project to scaffold dataset, data source, and model folders.')).appendTo(empty);
+        const actionBtn = Q('<button type="button" class="primary projects-empty-action">')
+          .text(t('projects_ui.toolbar_create', 'Create New Project'))
+          .on('click', () => showProjectCreateDialog());
+        empty.append(actionBtn);
+        cont.append(empty);
+        return;
+      }
+
       const activeTrainingId = state.trainingStatus?.training_id || null;
       const activeTrainingProject = activeTrainingId ? state.trainingStatus?.project : null;
       const activeTrainingStatus = state.trainingStatus?.status || '';
@@ -1246,6 +1262,186 @@
     } catch (err){
       setStatus(t('status.project_load_failed', 'Project load failed'));
       log(err);
+    }
+  }
+
+  function closeProjectCreateDialog(){
+    const overlay = document.getElementById('project-create-overlay');
+    if(!overlay) return;
+    const escHandler = overlay._escHandler;
+    if(typeof escHandler === 'function'){
+      document.removeEventListener('keydown', escHandler);
+    }
+    overlay.remove();
+  }
+
+  function showProjectCreateDialog(){
+    const existing = document.getElementById('project-create-overlay');
+    if(existing){
+      const inputEl = existing.querySelector('input[name="project-name"]');
+      if(inputEl){
+        inputEl.focus();
+        inputEl.select();
+      }
+      return;
+    }
+
+    const overlay = Q('<div class="modal-overlay" id="project-create-overlay">');
+    const dialog = Q('<div class="modal">');
+
+    Q('<h3>').text(t('projects_ui.create_title', 'Create new project')).appendTo(dialog);
+    const description = t('projects_ui.create_description', 'Name your project to scaffold dataset, data source, model, and heatmap folders.');
+    if(description){
+      Q('<p class="modal-description muted">').text(description).appendTo(dialog);
+    }
+
+    const form = Q('<form class="modal-form" id="project-create-form">');
+    const field = Q('<div class="modal-field">');
+    Q('<label for="project-create-name">').text(t('projects_ui.create_name_label', 'Project name')).appendTo(field);
+    const input = Q('<input type="text" id="project-create-name" name="project-name" autocomplete="off" spellcheck="false">')
+      .attr('placeholder', t('projects_ui.create_name_placeholder', 'e.g. wildlife_classification'));
+    field.append(input);
+    Q('<small class="modal-supporting">').text(t('projects_ui.create_name_hint', 'Use letters, numbers, hyphens, and underscores only.')).appendTo(field);
+    form.append(field);
+
+    const errorBox = Q('<div class="modal-error" role="alert" aria-live="polite">');
+    form.append(errorBox);
+
+    const actionsRow = Q('<div class="modal-actions">');
+    const cancelBtn = Q('<button type="button" class="secondary" data-action="cancel">')
+      .text(t('projects_ui.create_cancel', 'Cancel'))
+      .on('click', () => closeProjectCreateDialog());
+    const submitBtn = Q('<button type="submit" class="primary">')
+      .text(t('projects_ui.create_submit', 'Create'));
+    actionsRow.append(cancelBtn, submitBtn);
+    form.append(actionsRow);
+
+    form.on('submit', handleProjectCreateSubmit);
+    dialog.append(form);
+    overlay.append(dialog);
+
+    overlay.on('click', (event) => {
+      if(event.target === overlay.elements[0]){
+        closeProjectCreateDialog();
+      }
+    });
+
+    const escHandler = (event) => {
+      if(event.key === 'Escape'){
+        event.preventDefault();
+        closeProjectCreateDialog();
+      }
+    };
+    overlay.elements[0]._escHandler = escHandler;
+    document.addEventListener('keydown', escHandler);
+
+    Q('body').append(overlay);
+    setTimeout(() => {
+      const focusEl = document.getElementById('project-create-name');
+      if(focusEl){
+        focusEl.focus();
+        focusEl.select();
+      }
+    }, 30);
+  }
+
+  async function handleProjectCreateSubmit(event){
+    event.preventDefault();
+    const overlay = document.getElementById('project-create-overlay');
+    if(!overlay) return;
+
+    const form = overlay.querySelector('form');
+    const input = overlay.querySelector('input[name="project-name"]');
+    const errorBox = overlay.querySelector('.modal-error');
+    const name = input ? input.value.trim() : '';
+
+    if(errorBox){
+      errorBox.textContent = '';
+    }
+
+    if(!name){
+      const message = t('projects_ui.create_validation_required', 'Project name is required.');
+      if(errorBox) errorBox.textContent = message;
+      if(input) input.focus();
+      return;
+    }
+
+    if(name.length < PROJECT_NAME_MIN_LENGTH || name.length > PROJECT_NAME_MAX_LENGTH){
+      const message = t('projects_ui.create_validation_length', 'Project name must be between {min} and {max} characters.')
+        .replace('{min}', PROJECT_NAME_MIN_LENGTH)
+        .replace('{max}', PROJECT_NAME_MAX_LENGTH);
+      if(errorBox) errorBox.textContent = message;
+      if(input) input.focus();
+      return;
+    }
+
+    if(!PROJECT_NAME_PATTERN.test(name)){
+      const message = t('projects_ui.create_validation_pattern', 'Use letters, numbers, hyphens, and underscores only.');
+      if(errorBox) errorBox.textContent = message;
+      if(input) input.focus();
+      return;
+    }
+
+    if(Array.isArray(state.projects) && state.projects.some(project => project?.name === name)){
+      const message = t('projects_ui.create_error_exists', 'A project with this name already exists.');
+      if(errorBox) errorBox.textContent = message;
+      if(input) input.focus();
+      return;
+    }
+
+    const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+    const cancelBtn = form ? form.querySelector('button[data-action="cancel"]') : null;
+    let originalSubmitText = '';
+    if(submitBtn){
+      originalSubmitText = submitBtn.textContent || '';
+      submitBtn.disabled = true;
+      submitBtn.textContent = t('projects_ui.create_creating', 'Creating...');
+    }
+    if(cancelBtn){
+      cancelBtn.disabled = true;
+    }
+
+    try {
+      const response = await comm.createProject(name);
+      if(response?.status === 'success'){
+        const successMessage = (response.message || t('projects_ui.create_success_status', 'Project {name} created.')).replace('{name}', name);
+        setStatus(successMessage);
+        closeProjectCreateDialog();
+        try {
+          await refreshProjects();
+        } catch (refreshErr){
+          log('Project refresh failed after creation:', refreshErr);
+        }
+        try {
+          await loadProject(name);
+        } catch (loadErr){
+          log('Auto-load of new project failed:', loadErr);
+        }
+        return;
+      }
+
+      const failureMessage = response?.message || t('projects_ui.create_error_unknown', 'Project creation failed.');
+      if(errorBox){
+        errorBox.textContent = failureMessage;
+      }
+      setStatus(failureMessage, true);
+    } catch (err){
+      const networkMessage = t('projects_ui.create_network_error', 'Network request failed.');
+      if(errorBox){
+        errorBox.textContent = networkMessage;
+      }
+      setStatus(networkMessage, true);
+      log('Project creation failed:', err);
+    } finally {
+      if(document.getElementById('project-create-overlay')){
+        if(submitBtn){
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalSubmitText || t('projects_ui.create_submit', 'Create');
+        }
+        if(cancelBtn){
+          cancelBtn.disabled = false;
+        }
+      }
     }
   }
 
@@ -1457,20 +1653,6 @@
       Q('<h2 class="card-header">').text(t('ui.error', 'Error')).appendTo(errorCard);
       Q('<div class="card-body">').text(t('ui.failed_to_load_dataset', 'Failed to load dataset information.')).appendTo(errorCard);
       Q('#dataset-cards').append(errorCard);
-    }
-  }
-
-  async function refreshMemory(){
-    try {
-      const data = await comm.fetchMemoryStatus();
-      const memory = data.memory || {};
-      const el = Q('#memory-body');
-      el.html('');
-      Object.entries(memory).forEach(([key, value]) => {
-        Q('<div>').text(`${key}: ${value}`).appendTo(el);
-      });
-    } catch (err){
-      setStatus(t('status.memory_load_failed', 'Memory load failed'), true);
     }
   }
 
@@ -1687,6 +1869,473 @@
       renderUpdatesState();
       setStatus(t('status.updates_apply_failed', 'Update apply failed'), true);
       throw err;
+    }
+  }
+
+  function ensureDocsState(){
+    if(!state.docs){
+      state.docs = {
+        initialized: false,
+        files: [],
+        cache: {},
+        currentPath: null,
+        loading: false,
+        error: null,
+        pendingAnchor: null
+      };
+    }
+    return state.docs;
+  }
+
+  function selectDocsDom(){
+    return {
+      list: Q('#docs-list'),
+      empty: Q('#docs-empty'),
+      status: Q('#docs-status'),
+      content: Q('#docs-content'),
+      title: Q('#docs-current-title'),
+      external: Q('#docs-open-external')
+    };
+  }
+
+  function setDocsStatus(message, { isError = false } = {}){
+    const domRefs = selectDocsDom();
+    if(!domRefs.status || !domRefs.status.text) return;
+    if(!message){
+      domRefs.status.text('');
+      domRefs.status.attr('hidden', true);
+      domRefs.status.removeClass('error-text');
+    } else {
+      domRefs.status.text(message);
+      domRefs.status.removeAttr('hidden');
+      if(isError){
+        domRefs.status.addClass('error-text');
+      } else {
+        domRefs.status.removeClass('error-text');
+      }
+    }
+  }
+
+  function slugifyHeading(textValue){
+    if(typeof textValue !== 'string') return '';
+    const normalized = textValue.trim().toLowerCase();
+    if(!normalized) return '';
+    const slug = normalized
+      .replace(/[^a-z0-9\s-_]+/g, '')
+      .replace(/\s+/g, '-');
+    return slug;
+  }
+
+  function normalizeDocPath(rawPath){
+    if(typeof rawPath !== 'string') return null;
+    let working = rawPath.trim();
+    if(!working) return null;
+    working = working.replace(/\\/g, '/');
+    working = working.replace(/^\/+/, '');
+    if(working.toLowerCase().startsWith('docs/')){
+      working = working.slice(5);
+    }
+    working = working.replace(/^\.\//, '');
+    while(working.includes('//')){
+      working = working.replace(/\/+/g, '/');
+    }
+    if(!working) return null;
+    return working;
+  }
+
+  function formatDocTitle(path){
+    if(typeof path !== 'string' || !path.trim()){
+      return '';
+    }
+    const leaf = path.split('/').pop() || path;
+    const withoutExt = leaf.replace(/\.md$/i, '');
+    const humanized = withoutExt.replace(/[-_]+/g, ' ').trim();
+    if(!humanized){
+      return leaf;
+    }
+    return humanized.charAt(0).toUpperCase() + humanized.slice(1);
+  }
+
+  function resolveDocTarget(rawHref){
+    const docsState = ensureDocsState();
+    if(typeof rawHref !== 'string' || !rawHref.trim()){
+      return { path: docsState.currentPath, anchor: null, external: null };
+    }
+
+    let href = rawHref.trim();
+    let anchor = null;
+    const hashIndex = href.indexOf('#');
+    if(hashIndex >= 0){
+      anchor = href.slice(hashIndex + 1);
+      href = href.slice(0, hashIndex);
+    }
+
+    if(!href){
+      return { path: docsState.currentPath, anchor, external: null };
+    }
+
+    if(/^https?:\/\//i.test(href) || href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('data:')){
+      return { path: null, anchor, external: href };
+    }
+
+    let isAbsolute = href.startsWith('/');
+    let normalized = href.replace(/\\/g, '/');
+    if(normalized.startsWith('/')){
+      normalized = normalized.replace(/^\/+/, '');
+    }
+    if(normalized.toLowerCase().startsWith('docs/')){
+      normalized = normalized.slice(5);
+      isAbsolute = true;
+    }
+
+    const segments = normalized.split('/');
+    const baseSegments = isAbsolute ? [] : (docsState.currentPath ? docsState.currentPath.split('/').slice(0, -1) : []);
+    const resolvedSegments = [];
+    baseSegments.forEach(segment => {
+      if(segment) resolvedSegments.push(segment);
+    });
+
+    segments.forEach(segment => {
+      if(!segment || segment === '.') return;
+      if(segment === '..'){
+        if(resolvedSegments.length){
+          resolvedSegments.pop();
+        }
+        return;
+      }
+      resolvedSegments.push(segment);
+    });
+
+    let resolvedPath = resolvedSegments.join('/');
+    if(resolvedPath && !/\.md$/i.test(resolvedPath)){
+      resolvedPath = `${resolvedPath}.md`;
+    }
+    return { path: normalizeDocPath(resolvedPath), anchor, external: null };
+  }
+
+  function resolveDocAssetPath(currentPath, assetPath){
+    if(typeof assetPath !== 'string' || !assetPath.trim()){
+      return null;
+    }
+
+    const trimmed = assetPath.trim();
+    if(/^https?:\/\//i.test(trimmed) || trimmed.startsWith('data:') || trimmed.startsWith('mailto:') || trimmed.startsWith('tel:')){
+      return trimmed;
+    }
+
+    let normalized = trimmed.replace(/\\/g, '/');
+    let isAbsolute = normalized.startsWith('/');
+    if(isAbsolute){
+      normalized = normalized.replace(/^\/+/, '');
+    }
+    if(normalized.toLowerCase().startsWith('docs/')){
+      normalized = normalized.slice(5);
+      isAbsolute = true;
+    }
+
+    const baseSegments = isAbsolute || !currentPath
+      ? []
+      : currentPath.split('/').slice(0, -1);
+    const resolvedSegments = [];
+    baseSegments.forEach(seg => {
+      if(seg) resolvedSegments.push(seg);
+    });
+    normalized.split('/').forEach(seg => {
+      if(!seg || seg === '.') return;
+      if(seg === '..'){
+        if(resolvedSegments.length){
+          resolvedSegments.pop();
+        }
+        return;
+      }
+      resolvedSegments.push(seg);
+    });
+
+    if(!resolvedSegments.length){
+      return null;
+    }
+
+    return `/docs/assets/${resolvedSegments.join('/')}`;
+  }
+
+  function decorateDocsContent(){
+    const docsState = ensureDocsState();
+    const domRefs = selectDocsDom();
+    if(!domRefs.content || !domRefs.content.find) return;
+
+    const slugCounts = new Map();
+    domRefs.content.find('h1, h2, h3, h4, h5, h6').getAll().forEach((heading) => {
+      const slugBase = slugifyHeading(heading.textContent || '');
+      if(!slugBase) return;
+      let slug = slugBase;
+      const current = slugCounts.get(slugBase) || 0;
+      if(current > 0){
+        slug = `${slugBase}-${current}`;
+      }
+      slugCounts.set(slugBase, current + 1);
+      heading.setAttribute('id', slug);
+    });
+
+    domRefs.content.find('a[data-doc-link="true"]').getAll().forEach(anchor => {
+      anchor.removeAttribute('target');
+      anchor.removeAttribute('rel');
+    });
+
+    domRefs.content.find('img').getAll().forEach(image => {
+      const src = image.getAttribute('src');
+      const resolved = resolveDocAssetPath(docsState.currentPath, src);
+      if(resolved){
+        image.setAttribute('src', resolved);
+      }
+      if(!image.getAttribute('alt')){
+        image.setAttribute('alt', '');
+      }
+    });
+
+    if(docsState.pendingAnchor){
+      scrollToDocAnchor(docsState.pendingAnchor);
+      docsState.pendingAnchor = null;
+    }
+  }
+
+  function renderDocsList(){
+    const docsState = ensureDocsState();
+    const domRefs = selectDocsDom();
+    if(!domRefs.list) return;
+
+    domRefs.list.html('');
+    if(!Array.isArray(docsState.files) || !docsState.files.length){
+      if(domRefs.empty){
+        domRefs.empty.removeAttr('hidden');
+      }
+      return;
+    }
+
+    if(domRefs.empty){
+      domRefs.empty.attr('hidden', true);
+    }
+
+    const current = (docsState.currentPath || '').toLowerCase();
+    docsState.files.forEach(entry => {
+      const li = Q('<li>');
+      const button = Q('<button type="button">')
+        .attr('data-doc-path', entry.path)
+        .text(entry.title || entry.path);
+      if(entry.path && entry.path.toLowerCase() === current){
+        button.addClass('active');
+      }
+      li.append(button);
+      domRefs.list.append(li);
+    });
+  }
+
+  function highlightActiveDoc(path){
+    const normalized = (path || '').toLowerCase();
+    Q('#docs-list button[data-doc-path]').each((_, button) => {
+      const btnPath = button.getAttribute('data-doc-path');
+      if(btnPath && btnPath.toLowerCase() === normalized){
+        button.classList.add('active');
+      } else {
+        button.classList.remove('active');
+      }
+    });
+  }
+
+  async function refreshDocsList(){
+    const docsState = ensureDocsState();
+    const domRefs = selectDocsDom();
+    if(domRefs.list){
+      domRefs.list.addClass('loading');
+    }
+    setDocsStatus(t('docs_ui.loading_list', 'Loading documentation list...'));
+    try {
+      const response = await comm.fetchDocsList();
+      const entries = Array.isArray(response.docs) ? response.docs : [];
+      docsState.files = entries
+        .map(item => {
+          const normalizedPath = normalizeDocPath(item.path || '');
+          if(!normalizedPath) return null;
+          const title = item.title || formatDocTitle(normalizedPath) || normalizedPath;
+          return { path: normalizedPath, title };
+        })
+        .filter(Boolean);
+      docsState.files.sort((a, b) => a.path.localeCompare(b.path, undefined, { sensitivity: 'base' }));
+      if(!docsState.files.length){
+        setDocsStatus(t('docs_ui.empty_content', 'No documentation files available in the docs folder.'));
+      } else if(!docsState.currentPath){
+        setDocsStatus(t('docs_ui.loading_placeholder', 'Select a document to view.'));
+      } else {
+        setDocsStatus('');
+      }
+      renderDocsList();
+    } catch (err){
+      docsState.files = [];
+      setDocsStatus(t('docs_ui.list_failed', 'Failed to load documentation list.'), { isError: true });
+      if(domRefs.empty){
+        domRefs.empty.attr('hidden', true);
+      }
+      log('Docs list load failed:', err);
+    } finally {
+      if(domRefs.list){
+        domRefs.list.removeClass('loading');
+      }
+    }
+  }
+
+  function renderDocContent(rawContent){
+    const domRefs = selectDocsDom();
+    if(!domRefs.content) return;
+
+    const rendered = markdown && typeof markdown.render === 'function'
+      ? markdown.render(rawContent || '')
+      : (rawContent || '');
+    domRefs.content.html(rendered);
+    decorateDocsContent();
+  }
+
+  function scrollToDocAnchor(anchorId){
+    if(!anchorId) return;
+    const domRefs = selectDocsDom();
+    if(!domRefs.content || !domRefs.content.get) return;
+    const container = domRefs.content.get();
+    if(!container) return;
+    const escaped = (typeof CSS !== 'undefined' && CSS.escape)
+      ? CSS.escape(anchorId)
+      : anchorId.replace(/[^a-zA-Z0-9_-]/g, match => `\\${match}`);
+    const target = container.querySelector(`#${escaped}`);
+    if(target && typeof target.scrollIntoView === 'function'){
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  async function openDoc(path, options = {}){
+    const docsState = ensureDocsState();
+    const domRefs = selectDocsDom();
+    const normalizedPath = normalizeDocPath(path) || docsState.currentPath;
+    if(!normalizedPath){
+      return;
+    }
+
+    if(docsState.loading){
+      return;
+    }
+
+    docsState.loading = true;
+    docsState.error = null;
+    docsState.pendingAnchor = options.anchor || null;
+    setDocsStatus(t('docs_ui.loading_file', 'Loading document...'));
+    if(domRefs.content){
+      domRefs.content.html('');
+    }
+
+    try {
+      let content = docsState.cache[normalizedPath];
+      let canonicalPath = normalizedPath;
+      if(typeof content !== 'string'){
+        const response = await comm.fetchDocPage(normalizedPath);
+        if(response.status === 'error'){
+          throw new Error(response.message || 'Document load failed');
+        }
+        content = response.content || '';
+        docsState.cache[normalizedPath] = content;
+        if(response.path){
+          const resolved = normalizeDocPath(response.path);
+          if(resolved){
+            canonicalPath = resolved;
+            docsState.cache[canonicalPath] = content;
+          }
+        }
+      }
+
+      docsState.currentPath = responsePathOrDefault(canonicalPath, docsState.files);
+      setDocsStatus('');
+      renderDocContent(content);
+      highlightActiveDoc(docsState.currentPath);
+
+      if(domRefs.title){
+        const currentEntry = docsState.files.find(item => item.path === docsState.currentPath);
+        const fallbackTitle = formatDocTitle(docsState.currentPath);
+        domRefs.title.text(currentEntry?.title || fallbackTitle || docsState.currentPath);
+      }
+
+      if(domRefs.external){
+        if(docsState.currentPath){
+          const encodedPath = docsState.currentPath.split('/').map(segment => encodeURIComponent(segment)).join('/');
+          domRefs.external.attr('href', `/docs/assets/${encodedPath}`);
+          domRefs.external.removeAttr('hidden');
+        } else {
+          domRefs.external.attr('hidden', true);
+          domRefs.external.removeAttr('href');
+        }
+      }
+    } catch (err){
+      docsState.error = err?.message || String(err);
+      setDocsStatus(docsState.error, { isError: true });
+      if(domRefs.content){
+        domRefs.content.html('');
+      }
+      if(domRefs.title){
+        domRefs.title.text(formatDocTitle(normalizedPath) || normalizedPath || t('docs_ui.placeholder_title', 'Documentation'));
+      }
+      if(domRefs.external){
+        domRefs.external.attr('hidden', true);
+        domRefs.external.removeAttr('href');
+      }
+      log('Doc load failed:', err);
+    } finally {
+      docsState.loading = false;
+    }
+  }
+
+  function responsePathOrDefault(candidate, files){
+    if(!candidate) return candidate;
+    const lower = candidate.toLowerCase();
+    const match = Array.isArray(files) ? files.find(entry => entry.path && entry.path.toLowerCase() === lower) : null;
+    return match?.path || candidate;
+  }
+
+  async function initDocsPage(){
+    const docsState = ensureDocsState();
+    if(docsState.initialized){
+      renderDocsList();
+      highlightActiveDoc(docsState.currentPath);
+      return;
+    }
+
+    docsState.initialized = true;
+    await refreshDocsList();
+
+    const defaultPath = (() => {
+      if(Array.isArray(docsState.files) && docsState.files.length){
+        const preferred = docsState.files.find(item => item.path && item.path.toLowerCase() === 'start.md');
+        return preferred?.path || docsState.files[0].path;
+      }
+      return null;
+    })();
+
+    if(defaultPath){
+      await openDoc(defaultPath);
+    }
+  }
+
+  function handleDocsLinkClick(event){
+    const anchor = event.target && event.target.closest ? event.target.closest('a') : null;
+    if(!anchor) return;
+    const href = anchor.getAttribute('href');
+    if(!href) return;
+
+    const target = resolveDocTarget(href);
+    if(target.external){
+      anchor.setAttribute('target', '_blank');
+      anchor.setAttribute('rel', 'noopener noreferrer');
+      return;
+    }
+
+    event.preventDefault();
+    if(target.path && target.path !== ensureDocsState().currentPath){
+      openDoc(target.path, { anchor: target.anchor });
+    } else if(target.anchor){
+      scrollToDocAnchor(target.anchor);
     }
   }
 
@@ -2509,6 +3158,8 @@
     initLanguageSelector,
     switchLanguage,
     refreshProjects,
+  showProjectCreateDialog,
+  closeProjectCreateDialog,
     loadProject,
     saveTrainingConfig,
     syncAugmentationsFromConfig,
@@ -2521,10 +3172,9 @@
     renderAugmentationPreview,
     requestAugmentationPreview,
     refreshDatasetInfo,
-    refreshMemory,
-  renderUpdatesState,
-  runUpdatesCheck,
-  applySystemUpdates,
+    renderUpdatesState,
+    runUpdatesCheck,
+    applySystemUpdates,
     pollStatus,
     generateHeatmap,
     saveSystemConfig,
@@ -2535,6 +3185,9 @@
     collectCurrentValues,
     assignPathValue,
     runValidation,
-    isPathRequired
+    isPathRequired,
+    initDocsPage,
+    openDoc,
+    handleDocsLinkClick
   };
 })();

@@ -187,8 +187,6 @@ def reload_localization() -> Any:
     """
     global LOCALIZATION, _language_data
 
-    # Use the same logic as load_language_data()
-    # Determine language code
     if _current_lang_code:
         lang_code = _current_lang_code
     else:
@@ -196,15 +194,12 @@ def reload_localization() -> Any:
         if isinstance(SETTINGS, dict):
             lang_code = SETTINGS.get("general", {}).get("language") or lang_code
 
-    # Load base language file
     lang_path = get_language_file_path(lang_code)
     data = _load_json_safe(lang_path, {}) or {}
 
-    # Merge premerged (if provided) first to allow early overlay
     if _premerged_language_data and isinstance(_premerged_language_data, dict):
         data = deep_merge_json(data, _premerged_language_data, replace_lists=False)
 
-    # Merge enabled module languages
     data = _merge_enabled_module_languages(data, lang_code)
 
     LOCALIZATION = data
@@ -249,7 +244,6 @@ def _load_json_safe(path: str, default: Any = None) -> Any:
         return deep_merge_json(str(p))
     except Exception:
         return default
-
 
 def get_language_file_path(lang_code: str) -> str:
     """Return the best language file path for lang_code.

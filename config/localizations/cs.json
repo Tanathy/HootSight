@@ -112,6 +112,7 @@
     "memory": "Paměť",
     "system_group": "Systém",
     "updates": "Aktualizace",
+    "docs": "Docs",
     "about": "O aplikaci"
   },
   "page": {
@@ -123,6 +124,7 @@
     "heatmap": "Heatmap",
     "memory": "Paměť",
     "updates": "Aktualizace",
+    "docs": "Docs",
     "about": "O aplikaci"
   },
   "config": {
@@ -366,7 +368,27 @@
         "ok": "OK",
         "unstable": "Nestabilní"
       }
-    }
+    },
+    "toolbar_hint": "Projects keep datasets, configs, and checkpoints isolated.",
+    "toolbar_create": "Create New Project",
+    "create_disabled_hint": "Project creation is currently unavailable.",
+    "empty_title": "No projects yet",
+    "empty_message": "Use Create New Project to scaffold dataset, data_source, model, and heatmap folders.",
+    "create_title": "Create new project",
+    "create_description": "Name your project to scaffold dataset, data_source, model, and heatmap folders.",
+    "create_name_label": "Project name",
+    "create_name_placeholder": "e.g. wildlife_classification",
+    "create_name_hint": "Use letters, numbers, hyphens, and underscores only.",
+    "create_cancel": "Cancel",
+    "create_submit": "Create",
+    "create_creating": "Creating...",
+    "create_validation_required": "Project name is required.",
+    "create_validation_length": "Project name must be between {min} and {max} characters.",
+    "create_validation_pattern": "Use letters, numbers, hyphens, and underscores only.",
+    "create_error_exists": "A project with this name already exists.",
+    "create_success_status": "Project {name} created.",
+    "create_error_unknown": "Project creation failed.",
+    "create_network_error": "Network request failed."
   },
   "status_ui": {
     "page_title": "Stav",
@@ -540,12 +562,12 @@
       "auto": "Automatický počet vláken pro augmentaci – vypočítá optimální paralelizaci obrazové augmentace podle CPU jader a dostupné RAM. Ovlivňuje propustnost transformační pipeline včetně rotace, škálování, barevných posunů a normalizace. Řídí alokaci paměti pro augmentační buffery a dočasné snímky. Vyvažuje využití CPU proti tlakům na paměť, aby se systém nepřetížil při náročném předzpracování."
     },
     "training_model_type_enum_descriptor": {
-  "resnet": "ResNet (Residual Network) – hluboká konvoluční síť využívající skip spoje, takže jde bezpečně trénovat i velmi hluboké architektury (18–152 vrstev). Ovlivňuje tok gradientu, stabilitu tréninku, hloubku reprezentací i kapacitu modelu. Staví na reziduálních blocích s batch normou a ReLU aktivací. Volba varianty řídí komplexitu od 11M parametrů (ResNet-18) po 60M (ResNet-152) a tím i spotřebu paměti, délku tréninku, rychlost inference a konečnou přesnost klasifikace.",
-  "resnext": "ResNeXt (Aggregated Residual Transformations) – evoluce ResNetu s kardinalitou (seskupené konvoluce), která zvyšuje kapacitu bez dramatického růstu parametrů. Zvyšuje rozmanitost naučených rysů, vyjadřovací sílu sítě a výpočetní efektivitu. Řídí paralelní větvení transformací v každém reziduálním bloku. Má dopad na využití GPU paměti, dobu tréninku a dosahuje vyšší přesnosti než klasický ResNet při podobných nárocích.",
-  "mobilenet": "MobileNet – lehká CNN s depthwise separabilními konvolucemi, které redukují velikost modelu i výpočetní nároky. Ovlivňuje latenci inference, spotřebu energie, velikost modelu a použitelnost na mobilních zařízeních. Šířkový multiplikátor a rozlišení nastavují kompromis mezi přesností a efektivitou. Dopadá na výdrž baterie, schopnost zpracování v reálném čase i kompatibilitu na edge hardware.",
-  "shufflenet": "ShuffleNet – extrémně efektivní CNN s channel shuffle operacemi a pointwise skupinovými konvolucemi. Ovlivňuje využití paměťové propustnosti, cenu inference, velikost modelu a rychlost zpracování. Řídí komunikaci kanálů mezi skupinovými konvolucemi, aby zůstaly informace dostupné. Optimalizováno pro ARM a nízkopříkonová zařízení, ideální pro scénáře s přísnými limity na zdroje a požadavky na real-time.",
-  "squeezenet": "SqueezeNet – ultra kompaktní CNN používající Fire moduly (squeeze + expand), které dosahují přesnosti AlexNetu s až 50× méně parametry. Ovlivňuje nároky na úložiště modelu, dobu stahování, efektivitu cache i šířku pásma při nasazení. Řídí počet parametrů agresivní redukcí dimenze a následným rozšířením. Minimalizuje stopu na disku a přitom drží solidní přesnost pro základní klasifikační úlohy.",
-  "efficientnet": "EfficientNet – CNN s kombinovaným škálováním, které rovnoměrně upravuje hloubku, šířku i rozlišení pomocí výsledků neural architecture search. Ovlivňuje výpočetní efektivitu, škálování přesnosti, nároky na tréninkové zdroje a optimalizaci inference. Koeficient compound řídí komplexitu tak, aby všechny tři dimenze rostly vyváženě. Přináší lepší poměr přesnost/výkon než tradiční způsoby škálování."
+      "resnet": "ResNet (Residual Network) – hluboká konvoluční síť využívající skip spoje, takže jde bezpečně trénovat i velmi hluboké architektury (18–152 vrstev). Ovlivňuje tok gradientu, stabilitu tréninku, hloubku reprezentací i kapacitu modelu. Staví na reziduálních blocích s batch normou a ReLU aktivací. Volba varianty řídí komplexitu od 11M parametrů (ResNet-18) po 60M (ResNet-152) a tím i spotřebu paměti, délku tréninku, rychlost inference a konečnou přesnost klasifikace.",
+      "resnext": "ResNeXt (Aggregated Residual Transformations) – evoluce ResNetu s kardinalitou (seskupené konvoluce), která zvyšuje kapacitu bez dramatického růstu parametrů. Zvyšuje rozmanitost naučených rysů, vyjadřovací sílu sítě a výpočetní efektivitu. Řídí paralelní větvení transformací v každém reziduálním bloku. Má dopad na využití GPU paměti, dobu tréninku a dosahuje vyšší přesnosti než klasický ResNet při podobných nárocích.",
+      "mobilenet": "MobileNet – lehká CNN s depthwise separabilními konvolucemi, které redukují velikost modelu i výpočetní nároky. Ovlivňuje latenci inference, spotřebu energie, velikost modelu a použitelnost na mobilních zařízeních. Šířkový multiplikátor a rozlišení nastavují kompromis mezi přesností a efektivitou. Dopadá na výdrž baterie, schopnost zpracování v reálném čase i kompatibilitu na edge hardware.",
+      "shufflenet": "ShuffleNet – extrémně efektivní CNN s channel shuffle operacemi a pointwise skupinovými konvolucemi. Ovlivňuje využití paměťové propustnosti, cenu inference, velikost modelu a rychlost zpracování. Řídí komunikaci kanálů mezi skupinovými konvolucemi, aby zůstaly informace dostupné. Optimalizováno pro ARM a nízkopříkonová zařízení, ideální pro scénáře s přísnými limity na zdroje a požadavky na real-time.",
+      "squeezenet": "SqueezeNet – ultra kompaktní CNN používající Fire moduly (squeeze + expand), které dosahují přesnosti AlexNetu s až 50× méně parametry. Ovlivňuje nároky na úložiště modelu, dobu stahování, efektivitu cache i šířku pásma při nasazení. Řídí počet parametrů agresivní redukcí dimenze a následným rozšířením. Minimalizuje stopu na disku a přitom drží solidní přesnost pro základní klasifikační úlohy.",
+      "efficientnet": "EfficientNet – CNN s kombinovaným škálováním, které rovnoměrně upravuje hloubku, šířku i rozlišení pomocí výsledků neural architecture search. Ovlivňuje výpočetní efektivitu, škálování přesnosti, nároky na tréninkové zdroje a optimalizaci inference. Koeficient compound řídí komplexitu tak, aby všechny tři dimenze rostly vyváženě. Přináší lepší poměr přesnost/výkon než tradiční způsoby škálování."
     },
     "training_task_enum_descriptor": {
       "classification": "Klasifikace – každý obrázek dostane právě jednu třídu. Výstup používá softmax a klasickou cross-entropy.",
@@ -680,10 +702,10 @@
     "label_training_id": "ID tréninku",
     "label_status": "Stav",
     "label_phase": "Fáze",
-  "label_epoch": "Epocha",
+    "label_epoch": "Epocha",
     "label_step": "Krok",
     "badge_training": "Trénink: {project}",
-  "footer_training": "Trénink {project} — Epocha {epoch} • Krok {step}"
+    "footer_training": "Trénink {project} — Epocha {epoch} • Krok {step}"
   },
   "updates": {
     "log": {
@@ -754,5 +776,36 @@
     "language_switched": "Jazyk úspěšně změněn",
     "language_switch_failed": "Změna jazyka selhala",
     "augmentation_preview_ready": "Náhled augmentace vygenerován"
+  },
+  "docs_ui": {
+    "page_title": "Documentation",
+    "page_description": "Browse in-app documentation without leaving Hootsight.",
+    "sidebar_title": "Documentation",
+    "empty": "No documentation files found.",
+    "empty_content": "No documentation files available in the docs folder.",
+    "loading_placeholder": "Select a document to view.",
+    "loading_list": "Loading documentation list...",
+    "loading_file": "Loading document...",
+    "list_failed": "Failed to load documentation list.",
+    "open_externally": "Open raw file",
+    "placeholder_title": "Documentation"
+  },
+  "docs": {
+    "api": {
+      "missing_root": "Documentation directory is not available.",
+      "not_found": "Documentation file {path} was not found.",
+      "decode_error": "The requested documentation file could not be decoded.",
+      "read_failed": "Documentation retrieval failed: {error}"
+    }
+  },
+  "projects": {
+    "api": {
+      "create_missing": "Project name is required.",
+      "create_length": "Project name must be between {min} and {max} characters.",
+      "create_invalid": "Project name must start with a letter or number and may contain letters, numbers, hyphens, and underscores.",
+      "create_exists": "Project {name} already exists.",
+      "create_success": "Project {name} created successfully.",
+      "create_error": "Failed to create project: {error}"
+    }
   }
 }

@@ -1,16 +1,19 @@
 """FastAPI backend for Hootsight.
 
-Minimal REST API focused on ResNet training and memory utilities.
+Minimal REST API focused on project management and training.
 All runtime settings are taken from config/config.json via coordinator_settings.SETTINGS.
 """
 from __future__ import annotations
 
 import os
+import re
 import json
 import random
 import base64
+import shutil
 from io import BytesIO
 from typing import Any, Dict, Optional, List
+from pathlib import Path
 
 from fastapi import FastAPI, Body, Query
 from fastapi.staticfiles import StaticFiles
@@ -23,13 +26,78 @@ from torchvision import transforms as tv_transforms
 from system.log import info, success, error, warning
 from system.coordinator_settings import SETTINGS
 from system.dataset_discovery import discover_projects, get_project_info, get_image_files
-from system.memory import get_optimal_batch_size, get_memory_status, cleanup_memory
 from system.training import start_training, stop_training, get_training_status, get_training_status_all
-from system.models.resnet import create_resnet_model
 from system.heatmap import generate_project_heatmap, evaluate_with_heatmap
-from system.coordinator_settings import load_language_data, switch_language, available_languages, lang, get_current_language
+from system.coordinator_settings import (
+    load_language_data,
+    switch_language,
+    available_languages,
+    lang,
+    get_current_language,
+)
 from system.augmentation import DataAugmentationFactory
 from system.updates import check_for_updates, apply_updates
+
+
+def _resolve_doc_path(docs_root: Path, requested: str) -> Optional[Path]:
+    if not requested:
+        return None
+
+    cleaned = requested.strip()
+    if not cleaned:
+        return None
+
+    normalized = cleaned.replace("\\", "/")
+    normalized = normalized.lstrip("/")
+    if normalized.lower().startswith("docs/"):
+        normalized = normalized[5:]
+
+    if not normalized.lower().endswith(".md"):
+        normalized = f"{normalized}.md"
+
+    candidate = (docs_root / normalized).resolve()
+    try:
+        candidate.relative_to(docs_root.resolve())
+    except ValueError:
+        return None
+
+    return candidate
+
+
+def _derive_doc_title(doc_path: Path) -> str:
+    fallback = doc_path.stem.replace('_', ' ').replace('-', ' ').title()
+    try:
+        with doc_path.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                stripped = line.strip()
+                if stripped.startswith("#"):
+                    title = re.sub(r"^#+\\s*", "", stripped).strip()
+                    return title or fallback
+    except Exception:
+        return fallback
+    return fallback
+
+
+def _list_doc_entries(docs_root: Path) -> List[Dict[str, str]]:
+    entries: List[Dict[str, str]] = []
+    if not docs_root.is_dir():
+        return entries
+
+    for path in docs_root.rglob("*.md"):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(docs_root)
+        parts = list(relative.parts)
+        if any(part.startswith(".") for part in parts):
+            continue
+        rel_path = relative.as_posix()
+        entries.append({
+            "path": rel_path,
+            "title": _derive_doc_title(path)
+        })
+
+    entries.sort(key=lambda item: item["path"].lower())
+    return entries
 
 
 def _localize_schema(obj: Any) -> Any:
@@ -137,6 +205,14 @@ def create_app() -> FastAPI:
     if os.path.isdir(ui_dir):
         app.mount("/static", StaticFiles(directory=ui_dir), name="static")
 
+    root_path = Path(__file__).resolve().parents[1]
+    docs_dir_config = SETTINGS.get('paths', {}).get('docs_dir', 'docs')
+    docs_root = (root_path / docs_dir_config).resolve()
+    if docs_root.is_dir():
+        app.mount("/docs/assets", StaticFiles(directory=str(docs_root)), name="docs_assets")
+    else:
+        docs_root = None
+
     @app.get("/")
     async def serve_ui_root():
         ui_file = os.path.join(ui_dir, "index.html")
@@ -173,7 +249,11 @@ def create_app() -> FastAPI:
         """
         try:
             data = load_language_data()
-            return {"localization": data, "languages": available_languages(), "active": get_current_language()}
+            return {
+                "localization": data,
+                "languages": available_languages(),
+                "active": get_current_language(),
+            }
         except Exception as ex:
             error(f"Localization load failed: {ex}")
             return {"error": str(ex)}
@@ -186,6 +266,40 @@ def create_app() -> FastAPI:
         except Exception as ex:
             error(f"Localization switch failed: {ex}")
             return {"error": str(ex)}
+
+    @app.get("/docs/list")
+    def docs_list() -> Dict[str, Any]:
+        if docs_root is None:
+            return {"docs": []}
+        return {"docs": _list_doc_entries(docs_root)}
+
+    @app.get("/docs/page")
+    def docs_page(path: str = Query(..., min_length=1)) -> Dict[str, Any]:
+        if docs_root is None:
+            message = lang("docs.api.missing_root")
+            warning("Documentation directory is not configured; cannot serve documentation page")
+            return {"status": "error", "message": message}
+
+        target = _resolve_doc_path(docs_root, path)
+        if target is None or not target.is_file():
+            message = lang("docs.api.not_found", path=path)
+            warning(f"Documentation page '{path}' not found")
+            return {"status": "error", "message": message}
+
+        try:
+            content = target.read_text(encoding="utf-8")
+        except UnicodeDecodeError as exc:
+            message = lang("docs.api.decode_error", path=target.name)
+            error(f"Documentation decode failed for {target}: {exc}")
+            return {"status": "error", "message": message}
+        except Exception as exc:
+            message = lang("docs.api.read_failed", error=str(exc))
+            error(f"Documentation read failed for {target}: {exc}")
+            return {"status": "error", "message": message}
+
+        rel_path = target.relative_to(docs_root).as_posix()
+        title = _derive_doc_title(target)
+        return {"status": "success", "path": rel_path, "title": title, "content": content}
 
     @app.post("/config")
     def update_config(config: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
@@ -237,6 +351,85 @@ def create_app() -> FastAPI:
             error(f"Project discovery failed: {ex}")
             return {"error": str(ex)}
 
+    @app.post("/projects/create")
+    def create_project(payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+        min_length = 3
+        max_length = 64
+        projects_dir = SETTINGS.get("paths", {}).get("projects_dir", "projects")
+        root_path = Path(__file__).resolve().parents[1]
+        projects_root = (root_path / projects_dir).resolve()
+        projects_root.mkdir(parents=True, exist_ok=True)
+
+        name_value = ""
+        if isinstance(payload, dict):
+            name_candidate = payload.get("name")
+            if isinstance(name_candidate, str):
+                name_value = name_candidate.strip()
+            elif name_candidate is not None:
+                name_value = str(name_candidate).strip()
+
+        if not name_value:
+            message = lang("projects.api.create_missing")
+            return {"status": "error", "message": message}
+
+        if len(name_value) < min_length or len(name_value) > max_length:
+            message = lang("projects.api.create_length", min=min_length, max=max_length)
+            return {"status": "error", "message": message}
+
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", name_value):
+            message = lang("projects.api.create_invalid")
+            return {"status": "error", "message": message}
+
+        project_path = (projects_root / name_value).resolve()
+        try:
+            project_path.relative_to(projects_root)
+        except ValueError:
+            message = lang("projects.api.create_invalid")
+            return {"status": "error", "message": message}
+
+        if project_path.exists():
+            message = lang("projects.api.create_exists", name=name_value)
+            return {"status": "error", "message": message}
+
+        try:
+            project_path.mkdir(parents=False, exist_ok=False)
+            for subdir in ("dataset", "data_source", "model", "heatmaps", "validation"):
+                (project_path / subdir).mkdir(parents=True, exist_ok=True)
+
+            config_src = root_path / "config" / "config.json"
+            config_dst = project_path / "config.json"
+            if config_src.is_file():
+                shutil.copy2(config_src, config_dst)
+            else:
+                with config_dst.open("w", encoding="utf-8") as cfg_file:
+                    json.dump({}, cfg_file, indent=4, ensure_ascii=False)
+
+            success(lang("projects.api.create_success", name=name_value))
+        except Exception as ex:  # noqa: BLE001 - ensure structured error response
+            error(f"Project creation failed for {name_value}: {ex}")
+            message = lang("projects.api.create_error", error=str(ex))
+            return {"status": "error", "message": message}
+
+        project_details = None
+        try:
+            for project in discover_projects():
+                if project.name == name_value:
+                    project_details = project.to_dict()
+                    break
+        except Exception as ex:  # noqa: BLE001 - project list retrieval should not fail the request
+            warning(f"Post-create project discovery failed for {name_value}: {ex}")
+
+        response: Dict[str, Any] = {
+            "status": "success",
+            "message": lang("projects.api.create_success", name=name_value)
+        }
+        if project_details is not None:
+            response["project"] = project_details
+        else:
+            response["project"] = {"name": name_value, "path": str(project_path)}
+
+        return response
+
     @app.get("/projects/{project_name}")
     def project_details(project_name: str) -> Dict[str, Any]:
         try:
@@ -280,38 +473,6 @@ def create_app() -> FastAPI:
             return get_training_status_all(training_id)
         except Exception as ex:
             error(f"Training status history failed: {ex}")
-            return {"error": str(ex)}
-
-    @app.get("/memory/status")
-    def memory_status() -> Dict[str, Any]:
-        try:
-            return {"memory": get_memory_status()}
-        except Exception as ex:
-            error(f"Memory status failed: {ex}")
-            return {"error": str(ex)}
-
-    @app.post("/memory/cleanup")
-    def memory_cleanup() -> Dict[str, Any]:
-        try:
-            cleanup_memory()
-            return {"status": "success"}
-        except Exception as ex:
-            error(f"Memory cleanup failed: {ex}")
-            return {"status": "error", "message": str(ex)}
-
-    @app.post("/memory/batch-size")
-    def memory_batch_size(
-        model_name: str = Body("resnet50", embed=True),
-        input_shape: Optional[list[int]] = Body(None, embed=True)
-    ) -> Dict[str, Any]:
-        try:
-            # Build a lightweight model for estimation
-            model = create_resnet_model(model_name=model_name, num_classes=1000, pretrained=False).model
-            ishape = tuple(input_shape) if input_shape else (3, 224, 224)
-            result = get_optimal_batch_size(model, ishape)
-            return {"result": result}
-        except Exception as ex:
-            error(f"Batch size calc failed: {ex}")
             return {"error": str(ex)}
 
     @app.get("/system/updates/check")

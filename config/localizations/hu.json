@@ -109,9 +109,9 @@
     "status_group": "Állapot",
     "status": "Állapot",
     "heatmap": "Hőtérkép",
-    "memory": "Memória",
     "system_group": "Rendszer",
     "updates": "Frissítések",
+    "docs": "Docs",
     "about": "Névjegy"
   },
   "page": {
@@ -121,8 +121,8 @@
     "augmentation": "Augmentáció",
     "status": "Állapot",
     "heatmap": "Hőtérkép",
-    "memory": "Memória",
     "updates": "Frissítések",
+    "docs": "Docs",
     "about": "Névjegy"
   },
   "config": {
@@ -281,7 +281,6 @@
     "stop_training": "Tanítás Leállítása",
     "stop_training_disabled": "Nincs aktív tanítás ehhez a projekthez.",
     "training_in_progress": "Tanítás folyamatban",
-    "memory": "Memória",
     "loading": "Betöltés...",
     "training_status": "Tanítási Állapot",
     "idle": "Tétlen",
@@ -448,7 +447,27 @@
         "ok": "OK",
         "unstable": "Instabil"
       }
-    }
+    },
+    "toolbar_hint": "Projects keep datasets, configs, and checkpoints isolated.",
+    "toolbar_create": "Create New Project",
+    "create_disabled_hint": "Project creation is currently unavailable.",
+    "empty_title": "No projects yet",
+    "empty_message": "Use Create New Project to scaffold dataset, data_source, model, and heatmap folders.",
+    "create_title": "Create new project",
+    "create_description": "Name your project to scaffold dataset, data_source, model, and heatmap folders.",
+    "create_name_label": "Project name",
+    "create_name_placeholder": "e.g. wildlife_classification",
+    "create_name_hint": "Use letters, numbers, hyphens, and underscores only.",
+    "create_cancel": "Cancel",
+    "create_submit": "Create",
+    "create_creating": "Creating...",
+    "create_validation_required": "Project name is required.",
+    "create_validation_length": "Project name must be between {min} and {max} characters.",
+    "create_validation_pattern": "Use letters, numbers, hyphens, and underscores only.",
+    "create_error_exists": "A project with this name already exists.",
+    "create_success_status": "Project {name} created.",
+    "create_error_unknown": "Project creation failed.",
+    "create_network_error": "Network request failed."
   },
   "status_ui": {
     "page_title": "Állapot",
@@ -457,10 +476,6 @@
   "heatmap_ui": {
     "page_title": "Hőtérkép",
     "page_description": "Állítsd elő és vizualizáld a modell figyelem térképeit az előrejelzési fókusz területek megértéséhez."
-  },
-  "memory_ui": {
-    "page_title": "Memória",
-    "page_description": "Figyeld a rendszer memória használatát és optimalizáld a köteg méreteket hatékony tanításhoz."
   },
   "environment": {
     "venv_creating": "Python virtuális környezet létrehozása itt: {path}...",
@@ -813,7 +828,6 @@
     "save_failed": "Mentés sikertelen",
     "loading_schema": "Séma & konfiguráció betöltése...",
     "init_failed": "Init sikertelen",
-    "memory_load_failed": "Memória betöltés sikertelen",
     "checking_updates": "Frissítések ellenőrzése...",
     "updates_ready": "Frissítések elérhetőek",
     "updates_none": "Nincsenek frissítések",
@@ -836,5 +850,36 @@
     "language_switched": "Nyelv sikeresen váltva",
     "language_switch_failed": "Nyelv váltás sikertelen",
     "augmentation_preview_ready": "Augmentációs előnézet előállítva"
+  },
+  "docs_ui": {
+    "page_title": "Dokumentáció",
+    "page_description": "Böngéssze az alkalmazáson belüli dokumentációt anélkül, hogy elhagyná a Hootsight-ot.",
+    "sidebar_title": "Dokumentáció",
+    "empty": "Nem találhatók dokumentációs fájlok.",
+    "empty_content": "Nem érhetők el dokumentációs fájlok a docs mappában.",
+    "loading_placeholder": "Válasszon ki egy dokumentumot a megtekintéshez.",
+    "loading_list": "Dokumentációs lista betöltése...",
+    "loading_file": "Dokumentum betöltése...",
+    "list_failed": "Nem sikerült betölteni a dokumentációs listát.",
+    "open_externally": "Nyers fájl megnyitása",
+    "placeholder_title": "Dokumentáció"
+  },
+  "docs": {
+    "api": {
+      "missing_root": "A dokumentációs könyvtár nem érhető el.",
+      "not_found": "A(z) {path} dokumentációs fájl nem található.",
+      "decode_error": "A kért dokumentációs fájlt nem sikerült dekódolni.",
+      "read_failed": "Dokumentáció lekérése sikertelen: {error}"
+    }
+  },
+  "projects": {
+    "api": {
+      "create_missing": "Projekt név megadása kötelező.",
+      "create_length": "A projekt névnek {min} és {max} karakter között kell lennie.",
+      "create_invalid": "A projekt névnek betűvel vagy számmal kell kezdődnie és tartalmazhat betűket, számokat, kötőjeleket és aláhúzásokat.",
+      "create_exists": "A(z) {name} projekt már létezik.",
+      "create_success": "A(z) {name} projekt sikeresen létrehozva.",
+      "create_error": "Nem sikerült létrehozni a projektet: {error}"
+    }
   }
 }
