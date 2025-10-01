@@ -1,5 +1,5 @@
 # HootSight
-HootSight is actively developed and maintained by me, Tanathy, together with Roxxy—my in-house development automation assistant.
+HootSight is actively developed and maintained by me, Tanathy, together with Roxxy, my in-house development automation assistant.
 
 The project began as a personal rebellion against subscription-based AI services that demand exorbitant fees for tasks you can absolutely perform yourself with the right tools. I built HootSight to be the toolkit I wish I had when I started: approachable enough for solo developers, powerful enough for real work, and honest about its capabilities and limitations.
 
