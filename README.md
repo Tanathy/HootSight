@@ -1,102 +1,109 @@
 # HootSight
+HootSight is actively developed and maintained by me, Tanathy, together with Roxxy—my in-house development automation assistant.
 
-A modular, configuration‑driven image recognition and training system built on PyTorch + FastAPI with a simple web UI (pywebview). It auto‑discovers projects, supports multiple model families and multi‑label datasets, includes memory‑aware batch‑size calculation to prevent OOM, and aims to be “run and go.”
+The project began as a personal rebellion against subscription-based AI services that demand exorbitant fees for tasks you can absolutely perform yourself with the right tools. I built HootSight to be the toolkit I wish I had when I started: approachable enough for solo developers, powerful enough for real work, and honest about its capabilities and limitations.
 
-![App Screenshot](https://raw.githubusercontent.com/Tanathy/HootSight/refs/heads/main/docs/imgs/app.png)
+Most cloud marketplaces, hosted APIs, "AI platforms" happily charge per month for fundamental operations like image classification, similarity search, or internal research tooling. But you don’t need to rent those features if you can build them yourself. You can train serious and personalized models at home, keep full control of your data, and spend your money on hardware, on your projects and improve rather than endless subscriptions.
 
+It’s free to use, support-funded, and designed to be approachable without being watered down.
+
+At its core, HootSight is an offline-first computer vision training stack—built for developers who would rather own their models outright than rely on rented solutions tied to big-company ecosystems.
+
+![Application screenshot](https://raw.githubusercontent.com/Tanathy/HootSight/refs/heads/main/docs/imgs/app.png)
+
+
+## What HootSight delivers
+
+- **Config-driven workflow** – Every switch lives in JSON and is editable through the UI. Automate it, version it, or ship it headless.
+- **Project auto-discovery** – Drop a folder under `projects/` and it shows up ready to train, complete with dataset analysis and Grad-CAM tooling.
+- **Multi-label aware from the ground up** – `.txt` sidecar tags switch the entire pipeline into multi-label mode automatically.
+- **Memory protection** – Batch sizes are tuned on the fly so you stop burning time on CUDA OOM crashes. Literally you can game next to training.
+- **Rich augmentation & monitoring** – Toggle augmentations visually, preview outputs, watch training progress batch by batch.
+- **Offline-first FastAPI + PyTorch stack** – No telemetry, no surprise network calls; the optional update check runs only when you trigger it and is scoped to this repository.
 
 ## Requirements
 
-- Windows 10/11 64‑bit
-- Python 3.12 (recommended; 3.10–3.12 is fine)
-- NVIDIA GPU recommended
-- Internet connection on first run to install dependencies
-- ESSENTIAL for GPU acceleration: install the NVIDIA CUDA Toolkit matching your GPU/driver from the official CUDA Downloads page:
-	https://developer.nvidia.com/cuda-downloads
+- Windows 10 or 11 (64-bit)
+- Python 3.12 (3.10–3.12 tested; 3.12 recommended)
+- NVIDIA GPU strongly recommended for speed; CPU-only works but will be slower
+- Internet access on the first run to pull dependencies
+- Matching NVIDIA CUDA Toolkit if you expect GPU acceleration: https://developer.nvidia.com/cuda-downloads
 
 Notes:
-- No global installs. On first run, a local virtual environment (venv) is created and all packages are installed there.
-- PyTorch and xFormers CUDA wheels are auto‑selected either by autodetection or via `config/packages.jsonc` → `pytorch_cuda_version` (default: `cu129`). If you’re CPU‑only, remove that key (or leave it empty) and install a CPU build of torch.
-- If your installed CUDA runtime differs from the configured one, adjust `pytorch_cuda_version` accordingly; otherwise CUDA‑specific wheels (xFormers) may fail to install.
-- Platform/testing status: we have not yet been able to test on Linux environments or with AMD GPUs. We aim for multi‑compatibility and a friendly UX, but this is still very early; issues may occur.
+- The installer never touches your global Python. A local virtual environment is created on first run and reused afterward.
+- PyTorch and xFormers CUDA wheels are auto-selected via hardware detection or the `config/packages.jsonc → pytorch_cuda_version` setting (default `cu129`). Remove that key or leave it empty for CPU-only installs.
+- If your machine uses a different CUDA runtime than the configured wheel, update `pytorch_cuda_version` to match or xFormers will fail.
+- Linux and AMD GPU support are on the roadmap but not certified yet. Expect rough edges outside Windows + NVIDIA.
 
+## Install and launch (PowerShell)
 
-## Quick start
-
-1) Download/clone the repo.
-2) In PowerShell, from the repo root, run:
+1. Clone or download the repository.
+2. From the repo root, run:
 
 ```powershell
 py -3.12 run.py
 ```
 
-What happens:
-- A `.\venv` is created and pip is upgraded.
-- PyTorch (CUDA build via autodetection or config) and all required packages from `config/packages.jsonc` are installed.
-- The FastAPI server and the pywebview app start.
-- If the desktop window doesn’t show, open the UI in your browser at http://127.0.0.1:8000
+What you get on first launch:
+- `\.venv` is created, pip is upgraded, and packages from `config/packages.jsonc` are installed.
+- PyTorch (CUDA build when available) and the FastAPI backend spin up.
+- The PyWebView desktop shell opens; if it doesn’t, browse to http://127.0.0.1:8000.
 
+Subsequent launches reuse the same environment and skip heavy installs.
 
-## Project layout and dataset rules
+## Model catalog
 
-Typical project structure:
+HootSight ships with curated backbones tuned for practical work. Choose them in the UI or via `config/config.json → models`.
 
-```
-projects/{project_name}/
-	config.json             # Optional project overrides; omit to inherit the global config
-	dataset/                # Images + optional .txt tag files.
-		...
-	model/                  # Created by the trainer when you run a job. Here comes the trained model with its settings also.
-		best_model.pth
-		training_history.json
-	heatmaps/               # Grad-CAM renders land here when you request them
-```
+| Family | Variants | When to pick it |
+| --- | --- | --- |
+| **ResNet** | `resnet18`, `resnet34`, `resnet50`, `resnet101`, `resnet152` | Battle-tested generalists. Start with `resnet50` for balanced speed vs accuracy, scale up when you have data and GPU memory to spare. |
+| **ResNeXt** | `resnext50_32x4d`, `resnext101_32x8d`, `resnext101_64x4d` | Wider residual blocks for richer representations. Great when you have heavy class overlap or need better recall, but expect higher VRAM appetite. |
+| **MobileNet** | `mobilenet_v2`, `mobilenet_v3_small`, `mobilenet_v3_large` | Mobile and edge scenarios. Excellent when you want quick inference, embedded deployment, or CPU-bound projects. |
+| **ShuffleNet** | `shufflenet_v2_x0_5`, `x1_0`, `x1_5`, `x2_0` | Ultra-lightweight experimentation and real-time feeds on modest GPUs. Pairs nicely with aggressive augmentation. |
+| **SqueezeNet** | `squeezenet1_0`, `squeezenet1_1` | Minimal footprint for proof-of-concept or legacy hardware. Expect lower accuracy ceiling but near-instant training cycles. |
+| **EfficientNet** | `efficientnet_b0`–`b7`, `efficientnet_v2_s`, `efficientnet_v2_m`, `efficientnet_v2_l` | Compound-scaled networks for squeezing performance out of limited datasets. Use when you want strong accuracy with disciplined scaling rules. |
 
-Dataset layout and annotations (sample scenario):
-- Create your own project under `projects/{project_name}/dataset`. For example, you might build `projects/reference_library/dataset` with thematic folders such as `creatures/avian/`, `gear/harness/`, or `poses/on_four_limbs/`. The loader walks the tree recursively, so you can nest folders as deep as you like as long as the leaves contain images.
-- To unlock multi-label behaviour, drop a `.txt` file next to each image with the same basename. Put your comma-separated tags on the first non-empty line, trimming whitespace. Example: `glider, winged, nocturnal`.
-- When at least 90% of images in a dataset have these `.txt` companions, HootSight automatically switches to multi-label mode and builds the class list from the union of all discovered tags. Images missing a `.txt` fall back to the name of their leaf folder so nothing is discarded.
-- Explicit `train/` and `val/` folders remain optional. If they’re absent, the coordinator compiles the full image list twice (for train and validation views) and performs a randomized split using `training.val_ratio` (or the legacy `training.split.val_ratio`)—20% by default.
-- Keep a minimum of five samples per label. Anything below the configured threshold (`dataset.discovery.balance_analysis.min_images_per_class`, default 5) is ignored when the training split is generated.
-- Supported image formats stay the same: `.jpg, .jpeg, .png, .bmp, .gif, .tiff, .webp`. Add more via `config/config.json → dataset.image_extensions` if you need other formats.
-- The UI’s dataset analysis may display helper entries prefixed with `folder:`. Those are only for balance insights; they’re stripped before training so the class list contains just your real tags.
+On startup, the coordinator benchmarks VRAM/CPU pressure and computes a safe batch size, so even the bigger variants stay within hardware limits.
 
-Good to know:
-- The global default is multi-label (`"training.task": "multi_label"`). If your dataset is classic single-label classification (one folder = one class, no tag mixing), flip that value to `classification` before launching a run so the coordinator emits integer class indices instead of multi-hot vectors.
-- Images without a `.txt` companion inherit their leaf folder name as a fallback tag. That keeps stragglers in play, but make sure the folder naming actually reflects the concept you want learned.
-- Folder names in analytics are normalized for readability: spaces become `_`, nested folders are joined with `.`. Example: `creatures skyborne/long glider` is rendered as `creatures_skyborne.long_glider`. The raw tag strings inside `.txt` files are left exactly as you typed them, so stay consistent with casing and punctuation.
-- Random train/validation splits are re-generated on every run when you rely on auto splitting.
+## Privacy, data handling, and GDPR stance
 
-## Supported model families and variants
+- **Your data stays local** – No telemetry, analytics SDKs, or background uploads. Projects, datasets, checkpoints, and logs never leave disk unless you move them.
+- **Explicit control** – You decide what to import, export, or delete. Update checks hit GitHub only when triggered and transmit nothing from your datasets.
+- **Compliance-friendly defaults** – Designed with GDPR expectations: purpose limitation, data minimization, and on-demand erasure are in your hands because nothing is automatically mirrored elsewhere.
+- **Isolation by design** – The bundled installer builds an isolated virtual environment; no shared state with other Python installs, which simplifies evidence trails for audits.
+- **Third-party services** – None bundled. If you add integrations, document them yourself. HootSight ships vanilla.
 
-The following model families are supported; see `config/config.json` → `models` for the full variant list and recommended input/batch sizes:
+If you work with regulated categories (biometrics, medical, sensitive personal data), bring your own governance and legal review. HootSight gives you the tooling; compliance remains your responsibility.
 
-- ResNet: resnet18, resnet34, resnet50, resnet101, resnet152
-- ResNeXt: resnext50_32x4d, resnext101_32x8d, resnext101_64x4d
-- MobileNet: mobilenet_v2, mobilenet_v3_small, mobilenet_v3_large
-- ShuffleNet: shufflenet_v2_x0_5, shufflenet_v2_x1_0, shufflenet_v2_x1_5, shufflenet_v2_x2_0
-- SqueezeNet: squeezenet1_0, squeezenet1_1
-- EfficientNet: efficientnet_b0…b7, efficientnet_v2_s/m/l
+### Current status and roadmap
 
-Note: At startup, HootSight computes a memory‑aware batch size to avoid out‑of‑memory crashes. It can differ from the “recommended” size depending on your hardware, and that’s intentional.
+HootSight is in active alpha development. The core training pipeline is stable and battle-tested on ResNet architectures, while other model families (ResNeXt, EfficientNet, MobileNet, ShuffleNet, SqueezeNet) are in ongoing validation. I'm continuously refining the memory management, augmentation preview system, and multi-label workflows based on real-world usage.
 
+The roadmap includes:
+- Expanded Linux and AMD GPU support (currently Windows + NVIDIA is the certified path)
+- Enhanced visualization tools for training diagnostics and dataset analysis
+- Additional backbone architectures as they prove valuable
+- Community-driven feature requests that align with the offline-first, config-driven philosophy
 
-## Configuration center
+### Getting help and reporting issues
 
-- Global: `config/config.json` — API port, UI size, training parameters (optimizer/scheduler/loss), augmentations, and more. The web UI reads/writes this file.
-- Environment/packages: `config/packages.jsonc` — if you need a specific CUDA build for PyTorch/xFormers (`pytorch_cuda_version`), set it here. For CPU‑only, remove or leave it empty and install a CPU torch.
-- Per‑project: `projects/{project}/config.json` — overrides global settings just for that project.
+When you hit a wall, file a detailed issue on the GitHub repository. Share reproducible steps, your config files, error logs, and what you expected to happen. Clear reports help me diagnose and fix problems faster, and they benefit everyone who encounters similar issues.
 
+I read every issue and PR, though response times depend on my availability—this is a labor of love, not a corporate product with SLAs. Be patient, be clear, and I'll do everything I can to help.
 
-## Troubleshooting (quick tips)
+### Contributing
 
-- Port 8000 in use: change `config/config.json` → `api.port` and restart.
-- xFormers install fails: not fatal; the app runs without it, but some GPU speed‑ups will be missing.
-- No UI window: open http://127.0.0.1:8000 in your browser.
-- CUDA mismatch: if you installed a different CUDA than what `config/packages.jsonc` uses (e.g. `cu129`), update `pytorch_cuda_version` to match, or remove it to let autodetection pick a compatible wheel.
+Pull requests, feature pitches, and bug reports are genuinely welcome. I'm especially interested in:
+- Bug fixes with test cases
+- Documentation improvements (tutorials, guides, translations)
+- Performance optimizations that maintain code clarity
+- New augmentation strategies or model architectures that fit the existing patterns
 
+Before submitting major changes, open an issue to discuss the approach. Keep the offline-first, config-driven principles intact, and maintain the conversational documentation style. Code quality matters—I'd rather wait for a clean PR than rush something that creates tech debt.
 
-## License and contributions
+### Supporting the project
 
-Actively evolving project—built by humans and AI (Roxxy, my in‑house dev AI). To keep the project alive and healthy, please report any issues you run into; that feedback is a big help. PRs and ideas are welcome.
+HootSight is free to use and will always remain free. If the toolkit saves you cash or hours, consider supporting development through Ko-fi: https://ko-fi.com/tanathy. Your sponsorship helps me dedicate more time to maintenance, new features, and community support instead of billable client work.
 
+Even if you can't contribute financially, you help by using HootSight, reporting bugs, sharing it with others who might benefit, and participating in discussions. Every bit of engagement makes the project stronger and more useful for everyone.
