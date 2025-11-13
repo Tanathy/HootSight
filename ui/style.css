@@ -1150,6 +1150,39 @@ h3.card-header {
     color: var(--accent);
 }
 
+.markdown-body table.md-table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.75rem 0;
+    border: 1px solid var(--border);
+}
+
+.markdown-body table.md-table thead {
+    background: rgba(74, 130, 249, 0.08);
+}
+
+.markdown-body table.md-table th {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 2px solid var(--border);
+    font-weight: 600;
+    color: var(--text);
+}
+
+.markdown-body table.md-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+}
+
+.markdown-body table.md-table tbody tr:hover {
+    background: rgba(74, 130, 249, 0.04);
+}
+
+.markdown-body table.md-table tbody tr:last-child td {
+    border-bottom: 1px solid var(--border);
+}
+
 .md-gap {
     height: 0.75rem;
 }

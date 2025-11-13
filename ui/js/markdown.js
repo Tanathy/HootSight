@@ -92,6 +92,35 @@
     return working;
   }
 
+  function isTableRow(line){
+    const trimmed = line.trim();
+    return /^\|.+\|$/.test(trimmed) || /^\|.+\|.+/.test(trimmed);
+  }
+
+  function parseTableRow(line){
+    const trimmed = line.trim();
+    const cells = trimmed.split('|').map(c => c.trim()).filter(c => c.length > 0);
+    return cells;
+  }
+
+  function isTableSeparator(line){
+    const trimmed = line.trim();
+    if(!/^\|[\s\-:|]+\|$/.test(trimmed)) return false;
+    const cells = trimmed.split('|').map(c => c.trim()).filter(c => c.length > 0);
+    return cells.every(c => /^:?-+:?$/.test(c));
+  }
+
+  function parseTableAlignment(line){
+    const trimmed = line.trim();
+    const cells = trimmed.split('|').map(c => c.trim()).filter(c => c.length > 0);
+    return cells.map(c => {
+      if(c.startsWith(':') && c.endsWith(':')) return 'center';
+      if(c.endsWith(':')) return 'right';
+      if(c.startsWith(':')) return 'left';
+      return 'left';
+    });
+  }
+
   function renderMarkdown(markdown){
     if(typeof markdown !== 'string'){
       return '';
@@ -103,6 +132,7 @@
     let inUnorderedList = false;
     let inOrderedList = false;
     let inCodeBlock = false;
+    let inTable = false;
     const codeLines = [];
 
     function closeLists(){
@@ -116,15 +146,25 @@
       }
     }
 
-    lines.forEach((line) => {
+    function closeTable(){
+      if(inTable){
+        html.push('</tbody></table>');
+        inTable = false;
+      }
+    }
+
+    lines.forEach((line, index) => {
       const trimmed = line.trim();
 
       if(/^```/.test(trimmed)){
         if(inCodeBlock){
+          closeTable();
+          closeLists();
           html.push(`<pre><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`);
           codeLines.length = 0;
           inCodeBlock = false;
         } else {
+          closeTable();
           closeLists();
           inCodeBlock = true;
           codeLines.length = 0;
@@ -138,13 +178,53 @@
       }
 
       if(trimmed.length === 0){
+        closeTable();
         closeLists();
         html.push('<div class="md-gap"></div>');
         return;
       }
 
+      if(isTableRow(trimmed) && !inTable){
+        const cells = parseTableRow(trimmed);
+        const nextLine = index + 1 < lines.length ? lines[index + 1] : '';
+        if(isTableSeparator(nextLine)){
+          const alignment = parseTableAlignment(nextLine);
+          closeLists();
+          html.push('<table class="md-table"><thead><tr>');
+          cells.forEach((cell, i) => {
+            const align = alignment[i] || 'left';
+            html.push(`<th style="text-align:${align}">${formatInline(cell)}</th>`);
+          });
+          html.push('</tr></thead><tbody>');
+          inTable = true;
+          return;
+        }
+      }
+
+      if(isTableRow(trimmed) && inTable){
+        const cells = parseTableRow(trimmed);
+        const headerCells = parseTableRow(lines[index - 2]);
+        const alignment = parseTableAlignment(lines[index - 1]);
+        html.push('<tr>');
+        cells.forEach((cell, i) => {
+          const align = alignment[i] || 'left';
+          html.push(`<td style="text-align:${align}">${formatInline(cell)}</td>`);
+        });
+        html.push('</tr>');
+        return;
+      }
+
+      if(isTableSeparator(trimmed)){
+        return;
+      }
+
+      if(inTable && !isTableRow(trimmed)){
+        closeTable();
+      }
+
       const headingMatch = trimmed.match(/^(#{1,6})\s+(.*)$/);
       if(headingMatch){
+        closeTable();
         closeLists();
         const level = headingMatch[1].length;
         const content = formatInline(headingMatch[2]);
@@ -154,6 +234,7 @@
 
       const orderedMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
       if(orderedMatch){
+        closeTable();
         if(inUnorderedList){
           html.push('</ul>');
           inUnorderedList = false;
@@ -168,6 +249,7 @@
 
       const unorderedMatch = trimmed.match(/^[-*+]\s+(.*)$/);
       if(unorderedMatch){
+        closeTable();
         if(inOrderedList){
           html.push('</ol>');
           inOrderedList = false;
@@ -182,11 +264,13 @@
 
       const quoteMatch = trimmed.match(/^>\s+(.*)$/);
       if(quoteMatch){
+        closeTable();
         closeLists();
         html.push(`<blockquote>${formatInline(quoteMatch[1])}</blockquote>`);
         return;
       }
 
+      closeTable();
       closeLists();
       html.push(`<p>${formatInline(trimmed)}</p>`);
     });
@@ -194,6 +278,7 @@
     if(inCodeBlock){
       html.push(`<pre><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`);
     }
+    closeTable();
     closeLists();
 
     return html.join('');

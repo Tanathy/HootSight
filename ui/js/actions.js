@@ -1222,28 +1222,26 @@
         const loadBtn = Q('<button type="button" class="secondary">')
           .text(t('ui.load', 'Load'))
           .on('click', () => loadProject(project.name));
-        const trainBtn = Q('<button type="button">')
-          .text(t('ui.start_training', 'Start Training'))
-          .on('click', () => startTraining(project.name));
-        const stopBtn = Q('<button type="button" class="danger">')
-          .text(t('ui.stop_training', 'Stop Training'))
-          .on('click', () => stopTraining(activeTrainingId));
-
-        if(!state.currentProject || state.currentProject.name !== project.name){
-          trainBtn.prop('disabled', true);
-          trainBtn.attr('title', t('ui.load_project_first', 'Please load a project first from the Projects tab.'));
-        }
+        const trainStopBtn = Q('<button type="button">');
 
         if(isActiveTraining){
-          trainBtn.prop('disabled', true);
-          stopBtn.prop('disabled', false);
-          stopBtn.removeAttr('title');
+          trainStopBtn.text(t('ui.stop_training', 'Stop Training'))
+                     .addClass('danger')
+                     .on('click', () => stopTraining(activeTrainingId));
         } else {
-          stopBtn.prop('disabled', true);
-          stopBtn.attr('title', t('ui.stop_training_disabled', 'No active training for this project.'));
+          trainStopBtn.text(t('ui.start_training', 'Start Training'))
+                     .on('click', () => startTraining(project.name));
         }
 
-        actionsWrap.append(loadBtn, trainBtn, stopBtn);
+        if(!state.currentProject || state.currentProject.name !== project.name){
+          trainStopBtn.prop('disabled', true);
+          trainStopBtn.attr('title', t('ui.load_project_first', 'Please load a project first from the Projects tab.'));
+        } else {
+          trainStopBtn.prop('disabled', false);
+          trainStopBtn.removeAttr('title');
+        }
+
+        actionsWrap.append(loadBtn, trainStopBtn);
         card.append(actionsWrap);
         cont.append(card);
       });
@@ -2070,6 +2068,7 @@
       let slug = slugBase;
       const current = slugCounts.get(slugBase) || 0;
       if(current > 0){
+       
         slug = `${slugBase}-${current}`;
       }
       slugCounts.set(slugBase, current + 1);

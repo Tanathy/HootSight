@@ -26,6 +26,15 @@ from torchvision import transforms as tv_transforms
 from system.log import info, success, error, warning
 from system.coordinator_settings import SETTINGS
 from system.dataset_discovery import discover_projects, get_project_info, get_image_files
+from system.dataset_editor import (
+    DEFAULT_PAGE_SIZE,
+    build_dataset,
+    delete_images as delete_editor_images,
+    query_editor_images,
+    resolve_image_path,
+    update_image_crop,
+    update_image_tags,
+)
 from system.training import start_training, stop_training, get_training_status, get_training_status_all
 from system.heatmap import generate_project_heatmap, evaluate_with_heatmap
 from system.coordinator_settings import (
@@ -438,6 +447,97 @@ def create_app() -> FastAPI:
         except Exception as ex:
             error(f"Project info failed for {project_name}: {ex}")
             return {"error": str(ex)}
+
+    @app.get("/projects/{project_name}/dataset/editor/images")
+    def dataset_editor_images(
+        project_name: str,
+        page: int = Query(1, ge=1),
+        page_size: int = Query(DEFAULT_PAGE_SIZE),
+        folder: Optional[str] = Query(None),
+        tags: Optional[List[str]] = Query(None),
+        search: Optional[str] = Query(None),
+    ) -> Dict[str, Any]:
+        try:
+            return query_editor_images(
+                project_name,
+                page=page,
+                page_size=page_size,
+                folder=folder,
+                tags=tags,
+                search=search,
+            )
+        except FileNotFoundError as exc:  # noqa: BLE001
+            warning(f"Dataset editor images missing resources for {project_name}: {exc}")
+            return {"status": "error", "message": str(exc)}
+        except Exception as exc:  # noqa: BLE001
+            error(f"Dataset editor images failed for {project_name}: {exc}")
+            return {"status": "error", "message": lang("dataset_editor.api.load_failed")}
+
+    @app.get("/projects/{project_name}/dataset/editor/image")
+    def dataset_editor_image(project_name: str, path: str = Query(..., min_length=1)):
+        try:
+            file_path = resolve_image_path(project_name, path)
+            return FileResponse(file_path)
+        except FileNotFoundError as exc:  # noqa: BLE001
+            warning(f"Dataset editor image missing for {project_name}: {exc}")
+            return {"status": "error", "message": str(exc)}
+        except Exception as exc:  # noqa: BLE001
+            error(f"Dataset editor image load failed for {project_name}: {exc}")
+            return {"status": "error", "message": lang("dataset_editor.api.load_failed")}
+
+    @app.post("/projects/{project_name}/dataset/editor/crop")
+    def dataset_editor_crop(project_name: str, payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+        rel_path = payload.get("image") if isinstance(payload, dict) else None
+        crop = payload.get("crop") if isinstance(payload, dict) else None
+        if not isinstance(rel_path, str) or not isinstance(crop, dict):
+            message = lang("dataset_editor.api.invalid_payload")
+            return {"status": "error", "message": message}
+        try:
+            return update_image_crop(project_name, rel_path, crop)
+        except FileNotFoundError as exc:  # noqa: BLE001
+            warning(f"Crop update missing image for {project_name}: {exc}")
+            return {"status": "error", "message": str(exc)}
+        except Exception as exc:  # noqa: BLE001
+            error(f"Crop update failed for {project_name}: {exc}")
+            return {"status": "error", "message": lang("dataset_editor.api.crop_failed")}
+
+    @app.post("/projects/{project_name}/dataset/editor/tags")
+    def dataset_editor_tags(project_name: str, payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+        if not isinstance(payload, dict):
+            return {"status": "error", "message": lang("dataset_editor.api.invalid_payload")}
+        rel_paths = payload.get("images")
+        tags = payload.get("tags")
+        mode = payload.get("mode", "add")
+        if not isinstance(rel_paths, list) or not isinstance(tags, list):
+            return {"status": "error", "message": lang("dataset_editor.api.invalid_payload")}
+        try:
+            return update_image_tags(project_name, [str(item) for item in rel_paths], tags, str(mode))
+        except Exception as exc:  # noqa: BLE001
+            error(f"Tag update failed for {project_name}: {exc}")
+            return {"status": "error", "message": lang("dataset_editor.api.tag_failed")}
+
+    @app.post("/projects/{project_name}/dataset/editor/delete")
+    def dataset_editor_delete(project_name: str, payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+        rel_paths = []
+        if isinstance(payload, dict):
+            images = payload.get("images")
+            if isinstance(images, list):
+                rel_paths = [str(item) for item in images]
+        if not rel_paths:
+            return {"status": "error", "message": lang("dataset_editor.api.no_images_selected")}
+        try:
+            return delete_editor_images(project_name, rel_paths)
+        except Exception as exc:  # noqa: BLE001
+            error(f"Dataset editor delete failed for {project_name}: {exc}")
+            return {"status": "error", "message": lang("dataset_editor.api.delete_failed")}
+
+    @app.post("/projects/{project_name}/dataset/editor/build")
+    def dataset_editor_build(project_name: str) -> Dict[str, Any]:
+        try:
+            return build_dataset(project_name)
+        except Exception as exc:  # noqa: BLE001
+            error(f"Dataset build failed for {project_name}: {exc}")
+            return {"status": "error", "message": lang("dataset_editor.api.build_failed")}
 
     @app.post("/training/start")
     def training_start(
