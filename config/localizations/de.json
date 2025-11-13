@@ -451,26 +451,26 @@
         "unstable": "Instabil"
       }
     },
-    "toolbar_hint": "Projects keep datasets, configs, and checkpoints isolated.",
-    "toolbar_create": "Create New Project",
-    "create_disabled_hint": "Project creation is currently unavailable.",
-    "empty_title": "No projects yet",
-    "empty_message": "Use Create New Project to scaffold dataset, data_source, model, and heatmap folders.",
-    "create_title": "Create new project",
-    "create_description": "Name your project to scaffold dataset, data_source, model, and heatmap folders.",
-    "create_name_label": "Project name",
-    "create_name_placeholder": "e.g. wildlife_classification",
-    "create_name_hint": "Use letters, numbers, hyphens, and underscores only.",
-    "create_cancel": "Cancel",
-    "create_submit": "Create",
-    "create_creating": "Creating...",
-    "create_validation_required": "Project name is required.",
-    "create_validation_length": "Project name must be between {min} and {max} characters.",
-    "create_validation_pattern": "Use letters, numbers, hyphens, and underscores only.",
-    "create_error_exists": "A project with this name already exists.",
-    "create_success_status": "Project {name} created.",
-    "create_error_unknown": "Project creation failed.",
-    "create_network_error": "Network request failed."
+    "toolbar_hint": "Projekte halten Datensätze, Konfigurationen und Checkpoints isoliert.",
+    "toolbar_create": "Neues Projekt erstellen",
+    "create_disabled_hint": "Projekterstellung ist derzeit nicht verfügbar.",
+    "empty_title": "Noch keine Projekte",
+    "empty_message": "Verwende 'Neues Projekt erstellen', um Datensatz-, data_source-, Modell- und Heatmap-Ordner zu erstellen.",
+    "create_title": "Neues Projekt erstellen",
+    "create_description": "Benenne dein Projekt, um Datensatz-, data_source-, Modell- und Heatmap-Ordner zu erstellen.",
+    "create_name_label": "Projektname",
+    "create_name_placeholder": "z.B. wildlife_classification",
+    "create_name_hint": "Verwende nur Buchstaben, Zahlen, Bindestriche und Unterstriche.",
+    "create_cancel": "Abbrechen",
+    "create_submit": "Erstellen",
+    "create_creating": "Erstelle...",
+    "create_validation_required": "Projektname ist erforderlich.",
+    "create_validation_length": "Projektname muss zwischen {min} und {max} Zeichen lang sein.",
+    "create_validation_pattern": "Verwende nur Buchstaben, Zahlen, Bindestriche und Unterstriche.",
+    "create_error_exists": "Ein Projekt mit diesem Namen existiert bereits.",
+    "create_success_status": "Projekt {name} erstellt.",
+    "create_error_unknown": "Projekterstellung fehlgeschlagen.",
+    "create_network_error": "Netzwerkanfrage fehlgeschlagen."
   },
   "status_ui": {
     "page_title": "Status",
@@ -756,7 +756,7 @@
     "models_resnet_default_optimizer_type_enum_descriptor": {
       "adamw": "AdamW Optimizer für ResNet - Adam mit entkoppeltem Weight Decay spezifisch getuned für ResNet-Architekturen. Beeinflusst Regularisierungs-Effektivität und Trainings-Stabilität durch ordnungsgemäße Trennung gradienten-basierter Adaptation und L2-Strafe. Steuert Weight Decay unabhängig von Gradienten-Updates, verhindert Regularisierungs-Interferenz mit adaptiven Lernraten. Empfohlene Standard-Wahl für ResNet-Modelle wegen überlegener Generalisierungs-Performance und stabiler Trainings-Charakteristika über verschiedene ResNet-Tiefen und Datasets.",
       "adam": "Adam Optimizer für ResNet - Klassischer adaptive Moment Estimation Algorithmus bietet automatische Lernraten-Skalierung für ResNet-Training. Beeinflusst Konvergenz-Geschwindigkeit und Hyperparameter-Sensitivität durch per-Parameter Lernraten-Adaptation. Steuert Momentum und quadrierte Gradienten-Schätzungen um Exploration und Exploitation während ResNet-Optimierung zu balancieren. Gute Allzweck-Wahl bietet verlässliche Performance über verschiedene ResNet-Varianten mit minimalen Hyperparameter-Tuning-Anforderungen.",
-      "sgd": "SGD mit Momentum für ResNet - Traditioneller Stochastic Gradient Descent mit Momentum spezifisch konfiguriert für ResNet-Training. Beeinflusst Trainings-Dynamik durch Momentum-Akkumulation und erfordert sorgfältige Lernraten-Scheduling für optimale Performance. Steuert Parameter-Updates durch Momentum-basierte Beschleunigung während deterministisches Optimierungs-Verhalten beibehalten wird. Traditionelle Wahl die exzellente Ergebnisse mit ordnungsgemäßem Tuning erreicht aber sorgfältigere Hyperparameter-Auswahl erfordert verglichen mit adaptiven Optimizern."
+      "sgd": "SGD mit Momentum für ResNet - Traditioneller Stochastic Gradient Descent mit Momentum spezifisch konfiguriert für ResNet-Training. Beeinflusst Trainings-Dynamik durch Momentum-Akkumulation und erfordert sorgfältige Lernraten-Scheduling für optimale Performance. Steuert Parameter-Updates durch Momentum-basierte Beschleunigung während deterministisches Optimierungs-Verhalten beibehalten wird. Traditionelle Wahl die exzellente Ergebnisse mit ordnungsgemäßer Tuning erreicht aber sorgfältigere Hyperparameter-Auswahl erfordert verglichen mit adaptiven Optimizern."
     },
     "models_resnet_default_scheduler_type_enum_descriptor": {
       "step_lr": "Step Learning Rate für ResNet - Schritt-basierter Lernraten-Verfall mit vorbestimmten Meilenstein-Epochen optimiert für ResNet-Trainings-Phasen. Beeinflusst Lernraten-Reduktion bei spezifischen Trainings-Stadien entsprechend ResNet-Konvergenz-Mustern. Steuert deterministischen Lernraten-Schedule der sich an typische ResNet-Trainings-Progression und Loss-Landschafts-Charakteristika ausrichtet. Geeignet wenn optimale Verfall-Epochen aus vorherigen ResNet-Experimenten oder Forschungs-Papers mit ähnlichen Datasets und Architekturen bekannt sind.",
