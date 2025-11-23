@@ -1,8 +1,3 @@
-"""FastAPI backend for Hootsight.
-
-Minimal REST API focused on project management and training.
-All runtime settings are taken from config/config.json via coordinator_settings.SETTINGS.
-"""
 from __future__ import annotations
 
 import os
@@ -11,11 +6,12 @@ import json
 import random
 import base64
 import shutil
+import urllib.parse
 from io import BytesIO
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional, List, NoReturn
 from pathlib import Path
 
-from fastapi import FastAPI, Body, Query
+from fastapi import FastAPI, Body, Query, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 
@@ -26,15 +22,6 @@ from torchvision import transforms as tv_transforms
 from system.log import info, success, error, warning
 from system.coordinator_settings import SETTINGS
 from system.dataset_discovery import discover_projects, get_project_info, get_image_files
-from system.dataset_editor import (
-    DEFAULT_PAGE_SIZE,
-    build_dataset,
-    delete_images as delete_editor_images,
-    query_editor_images,
-    resolve_image_path,
-    update_image_crop,
-    update_image_tags,
-)
 from system.training import start_training, stop_training, get_training_status, get_training_status_all
 from system.heatmap import generate_project_heatmap, evaluate_with_heatmap
 from system.coordinator_settings import (
@@ -46,6 +33,33 @@ from system.coordinator_settings import (
 )
 from system.augmentation import DataAugmentationFactory
 from system.updates import check_for_updates, apply_updates
+from system.dataset_editor_dataset_builder import build_manager as dataset_build_manager
+from system.dataset_editor_discovery import discovery_manager as dataset_discovery_manager
+from system.dataset_editor_models import (
+    AnnotationUpdate,
+    BoundsModel,
+    BoundsUpdate,
+    BuildOptions,
+    BuildRequest,
+    BuildStatus,
+    BulkTagRequest,
+    BulkTagResponse,
+    DeleteItemsRequest,
+    DeleteItemsResponse,
+    DiscoveryStatus,
+    FolderNode,
+    ImageItem,
+    PaginatedItems,
+    ProjectSummary,
+    StatsSummary,
+)
+from system.dataset_editor_project_service import (
+    repository as dataset_repository,
+    ImageNotFoundError,
+    ProjectNotFoundError,
+    ProjectIndex,
+)
+from system.dataset_editor_settings import get_dataset_editor_settings
 
 
 def _resolve_doc_path(docs_root: Path, requested: str) -> Optional[Path]:
@@ -110,7 +124,6 @@ def _list_doc_entries(docs_root: Path) -> List[Dict[str, str]]:
 
 
 def _localize_schema(obj: Any) -> Any:
-    """Recursively localize strings in schema that start with 'schema.'"""
     if isinstance(obj, str):
         if obj.startswith("schema."):
             return lang(obj)
@@ -201,21 +214,65 @@ def _apply_augmentation_preview(image: Image.Image, transform_configs: List[Dict
     raise TypeError(f"Unsupported augmentation output type: {type(result)}")
 
 
+DATASET_EDITOR_SETTINGS = get_dataset_editor_settings()
+
+
+def _dataset_editor_allowed_build_sizes() -> set[int]:
+    sizes: set[int] = set()
+    for values in DATASET_EDITOR_SETTINGS.dataset_size_options.values():
+        sizes.update(values)
+    return sizes
+
+
+def _get_dataset_editor_project(project_name: str) -> ProjectIndex:
+    try:
+        return dataset_repository.get_index(project_name)
+    except ProjectNotFoundError as exc:
+        message = lang("dataset_editor.api.project_not_found", project=project_name)
+        raise HTTPException(status_code=404, detail=message) from exc
+
+
+def _raise_image_not_found(project_name: str, exc: ImageNotFoundError) -> NoReturn:
+    message = lang("dataset_editor.api.image_not_found", project=project_name)
+    raise HTTPException(status_code=404, detail=message) from exc
+
+
+def _validate_dataset_editor_page_size(page_size: int) -> None:
+    if page_size not in DATASET_EDITOR_SETTINGS.page_sizes:
+        allowed = ", ".join(str(size) for size in DATASET_EDITOR_SETTINGS.page_sizes)
+        message = lang("dataset_editor.api.invalid_page_size", allowed=allowed)
+        raise HTTPException(status_code=400, detail=message)
+
+
+def _validate_dataset_editor_build_size(size: int) -> None:
+    allowed = _dataset_editor_allowed_build_sizes()
+    if size not in allowed:
+        allowed_label = ", ".join(str(value) for value in sorted(allowed))
+        message = lang("dataset_editor.api.invalid_size", allowed=allowed_label)
+        raise HTTPException(status_code=400, detail=message)
+
+
 def create_app() -> FastAPI:
-    """Create and configure FastAPI application."""
     app = FastAPI(
         title="Hootsight API",
         version="1.0.0",
         description="Minimal API for config-driven ResNet training"
     )
 
-    # Mount static UI if present
-    ui_dir = SETTINGS.get('paths', {}).get('ui_dir', 'ui')
+    try:
+        paths_cfg = SETTINGS['paths']
+    except Exception:
+        raise ValueError("Missing required 'paths' section in config/config.json")
+    if 'ui_dir' not in paths_cfg:
+        raise ValueError("paths.ui_dir must be defined in config/config.json")
+    ui_dir = paths_cfg['ui_dir']
     if os.path.isdir(ui_dir):
         app.mount("/static", StaticFiles(directory=ui_dir), name="static")
 
     root_path = Path(__file__).resolve().parents[1]
-    docs_dir_config = SETTINGS.get('paths', {}).get('docs_dir', 'docs')
+    if 'docs_dir' not in paths_cfg:
+        raise ValueError("paths.docs_dir must be defined in config/config.json")
+    docs_dir_config = paths_cfg['docs_dir']
     docs_root = (root_path / docs_dir_config).resolve()
     if docs_root.is_dir():
         app.mount("/docs/assets", StaticFiles(directory=str(docs_root)), name="docs_assets")
@@ -243,7 +300,6 @@ def create_app() -> FastAPI:
             schema_path = os.path.join("config", "config_schema.json")
             with open(schema_path, "r", encoding="utf-8") as f:
                 schema = json.load(f)
-            # Localize the schema before returning
             localized_schema = _localize_schema(schema)
             return {"schema": localized_schema}
         except Exception as ex:
@@ -252,10 +308,6 @@ def create_app() -> FastAPI:
 
     @app.get("/localization")
     def get_localization() -> Dict[str, Any]:
-        """Return current localization dictionary and available languages.
-
-        Frontend uses this to avoid hardcoded user-facing strings.
-        """
         try:
             data = load_language_data()
             return {
@@ -353,7 +405,6 @@ def create_app() -> FastAPI:
     def list_projects() -> Dict[str, Any]:
         try:
             projects = discover_projects()
-            # Convert ProjectInfo objects to dictionaries for JSON serialization
             project_dicts = [project.to_dict() for project in projects]
             return {"projects": project_dicts}
         except Exception as ex:
@@ -364,7 +415,13 @@ def create_app() -> FastAPI:
     def create_project(payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
         min_length = 3
         max_length = 64
-        projects_dir = SETTINGS.get("paths", {}).get("projects_dir", "projects")
+        try:
+            paths_cfg = SETTINGS['paths']
+        except Exception:
+            raise ValueError("Missing required 'paths' section in config/config.json")
+        projects_dir = paths_cfg.get("projects_dir")
+        if projects_dir is None:
+            raise ValueError("paths.projects_dir must be defined in config/config.json")
         root_path = Path(__file__).resolve().parents[1]
         projects_root = (root_path / projects_dir).resolve()
         projects_root.mkdir(parents=True, exist_ok=True)
@@ -448,96 +505,115 @@ def create_app() -> FastAPI:
             error(f"Project info failed for {project_name}: {ex}")
             return {"error": str(ex)}
 
-    @app.get("/projects/{project_name}/dataset/editor/images")
-    def dataset_editor_images(
+    @app.get("/dataset/editor/projects", response_model=list[ProjectSummary])
+    def dataset_editor_list_projects() -> list[ProjectSummary]:
+        return dataset_repository.list_projects()
+
+    @app.get("/dataset/editor/projects/{project_name}/items", response_model=PaginatedItems)
+    def dataset_editor_list_items(
         project_name: str,
-        page: int = Query(1, ge=1),
-        page_size: int = Query(DEFAULT_PAGE_SIZE),
-        folder: Optional[str] = Query(None),
-        tags: Optional[List[str]] = Query(None),
-        search: Optional[str] = Query(None),
-    ) -> Dict[str, Any]:
-        try:
-            return query_editor_images(
-                project_name,
-                page=page,
-                page_size=page_size,
-                folder=folder,
-                tags=tags,
-                search=search,
-            )
-        except FileNotFoundError as exc:  # noqa: BLE001
-            warning(f"Dataset editor images missing resources for {project_name}: {exc}")
-            return {"status": "error", "message": str(exc)}
-        except Exception as exc:  # noqa: BLE001
-            error(f"Dataset editor images failed for {project_name}: {exc}")
-            return {"status": "error", "message": lang("dataset_editor.api.load_failed")}
+        page: int = Query(default=1, ge=1),
+        page_size: int = Query(default=DATASET_EDITOR_SETTINGS.default_page_size),
+        search: str | None = Query(default=None),
+        category: str | None = Query(default=None),
+        folder: str | None = Query(default=None, description="Relative folder filter"),
+    ) -> PaginatedItems:
+        _validate_dataset_editor_page_size(page_size)
+        project = _get_dataset_editor_project(project_name)
+        return project.list_items(page=page, page_size=page_size, search=search, category=category, folder=folder)
 
-    @app.get("/projects/{project_name}/dataset/editor/image")
-    def dataset_editor_image(project_name: str, path: str = Query(..., min_length=1)):
+    @app.post("/dataset/editor/projects/{project_name}/items/{item_path:path}/annotation", response_model=ImageItem)
+    def dataset_editor_save_annotation(project_name: str, item_path: str, payload: AnnotationUpdate = Body(...)) -> ImageItem:
+        project = _get_dataset_editor_project(project_name)
         try:
-            file_path = resolve_image_path(project_name, path)
-            return FileResponse(file_path)
-        except FileNotFoundError as exc:  # noqa: BLE001
-            warning(f"Dataset editor image missing for {project_name}: {exc}")
-            return {"status": "error", "message": str(exc)}
-        except Exception as exc:  # noqa: BLE001
-            error(f"Dataset editor image load failed for {project_name}: {exc}")
-            return {"status": "error", "message": lang("dataset_editor.api.load_failed")}
+            return project.update_annotation(item_path, payload.content)
+        except ImageNotFoundError as exc:
+            _raise_image_not_found(project_name, exc)
 
-    @app.post("/projects/{project_name}/dataset/editor/crop")
-    def dataset_editor_crop(project_name: str, payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
-        rel_path = payload.get("image") if isinstance(payload, dict) else None
-        crop = payload.get("crop") if isinstance(payload, dict) else None
-        if not isinstance(rel_path, str) or not isinstance(crop, dict):
-            message = lang("dataset_editor.api.invalid_payload")
-            return {"status": "error", "message": message}
+    @app.post("/dataset/editor/projects/{project_name}/items/{item_path:path}/bounds", response_model=ImageItem)
+    def dataset_editor_save_bounds(project_name: str, item_path: str, payload: BoundsUpdate = Body(...)) -> ImageItem:
+        project = _get_dataset_editor_project(project_name)
         try:
-            return update_image_crop(project_name, rel_path, crop)
-        except FileNotFoundError as exc:  # noqa: BLE001
-            warning(f"Crop update missing image for {project_name}: {exc}")
-            return {"status": "error", "message": str(exc)}
-        except Exception as exc:  # noqa: BLE001
-            error(f"Crop update failed for {project_name}: {exc}")
-            return {"status": "error", "message": lang("dataset_editor.api.crop_failed")}
+            bounds = BoundsModel(**payload.model_dump())
+            return project.update_bounds(item_path, bounds)
+        except ImageNotFoundError as exc:
+            _raise_image_not_found(project_name, exc)
 
-    @app.post("/projects/{project_name}/dataset/editor/tags")
-    def dataset_editor_tags(project_name: str, payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
-        if not isinstance(payload, dict):
-            return {"status": "error", "message": lang("dataset_editor.api.invalid_payload")}
-        rel_paths = payload.get("images")
-        tags = payload.get("tags")
-        mode = payload.get("mode", "add")
-        if not isinstance(rel_paths, list) or not isinstance(tags, list):
-            return {"status": "error", "message": lang("dataset_editor.api.invalid_payload")}
-        try:
-            return update_image_tags(project_name, [str(item) for item in rel_paths], tags, str(mode))
-        except Exception as exc:  # noqa: BLE001
-            error(f"Tag update failed for {project_name}: {exc}")
-            return {"status": "error", "message": lang("dataset_editor.api.tag_failed")}
+    @app.post("/dataset/editor/projects/{project_name}/items/delete", response_model=DeleteItemsResponse)
+    def dataset_editor_delete_items(project_name: str, payload: DeleteItemsRequest = Body(...)) -> DeleteItemsResponse:
+        project = _get_dataset_editor_project(project_name)
+        return project.delete_items(payload.items)
 
-    @app.post("/projects/{project_name}/dataset/editor/delete")
-    def dataset_editor_delete(project_name: str, payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
-        rel_paths = []
-        if isinstance(payload, dict):
-            images = payload.get("images")
-            if isinstance(images, list):
-                rel_paths = [str(item) for item in images]
-        if not rel_paths:
-            return {"status": "error", "message": lang("dataset_editor.api.no_images_selected")}
-        try:
-            return delete_editor_images(project_name, rel_paths)
-        except Exception as exc:  # noqa: BLE001
-            error(f"Dataset editor delete failed for {project_name}: {exc}")
-            return {"status": "error", "message": lang("dataset_editor.api.delete_failed")}
+    @app.get("/dataset/editor/projects/{project_name}/stats", response_model=StatsSummary)
+    def dataset_editor_project_stats(project_name: str) -> StatsSummary:
+        project = _get_dataset_editor_project(project_name)
+        return project.stats()
 
-    @app.post("/projects/{project_name}/dataset/editor/build")
-    def dataset_editor_build(project_name: str) -> Dict[str, Any]:
-        try:
-            return build_dataset(project_name)
-        except Exception as exc:  # noqa: BLE001
-            error(f"Dataset build failed for {project_name}: {exc}")
-            return {"status": "error", "message": lang("dataset_editor.api.build_failed")}
+    @app.get("/dataset/editor/projects/{project_name}/folders", response_model=FolderNode)
+    def dataset_editor_project_folders(project_name: str) -> FolderNode:
+        project = _get_dataset_editor_project(project_name)
+        return project.folder_tree()
+
+    @app.post("/dataset/editor/projects/{project_name}/refresh", response_model=DiscoveryStatus)
+    def dataset_editor_refresh(project_name: str) -> DiscoveryStatus:
+        project = _get_dataset_editor_project(project_name)
+        job = dataset_discovery_manager.start(project)
+        return job.to_model()
+
+    @app.get("/dataset/editor/projects/{project_name}/refresh/status", response_model=DiscoveryStatus)
+    def dataset_editor_refresh_status(project_name: str) -> DiscoveryStatus:
+        project = _get_dataset_editor_project(project_name)
+        job = dataset_discovery_manager.get(project.name)
+        return job.to_model()
+
+    @app.post("/dataset/editor/projects/{project_name}/build", response_model=BuildStatus)
+    def dataset_editor_build_project(
+        project_name: str,
+        payload: BuildRequest | None = Body(default=None),
+    ) -> BuildStatus:
+        project = _get_dataset_editor_project(project_name)
+        size = payload.size if payload and payload.size else DATASET_EDITOR_SETTINGS.default_dataset_size
+        _validate_dataset_editor_build_size(size)
+        job = dataset_build_manager.start_build(project, size)
+        return job.to_model()
+
+    @app.get("/dataset/editor/projects/{project_name}/build/status", response_model=BuildStatus)
+    def dataset_editor_build_status(project_name: str) -> BuildStatus:
+        project = _get_dataset_editor_project(project_name)
+        job = dataset_build_manager.get_status(project.name)
+        return job.to_model()
+
+    @app.get("/dataset/editor/projects/{project_name}/build/options", response_model=BuildOptions)
+    def dataset_editor_build_options(project_name: str) -> BuildOptions:
+        project = _get_dataset_editor_project(project_name)
+        job = dataset_build_manager.get_status(project.name)
+        return BuildOptions(
+            presets=DATASET_EDITOR_SETTINGS.dataset_size_options,
+            default_size=DATASET_EDITOR_SETTINGS.default_dataset_size,
+            active_size=job.target_size,
+        )
+
+    @app.post("/dataset/editor/projects/{project_name}/bulk/tags", response_model=BulkTagResponse)
+    def dataset_editor_bulk_tags(project_name: str, payload: BulkTagRequest = Body(...)) -> BulkTagResponse:
+        project = _get_dataset_editor_project(project_name)
+        return project.bulk_tags(payload)
+
+    @app.get("/dataset/editor/projects/{project_name}/image")
+    def dataset_editor_image(project_name: str, path: str = Query(..., min_length=1)) -> FileResponse:
+        project = _get_dataset_editor_project(project_name)
+        decoded = Path(urllib.parse.unquote(path))
+        if decoded.is_absolute():
+            message = lang("dataset_editor.api.invalid_image_path")
+            raise HTTPException(status_code=400, detail=message)
+        target = (project.data_source_dir / decoded).resolve()
+        data_source_dir = project.data_source_dir.resolve()
+        if data_source_dir not in target.parents and target != data_source_dir:
+            message = lang("dataset_editor.api.invalid_image_path")
+            raise HTTPException(status_code=400, detail=message)
+        if not target.exists() or not target.is_file():
+            message = lang("dataset_editor.api.image_missing")
+            raise HTTPException(status_code=404, detail=message)
+        return FileResponse(target)
 
     @app.post("/training/start")
     def training_start(
@@ -603,13 +679,8 @@ def create_app() -> FastAPI:
         class_index: Optional[int] = Query(None),
         alpha: float = Query(0.5)
     ):
-        """Return Grad-CAM heatmap PNG for a sample image from the project.
-
-        Prefers dataset/val when present and non-empty; falls back to dataset root.
-        """
         try:
             data, meta = generate_project_heatmap(project_name, image_path=image_path, target_class=class_index, alpha=alpha)
-            # Could add custom headers with meta if needed
             return Response(content=data, media_type="image/png")
         except Exception as ex:
             error(f"Heatmap generation failed for {project_name}: {ex}")
@@ -621,10 +692,6 @@ def create_app() -> FastAPI:
         image_path: Optional[str] = Query(None),
         checkpoint_path: Optional[str] = Query(None)
     ):
-        """Evaluate project with random image: return JSON with base64 heatmap and predictions.
-
-        Picks random image from validation/dataset, uses best model or specified checkpoint.
-        """
         try:
             result = evaluate_with_heatmap(project_name, image_path=image_path, checkpoint_path=checkpoint_path)
             return result
@@ -676,7 +743,3 @@ def create_app() -> FastAPI:
 
     info("FastAPI app created")
     return app
-
-
-# Optional: create app instance for ASGI servers if imported directly
-# app = create_app()

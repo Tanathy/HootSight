@@ -1,9 +1,3 @@
-"""Training module for Hootsight.
-
-Handles the complete training process for models, including background execution,
-progress tracking, and model checkpoint management.
-"""
-
 from typing import Dict, Any, Optional, Callable, List
 import threading
 import json
@@ -16,11 +10,8 @@ from system.coordinator_settings import SETTINGS
 
 
 class TrainingManager:
-    """Manages training processes and their lifecycle."""
-
     def __init__(self):
         self.active_trainings: Dict[str, Dict[str, Any]] = {}
-        # Live progress map: {id: {epoch, total_epochs, phase, step, total_steps}}
         self.progress: Dict[str, Dict[str, Any]] = {}
         self.progress_history: Dict[str, List[Dict[str, Any]]] = {}
         self._progress_updates: Dict[str, List[Dict[str, Any]]] = {}
@@ -110,38 +101,20 @@ class TrainingManager:
     def start_training(self, project_name: str, model_type: str = "resnet",
                       model_name: str = "resnet50", epochs: Optional[int] = None,
                       callback: Optional[Callable] = None) -> Dict[str, Any]:
-        """Start a training process.
-
-        Args:
-            project_name: Name of the project to train on
-            model_type: Type of model to use
-            model_name: Specific model name
-            epochs: Number of epochs to train
-            callback: Optional callback function for progress updates
-
-        Returns:
-            dict: Training start status
-        """
         try:
-            # Create unique training ID
             training_id = f"{project_name}_{model_type}_{model_name}_{threading.current_thread().ident}"
 
-            # Reset progress trackers for fresh run
             self._reset_progress_tracking(training_id)
 
-            # Create coordinator
             coordinator = create_coordinator(model_type, model_name)
 
-            # Prepare training
             training_config = coordinator.prepare_training(project_name)
 
-            # Override epochs if provided
             if epochs:
                 training_config['config']['epochs'] = epochs
 
             stop_event = threading.Event()
 
-            # Start training in background thread
             training_thread = threading.Thread(
                 target=self._run_training,
                 args=(training_config, project_name, model_type, model_name, training_id, callback, stop_event),
@@ -149,7 +122,6 @@ class TrainingManager:
             )
             training_thread.daemon = True
 
-            # Store training info
             self.active_trainings[training_id] = {
                 'thread': training_thread,
                 'config': training_config,
@@ -182,14 +154,6 @@ class TrainingManager:
             }
 
     def stop_training(self, training_id: str) -> Dict[str, Any]:
-        """Stop a training process.
-
-        Args:
-            training_id: ID of the training to stop
-
-        Returns:
-            dict: Stop status
-        """
         if training_id not in self.active_trainings:
             return {"stopped": False, "message": f"Training {training_id} not found"}
 
@@ -204,25 +168,15 @@ class TrainingManager:
         return {"stopped": True, "message": f"Training {training_id} stop initiated"}
 
     def get_training_status(self, training_id: Optional[str] = None) -> Dict[str, Any]:
-        """Get training status.
-
-        Args:
-            training_id: Specific training ID, or None for all
-
-        Returns:
-            dict: Training status information
-        """
         if training_id:
             if training_id not in self.active_trainings:
                 return {"error": f"Training {training_id} not found"}
 
             training_info = self.active_trainings[training_id]
-            # Robust project name extraction from path (handles Windows/Unix separators)
             ds_path = training_info['config']['config']['dataset_path'] or ""
             proj_name = Path(ds_path).parts[-2] if ds_path else "unknown"
             prog = self.progress.get(training_id, {})
             updates = self._consume_updates(training_id)
-            # Derive helpful runtime stats
             try:
                 train_loader = training_info['config']['train_loader']
                 val_loader = training_info['config']['val_loader']
@@ -254,12 +208,11 @@ class TrainingManager:
                 "val_steps_per_epoch": val_steps,
                 "train_samples": train_samples,
                 "val_samples": val_samples,
-                "best_accuracy": 0.0,  # TODO: Implement accuracy tracking
+                "best_accuracy": 0.0,
                 "latest_metrics": latest_metrics,
                 "updates": updates
             }
 
-        # Return all active trainings
         return {
             "active_trainings": list(self.active_trainings.keys()),
             "count": len(self.active_trainings)
@@ -268,18 +221,7 @@ class TrainingManager:
     def _run_training(self, training_config: Dict[str, Any], project_name: str,
                      model_type: str, model_name: str, training_id: str,
                      callback: Optional[Callable] = None, stop_event: Optional[threading.Event] = None):
-        """Run training process in background thread.
-
-        Args:
-            training_config: Prepared training configuration
-            project_name: Name of the project
-            model_type: Type of model
-            model_name: Specific model name
-            training_id: Unique training identifier
-            callback: Optional progress callback
-        """
         try:
-            # Update status
             if training_id in self.active_trainings:
                 self.active_trainings[training_id]['status'] = 'running'
 
@@ -297,7 +239,6 @@ class TrainingManager:
             best_accuracy = 0.0
             best_val_loss = float('inf')
 
-            # Create output directory (use coordinator-prepared path when available)
             output_dir = Path(config.get('output_dir') or f"models/{project_name}/model")
             output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -442,8 +383,13 @@ class TrainingManager:
                         save_reason = f"val_loss {best_val_loss:.4f}"
 
                 if improved:
-                    checkpoint_config = SETTINGS.get('training', {}).get('checkpoint', {})
-                    checkpoint_path = output_dir / checkpoint_config.get('best_model_filename', 'best_model.pth')
+                    try:
+                        checkpoint_config = SETTINGS['training']['checkpoint']
+                    except Exception:
+                        raise ValueError("Missing required 'training.checkpoint' section in config/config.json")
+                    if 'best_model_filename' not in checkpoint_config:
+                        raise ValueError("training.checkpoint.best_model_filename must be defined in config/config.json")
+                    checkpoint_path = output_dir / checkpoint_config['best_model_filename']
                     model.save_checkpoint(
                         str(checkpoint_path),
                         epoch + 1,
@@ -456,8 +402,13 @@ class TrainingManager:
                 if callback:
                     callback(epoch + 1, num_epochs, epoch_metrics)
 
-            # Save final training history
-            history_filename = SETTINGS.get('training', {}).get('checkpoint', {}).get('training_history_filename', 'training_history.json')
+            try:
+                checkpoint_config = SETTINGS['training']['checkpoint']
+            except Exception:
+                raise ValueError("Missing required 'training.checkpoint' section in config/config.json")
+            if 'training_history_filename' not in checkpoint_config:
+                raise ValueError("training.checkpoint.training_history_filename must be defined in config/config.json")
+            history_filename = checkpoint_config['training_history_filename']
             history_path = output_dir / history_filename
             with open(history_path, 'w') as f:
                 json.dump(training_history, f, indent=2)
@@ -488,69 +439,27 @@ class TrainingManager:
                 self.active_trainings[training_id]['error'] = str(e)
 
 
-# Global training manager instance
 training_manager = TrainingManager()
 
 
 def start_training(project_name: str, model_type: str = "resnet",
                   model_name: str = "resnet50", epochs: Optional[int] = None,
                   callback: Optional[Callable] = None) -> Dict[str, Any]:
-    """Convenience function to start training.
-
-    Args:
-        project_name: Name of the project to train on
-        model_type: Type of model to use
-        model_name: Specific model name
-        epochs: Number of epochs to train
-        callback: Optional callback function for progress updates
-
-    Returns:
-        dict: Training start status
-    """
     return training_manager.start_training(project_name, model_type, model_name, epochs, callback)
 
 
 def stop_training(training_id: str) -> Dict[str, Any]:
-    """Convenience function to stop training.
-
-    Args:
-        training_id: ID of the training to stop
-
-    Returns:
-        dict: Stop status
-    """
     return training_manager.stop_training(training_id)
 
 
 def get_training_status(training_id: Optional[str] = None) -> Dict[str, Any]:
-    """Convenience function to get training status.
-
-    Args:
-        training_id: Specific training ID, or None for all
-
-    Returns:
-        dict: Training status information
-    """
     return training_manager.get_training_status(training_id)
 
 
 def get_training_status_all(training_id: Optional[str] = None) -> Dict[str, Any]:
-    """Get full training status history.
-
-    Args:
-        training_id: Specific training ID, or None for all
-
-    Returns:
-        dict: Training history information
-    """
     return training_manager.get_training_history(training_id)
 
 
 def get_supported_training_models() -> Dict[str, Any]:
-    """Get list of supported models for training.
-
-    Returns:
-        dict: Supported model types and their variants
-    """
     from system.coordinator import get_supported_models
     return get_supported_models()

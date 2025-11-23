@@ -35,9 +35,13 @@ class EfficientNetModel:
         self.task = task
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        # Runtime performance settings
-        self.use_amp = SETTINGS.get('training.runtime.mixed_precision', True)
-        self.channels_last = SETTINGS.get('training.runtime.channels_last', True)
+        # Runtime performance settings - require presence in config
+        try:
+            runtime_cfg = SETTINGS['training']['runtime']
+        except Exception:
+            raise ValueError("Missing required 'training.runtime' configuration in config/config.json")
+        self.use_amp = bool(runtime_cfg['mixed_precision'])
+        self.channels_last = bool(runtime_cfg['channels_last'])
         self._scaler = torch.cuda.amp.GradScaler() if self.use_amp and self.device.type == 'cuda' else None
 
         # Initialize model
@@ -84,8 +88,10 @@ class EfficientNetModel:
 
     def get_optimizer(self, lr: float = 0.001, weight_decay: float = 1e-4) -> optim.Optimizer:
         """Get AdamW optimizer configured for EfficientNet."""
-        # Try to get from config first
-        training_config = SETTINGS.get('training', {})
+        try:
+            training_config = SETTINGS['training']
+        except Exception:
+            raise ValueError("Missing required 'training' section in config/config.json")
         optimizer_config = training_config.get('optimizer', {})
         if optimizer_config.get('type') == 'adamw':
             params = optimizer_config.get('params', {})
@@ -96,8 +102,10 @@ class EfficientNetModel:
 
     def get_scheduler(self, optimizer: optim.Optimizer, step_size: int = 7, gamma: float = 0.1) -> optim.lr_scheduler.StepLR:
         """Get StepLR scheduler configured for EfficientNet."""
-        # Try to get from config first
-        training_config = SETTINGS.get('training', {})
+        try:
+            training_config = SETTINGS['training']
+        except Exception:
+            raise ValueError("Missing required 'training' section in config/config.json")
         scheduler_config = training_config.get('scheduler', {})
         if scheduler_config.get('type') == 'step_lr':
             params = scheduler_config.get('params', {})

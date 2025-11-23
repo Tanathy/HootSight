@@ -1,7 +1,3 @@
-"""UI module for Hootsight.
-
-Handles pywebview window creation and management.
-"""
 import os
 import webview
 
@@ -10,18 +6,16 @@ from system.coordinator_settings import SETTINGS
 
 
 def create_window():
-    """Create and configure pywebview window."""
-    config = SETTINGS.get("ui", {})
-    api_config = SETTINGS.get("api", {})
+    config = SETTINGS['ui']
+    api_config = SETTINGS['api']
     
-    title = config.get("title", "Hootsight")
-    width = config.get("width", 1200)
-    height = config.get("height", 800)
-    resizable = config.get("resizable", True)
+    title = config['title']
+    width = config['width']
+    height = config['height']
+    resizable = config['resizable']
     
-    # Get API URL to serve UI from FastAPI
-    host = api_config.get("host", "127.0.0.1")
-    port = api_config.get("port", 8000)
+    host = api_config['host']
+    port = api_config['port']
     ui_url = f"http://{host}:{port}"
     
     info(f"Creating UI window: {title} ({width}x{height})")
@@ -39,7 +33,6 @@ def create_window():
 
 
 def start_ui():
-    """Start the pywebview UI."""
     try:
         create_window()
         info("Starting pywebview")

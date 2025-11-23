@@ -18,15 +18,15 @@
         "config_dir": "config",
         "localizations_dir": "config/localizations",
         "packages_file": "config/packages.jsonc",
-        "mappings_file": "config/mappings.json",
         "cache_dir": "cache"
     },
     "system": {
         "max_threads": "auto",
         "fallback_batch_size": 8,
-        "memory_cleanup_interval": 300,
-        "thread_pool_timeout": 30,
-        "startup_wait_seconds": 2
+        "startup_wait_seconds": 2,
+        "http_timeout": 20,
+        "update_repository_url": "https://raw.githubusercontent.com/Tanathy/HootSight/refs/heads/main/",
+        "update_skip_paths": ["config/config.json"]
     },
     "memory": {
         "target_memory_usage": 0.8,
@@ -159,6 +159,22 @@
                 "a": 0,
                 "mode": "fan_in",
                 "nonlinearity": "leaky_relu"
+            },
+            "properties": {
+                "xavier_uniform": {"distribution": "uniform", "scale": "xavier", "bias_init": "zeros"},
+                "xavier_normal": {"distribution": "normal", "scale": "xavier", "bias_init": "zeros"},
+                "kaiming_uniform": {"distribution": "uniform", "scale": "he", "bias_init": "zeros"},
+                "kaiming_normal": {"distribution": "normal", "scale": "he", "bias_init": "zeros"},
+                "uniform": {"distribution": "uniform", "scale": "custom", "bias_init": "zeros"},
+                "normal": {"distribution": "normal", "scale": "custom", "bias_init": "zeros"},
+                "trunc_normal": {"distribution": "truncated_normal", "scale": "custom", "bias_init": "zeros"},
+                "constant": {"distribution": "constant", "scale": "none", "bias_init": "none"},
+                "zeros": {"distribution": "zeros", "scale": "none", "bias_init": "none"},
+                "ones": {"distribution": "ones", "scale": "none", "bias_init": "none"},
+                "orthogonal": {"distribution": "orthogonal", "scale": "custom", "bias_init": "zeros"},
+                "sparse": {"distribution": "sparse", "scale": "custom", "bias_init": "zeros"},
+                "eye": {"distribution": "identity", "scale": "none", "bias_init": "none"},
+                "dirac": {"distribution": "dirac", "scale": "none", "bias_init": "none"}
             }
         },
         "checkpoint": {
@@ -197,6 +213,117 @@
             ".tiff",
             ".webp"
         ]
+    },
+    "activations": {
+        "defaults": {
+            "leaky_relu": {"negative_slope": 0.01},
+            "prelu": {"num_parameters": 1, "init": 0.25},
+            "elu": {"alpha": 1.0},
+            "celu": {"alpha": 1.0},
+            "selu": {},
+            "hardtanh": {"min_val": -1.0, "max_val": 1.0},
+            "hardshrink": {"lambd": 0.5},
+            "softshrink": {"lambd": 0.5},
+            "threshold": {"threshold": 0.5, "value": 0.0},
+            "logsigmoid": {},
+            "tanhshrink": {},
+            "softplus": {"beta": 1.0, "threshold": 20.0},
+            "softsign": {},
+            "identity": {}
+        },
+        "properties": {
+            "relu": {"range": "[0, ∞)", "differentiable": true, "monotonic": true, "zero_at_zero": true},
+            "leaky_relu": {"range": "(-∞, ∞)", "differentiable": true, "monotonic": true, "zero_at_zero": false},
+            "prelu": {"range": "(-∞, ∞)", "differentiable": true, "monotonic": true, "zero_at_zero": false},
+            "rrelu": {"range": "(-∞, ∞)", "differentiable": true, "monotonic": true, "zero_at_zero": false},
+            "elu": {"range": "(-α, ∞)", "differentiable": true, "monotonic": true, "zero_at_zero": false},
+            "celu": {"range": "(-α, ∞)", "differentiable": true, "monotonic": true, "zero_at_zero": false},
+            "selu": {"range": "(-∞, ∞)", "differentiable": true, "monotonic": true, "zero_at_zero": false},
+            "gelu": {"range": "(-∞, ∞)", "differentiable": true, "monotonic": true, "zero_at_zero": false},
+            "silu": {"range": "(-∞, ∞)", "differentiable": true, "monotonic": true, "zero_at_zero": false},
+            "mish": {"range": "(-∞, ∞)", "differentiable": true, "monotonic": true, "zero_at_zero": false},
+            "hardtanh": {"range": "[-1, 1]", "differentiable": false, "monotonic": true, "zero_at_zero": true},
+            "sigmoid": {"range": "(0, 1)", "differentiable": true, "monotonic": true, "zero_at_zero": false},
+            "tanh": {"range": "(-1, 1)", "differentiable": true, "monotonic": true, "zero_at_zero": true},
+            "softmax": {"range": "(0, 1)", "differentiable": true, "monotonic": false, "zero_at_zero": false},
+            "hardshrink": {"range": "(-∞, ∞)", "differentiable": false, "monotonic": false, "zero_at_zero": false},
+            "softshrink": {"range": "(-∞, ∞)", "differentiable": false, "monotonic": false, "zero_at_zero": false},
+            "threshold": {"range": "(-∞, ∞)", "differentiable": false, "monotonic": true, "zero_at_zero": false},
+            "logsigmoid": {"range": "(-∞, 0)", "differentiable": true, "monotonic": true, "zero_at_zero": false},
+            "tanhshrink": {"range": "(-∞, ∞)", "differentiable": true, "monotonic": false, "zero_at_zero": true},
+            "logsoftmax": {"range": "(-∞, 0)", "differentiable": true, "monotonic": false, "zero_at_zero": false},
+            "softmin": {"range": "(0, 1)", "differentiable": true, "monotonic": false, "zero_at_zero": false},
+            "softplus": {"range": "(0, ∞)", "differentiable": true, "monotonic": true, "zero_at_zero": false},
+            "softsign": {"range": "(-1, 1)", "differentiable": true, "monotonic": true, "zero_at_zero": true},
+            "identity": {"range": "(-∞, ∞)", "differentiable": true, "monotonic": true, "zero_at_zero": true}
+        }
+    },
+    "augmentations": {
+        "defaults": {
+            "random_crop": {"size": 224, "padding": null, "pad_if_needed": false, "fill": 0, "padding_mode": "constant"},
+            "random_resized_crop": {"size": 224, "scale": [0.08, 1.0], "ratio": [0.75, 1.3333333333333333], "interpolation": "bilinear"},
+            "center_crop": {"size": 224},
+            "random_horizontal_flip": {"p": 0.5},
+            "random_vertical_flip": {"p": 0.5},
+            "random_rotation": {"degrees": [-30, 30], "interpolation": "nearest", "expand": false, "center": null, "fill": 0},
+            "random_affine": {"degrees": [-30, 30], "translate": null, "scale": null, "shear": null, "interpolation": "nearest", "fill": 0, "center": null},
+            "random_perspective": {"distortion_scale": 0.5, "p": 0.5, "interpolation": "bilinear", "fill": 0},
+            "color_jitter": {"brightness": 0.1, "contrast": 0.1, "saturation": 0.1, "hue": 0.1},
+            "random_grayscale": {"p": 0.1},
+            "random_erasing": {"p": 0.5, "scale": [0.02, 0.33], "ratio": [0.3, 3.3], "value": 0, "inplace": false},
+            "to_tensor": {},
+            "normalize": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
+            "random_invert": {"p": 0.5},
+            "random_posterize": {"bits": 4, "p": 0.5},
+            "random_solarize": {"threshold": 128, "p": 0.5},
+            "random_adjust_sharpness": {"sharpness_factor": 2, "p": 0.5},
+            "random_autocontrast": {"p": 0.5},
+            "random_equalize": {"p": 0.5},
+            "compose": {"transforms": [
+                {"type": "random_resized_crop", "params": {"size": 224}},
+                {"type": "random_horizontal_flip", "params": {"p": 0.5}},
+                {"type": "to_tensor"},
+                {"type": "normalize", "params": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]}}
+            ]}
+        },
+        "properties": {
+            "random_crop": {"type": "geometric", "random": true, "spatial": true},
+            "random_resized_crop": {"type": "geometric", "random": true, "spatial": true},
+            "center_crop": {"type": "geometric", "random": false, "spatial": true},
+            "random_horizontal_flip": {"type": "geometric", "random": true, "spatial": true},
+            "random_vertical_flip": {"type": "geometric", "random": true, "spatial": true},
+            "random_rotation": {"type": "geometric", "random": true, "spatial": true},
+            "random_affine": {"type": "geometric", "random": true, "spatial": true},
+            "random_perspective": {"type": "geometric", "random": true, "spatial": true},
+            "color_jitter": {"type": "color", "random": true, "spatial": false},
+            "random_grayscale": {"type": "color", "random": true, "spatial": false},
+            "random_erasing": {"type": "erasing", "random": true, "spatial": true},
+            "normalize": {"type": "normalization", "random": false, "spatial": false},
+            "random_invert": {"type": "color", "random": true, "spatial": false},
+            "random_posterize": {"type": "color", "random": true, "spatial": false},
+            "random_solarize": {"type": "color", "random": true, "spatial": false},
+            "random_adjust_sharpness": {"type": "color", "random": true, "spatial": false},
+            "random_autocontrast": {"type": "color", "random": true, "spatial": false},
+            "random_equalize": {"type": "color", "random": true, "spatial": false},
+            "compose": {"type": "composition", "random": true, "spatial": true}
+        }
+    },
+    "dataset_editor": {
+        "page_sizes": [25, 50, 100, 200, 500, 750],
+        "default_page_size": 50,
+        "size_presets": {
+            "Generic": [128, 256, 512, 768, 1024],
+            "YOLO": [416, 512, 640, 960],
+            "ResNet": [224, 256, 384, 448, 512]
+        },
+        "default_size": 512,
+        "build_workers": "auto",
+        "discovery_workers": "auto",
+        "project_name_validation": {
+            "min_length": 3,
+            "max_length": 64,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$"
+        }
     },
     "optimizers": {
         "defaults": {
@@ -311,6 +438,135 @@
                 "t0": 1000000,
                 "weight_decay": 0
             }
+        },
+        "properties": {
+            "sgd": {"type": "momentum_based", "adaptive": false, "requires_momentum": true},
+            "adam": {"type": "adaptive", "adaptive": true, "requires_momentum": false},
+            "adamw": {"type": "adaptive", "adaptive": true, "requires_momentum": false},
+            "adamax": {"type": "adaptive", "adaptive": true, "requires_momentum": false},
+            "nadam": {"type": "adaptive", "adaptive": true, "requires_momentum": false},
+            "radam": {"type": "adaptive", "adaptive": true, "requires_momentum": false},
+            "rmsprop": {"type": "adaptive", "adaptive": true, "requires_momentum": false},
+            "rprop": {"type": "adaptive", "adaptive": true, "requires_momentum": false},
+            "adagrad": {"type": "adaptive", "adaptive": true, "requires_momentum": false},
+            "adadelta": {"type": "adaptive", "adaptive": true, "requires_momentum": false},
+            "sparse_adam": {"type": "adaptive", "adaptive": true, "requires_momentum": false},
+            "lbfgs": {"type": "quasi_newton", "adaptive": false, "requires_momentum": false},
+            "asgd": {"type": "momentum_based", "adaptive": false, "requires_momentum": true}
+        }
+    },
+    "regularization": {
+        "defaults": {
+            "dropout": {"p": 0.5, "inplace": false},
+            "dropout2d": {"p": 0.5, "inplace": false},
+            "dropout3d": {"p": 0.5, "inplace": false},
+            "alphadropout": {"p": 0.5, "inplace": false},
+            "featurealphadropout": {"p": 0.5, "inplace": false},
+            "batchnorm1d": {"eps": 1e-5, "momentum": 0.1, "affine": true, "track_running_stats": true},
+            "batchnorm2d": {"eps": 1e-5, "momentum": 0.1, "affine": true, "track_running_stats": true},
+            "batchnorm3d": {"eps": 1e-5, "momentum": 0.1, "affine": true, "track_running_stats": true},
+            "layer_norm": {"eps": 1e-5, "elementwise_affine": true},
+            "group_norm": {"num_groups": 32, "eps": 1e-5, "affine": true},
+            "instance_norm1d": {"eps": 1e-5, "momentum": 0.1, "affine": false, "track_running_stats": false},
+            "instance_norm2d": {"eps": 1e-5, "momentum": 0.1, "affine": false, "track_running_stats": false},
+            "instance_norm3d": {"eps": 1e-5, "momentum": 0.1, "affine": false, "track_running_stats": false}
+        },
+        "properties": {
+            "dropout": {"type": "dropout", "train_only": true, "normalization": false},
+            "dropout2d": {"type": "dropout", "train_only": true, "normalization": false},
+            "dropout3d": {"type": "dropout", "train_only": true, "normalization": false},
+            "alphadropout": {"type": "dropout", "train_only": true, "normalization": false},
+            "featurealphadropout": {"type": "dropout", "train_only": true, "normalization": false},
+            "batchnorm1d": {"type": "normalization", "train_only": false, "normalization": true},
+            "batchnorm2d": {"type": "normalization", "train_only": false, "normalization": true},
+            "batchnorm3d": {"type": "normalization", "train_only": false, "normalization": true},
+            "layer_norm": {"type": "normalization", "train_only": false, "normalization": true},
+            "group_norm": {"type": "normalization", "train_only": false, "normalization": true},
+            "instance_norm1d": {"type": "normalization", "train_only": false, "normalization": true},
+            "instance_norm2d": {"type": "normalization", "train_only": false, "normalization": true},
+            "instance_norm3d": {"type": "normalization", "train_only": false, "normalization": true}
+        }
+    },
+    "normalization": {
+        "defaults": {
+            "batch_norm1d": {"num_features": null, "eps": 1e-5, "momentum": 0.1, "affine": true, "track_running_stats": true},
+            "batch_norm2d": {"num_features": null, "eps": 1e-5, "momentum": 0.1, "affine": true, "track_running_stats": true},
+            "batch_norm3d": {"num_features": null, "eps": 1e-5, "momentum": 0.1, "affine": true, "track_running_stats": true},
+            "sync_batch_norm": {"num_features": null, "eps": 1e-5, "momentum": 0.1, "affine": true, "track_running_stats": true, "process_group": null},
+            "layer_norm": {"normalized_shape": null, "eps": 1e-5, "elementwise_affine": true},
+            "group_norm": {"num_groups": 32, "num_channels": null, "eps": 1e-5, "affine": true},
+            "instance_norm1d": {"num_features": null, "eps": 1e-5, "momentum": 0.1, "affine": false, "track_running_stats": false},
+            "instance_norm2d": {"num_features": null, "eps": 1e-5, "momentum": 0.1, "affine": false, "track_running_stats": false},
+            "instance_norm3d": {"num_features": null, "eps": 1e-5, "momentum": 0.1, "affine": false, "track_running_stats": false},
+            "local_response_norm": {"size": 5, "alpha": 0.0001, "beta": 0.75, "k": 1.0},
+            "cross_map_lr_norm": {"size": 5, "alpha": 0.0001, "beta": 0.75, "k": 1.0}
+        },
+        "properties": {
+            "batch_norm1d": {"type": "batch", "learnable": true, "dimensions": 1, "requires_stats": true},
+            "batch_norm2d": {"type": "batch", "learnable": true, "dimensions": 2, "requires_stats": true},
+            "batch_norm3d": {"type": "batch", "learnable": true, "dimensions": 3, "requires_stats": true},
+            "sync_batch_norm": {"type": "batch", "learnable": true, "dimensions": null, "requires_stats": true, "distributed": true},
+            "layer_norm": {"type": "layer", "learnable": true, "dimensions": null, "requires_stats": false},
+            "group_norm": {"type": "group", "learnable": true, "dimensions": null, "requires_stats": false},
+            "instance_norm1d": {"type": "instance", "learnable": false, "dimensions": 1, "requires_stats": false},
+            "instance_norm2d": {"type": "instance", "learnable": false, "dimensions": 2, "requires_stats": false},
+            "instance_norm3d": {"type": "instance", "learnable": false, "dimensions": 3, "requires_stats": false},
+            "local_response_norm": {"type": "local_response", "learnable": false, "dimensions": null, "requires_stats": false},
+            "cross_map_lr_norm": {"type": "cross_map_lrn", "learnable": false, "dimensions": 2, "requires_stats": false}
+        }
+    },
+    "pooling": {
+        "defaults": {
+            "max_pool1d": {"kernel_size": 2, "stride": null, "padding": 0, "dilation": 1, "return_indices": false, "ceil_mode": false},
+            "max_pool2d": {"kernel_size": 2, "stride": null, "padding": 0, "dilation": 1, "return_indices": false, "ceil_mode": false},
+            "max_pool3d": {"kernel_size": 2, "stride": null, "padding": 0, "dilation": 1, "return_indices": false, "ceil_mode": false},
+            "max_unpool1d": {"kernel_size": 2, "stride": null, "padding": 0},
+            "max_unpool2d": {"kernel_size": 2, "stride": null, "padding": 0},
+            "max_unpool3d": {"kernel_size": 2, "stride": null, "padding": 0},
+            "adaptive_max_pool1d": {"output_size": 1},
+            "adaptive_max_pool2d": {"output_size": 1},
+            "adaptive_max_pool3d": {"output_size": 1},
+            "avg_pool1d": {"kernel_size": 2, "stride": null, "padding": 0, "ceil_mode": false, "count_include_pad": true},
+            "avg_pool2d": {"kernel_size": 2, "stride": null, "padding": 0, "ceil_mode": false, "count_include_pad": true, "divisor_override": null},
+            "avg_pool3d": {"kernel_size": 2, "stride": null, "padding": 0, "ceil_mode": false, "count_include_pad": true, "divisor_override": null},
+            "adaptive_avg_pool1d": {"output_size": 1},
+            "adaptive_avg_pool2d": {"output_size": 1},
+            "adaptive_avg_pool3d": {"output_size": 1},
+            "global_max_pool1d": {"output_size": 1},
+            "global_max_pool2d": {"output_size": 1},
+            "global_max_pool3d": {"output_size": 1},
+            "global_avg_pool1d": {"output_size": 1},
+            "global_avg_pool2d": {"output_size": 1},
+            "global_avg_pool3d": {"output_size": 1},
+            "lppool1d": {"norm_type": 2, "kernel_size": 2, "stride": null, "ceil_mode": false},
+            "lppool2d": {"norm_type": 2, "kernel_size": 2, "stride": null, "ceil_mode": false},
+            "fractional_max_pool2d": {"kernel_size": 2, "output_size": null, "output_ratio": null, "return_indices": false, "_random_samples": null}
+        },
+        "properties": {
+            "max_pool1d": {"type": "max", "adaptive": false, "dimensions": 1},
+            "max_pool2d": {"type": "max", "adaptive": false, "dimensions": 2},
+            "max_pool3d": {"type": "max", "adaptive": false, "dimensions": 3},
+            "max_unpool1d": {"type": "max_unpool", "adaptive": false, "dimensions": 1},
+            "max_unpool2d": {"type": "max_unpool", "adaptive": false, "dimensions": 2},
+            "max_unpool3d": {"type": "max_unpool", "adaptive": false, "dimensions": 3},
+            "adaptive_max_pool1d": {"type": "max", "adaptive": true, "dimensions": 1},
+            "adaptive_max_pool2d": {"type": "max", "adaptive": true, "dimensions": 2},
+            "adaptive_max_pool3d": {"type": "max", "adaptive": true, "dimensions": 3},
+            "avg_pool1d": {"type": "avg", "adaptive": false, "dimensions": 1},
+            "avg_pool2d": {"type": "avg", "adaptive": false, "dimensions": 2},
+            "avg_pool3d": {"type": "avg", "adaptive": false, "dimensions": 3},
+            "adaptive_avg_pool1d": {"type": "avg", "adaptive": true, "dimensions": 1},
+            "adaptive_avg_pool2d": {"type": "avg", "adaptive": true, "dimensions": 2},
+            "adaptive_avg_pool3d": {"type": "avg", "adaptive": true, "dimensions": 3},
+            "global_max_pool1d": {"type": "max", "adaptive": true, "dimensions": 1, "global": true},
+            "global_max_pool2d": {"type": "max", "adaptive": true, "dimensions": 2, "global": true},
+            "global_max_pool3d": {"type": "max", "adaptive": true, "dimensions": 3, "global": true},
+            "global_avg_pool1d": {"type": "avg", "adaptive": true, "dimensions": 1, "global": true},
+            "global_avg_pool2d": {"type": "avg", "adaptive": true, "dimensions": 2, "global": true},
+            "global_avg_pool3d": {"type": "avg", "adaptive": true, "dimensions": 3, "global": true},
+            "lppool1d": {"type": "lp", "adaptive": false, "dimensions": 1},
+            "lppool2d": {"type": "lp", "adaptive": false, "dimensions": 2},
+            "fractional_max_pool2d": {"type": "fractional_max", "adaptive": false, "dimensions": 2}
         }
     },
     "schedulers": {
@@ -391,6 +647,20 @@
             "multiplicative_lr": {
                 "lr_lambda": "lambda epoch: 0.95"
             }
+        },
+        "properties": {
+            "step_lr": {"type": "step_based", "adaptive": false, "requires_metric": false},
+            "multi_step_lr": {"type": "step_based", "adaptive": false, "requires_metric": false},
+            "exponential_lr": {"type": "exponential_decay", "adaptive": false, "requires_metric": false},
+            "cosine_annealing_lr": {"type": "cosine", "adaptive": false, "requires_metric": false},
+            "cosine_annealing_warm_restarts": {"type": "cosine", "adaptive": false, "requires_metric": false},
+            "reduce_lr_on_plateau": {"type": "plateau_based", "adaptive": true, "requires_metric": true},
+            "cyclic_lr": {"type": "cyclic", "adaptive": false, "requires_metric": false},
+            "one_cycle_lr": {"type": "cyclic", "adaptive": false, "requires_metric": false},
+            "polynomial_lr": {"type": "polynomial", "adaptive": false, "requires_metric": false},
+            "linear_lr": {"type": "linear", "adaptive": false, "requires_metric": false},
+            "lambda_lr": {"type": "custom_function", "adaptive": false, "requires_metric": false},
+            "multiplicative_lr": {"type": "custom_function", "adaptive": false, "requires_metric": false}
         }
     },
     "losses": {
@@ -473,6 +743,19 @@
                 "eps": 1e-8,
                 "reduction": "mean"
             }
+        },
+        "properties": {
+            "cross_entropy": {"type": "classification", "range": "[0, ∞)", "differentiable": true},
+            "nll_loss": {"type": "classification", "range": "(-∞, ∞)", "differentiable": true},
+            "bce_loss": {"type": "binary_classification", "range": "[0, ∞)", "differentiable": true},
+            "bce_with_logits": {"type": "binary_classification", "range": "[0, ∞)", "differentiable": true},
+            "mse_loss": {"type": "regression", "range": "[0, ∞)", "differentiable": true},
+            "l1_loss": {"type": "regression", "range": "[0, ∞)", "differentiable": true},
+            "smooth_l1": {"type": "regression", "range": "[0, ∞)", "differentiable": true},
+            "huber_loss": {"type": "regression", "range": "[0, ∞)", "differentiable": true},
+            "kl_div": {"type": "distribution", "range": "[0, ∞)", "differentiable": true},
+            "margin_ranking": {"type": "ranking", "range": "(-∞, ∞)", "differentiable": true},
+            "triplet_margin": {"type": "ranking", "range": "[0, ∞)", "differentiable": true}
         }
     },
     "models": {

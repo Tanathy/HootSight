@@ -1,9 +1,3 @@
-"""Coordinator module for Hootsight.
-
-Coordinates all components needed for model training including memory management,
-data loading, model configuration, and training setup.
-"""
-
 from typing import Dict, Any, Optional, Tuple, List
 import os
 import json
@@ -23,15 +17,8 @@ from system.weight_init import WeightInitFactory
 
 
 class TrainingCoordinator:
-    """Coordinates all components for model training."""
 
     def __init__(self, model_type: str = 'resnet', model_name: str = 'resnet50'):
-        """Initialize training coordinator.
-
-        Args:
-            model_type: Type of model ('resnet', etc.)
-            model_name: Specific model name ('resnet50', etc.)
-        """
         self.model_type = model_type
         self.model_name = model_name
         self.settings = SETTINGS.copy() if SETTINGS else {}
@@ -42,18 +29,31 @@ class TrainingCoordinator:
         info(f"Initialized coordinator for {model_type}/{model_name}")
 
     def _load_config(self) -> Dict[str, Any]:
-        """Load configuration from settings."""
-        training = self.settings.get('training', {})
-        # Support both nested training.input.* and flattened training.input_size/normalize
-        input_block = training.get('input', {}) if isinstance(training.get('input'), dict) else {}
-        input_size = input_block.get('image_size', training.get('input_size', 224))
-        normalize_cfg = input_block.get('normalize', training.get('normalize', {
-            'mean': [0.485, 0.456, 0.406],
-            'std': [0.229, 0.224, 0.225]
-        }))
-        dataloader_cfg = training.get('dataloader', {})
-        # Resolve num_workers (supports "auto")
-        raw_workers = dataloader_cfg.get('num_workers', 0)
+        try:
+            training = self.settings['training']
+        except Exception:
+            raise ValueError("Missing required 'training' section in config/config.json")
+        input_block = training.get('input') if isinstance(training.get('input'), dict) else None
+        if input_block is not None:
+            if 'image_size' not in input_block:
+                raise ValueError("Missing required 'training.input.image_size' in config/config.json")
+            input_size = input_block['image_size']
+            if 'normalize' not in input_block:
+                raise ValueError("Missing required 'training.input.normalize' in config/config.json")
+            normalize_cfg = input_block['normalize']
+        else:
+            if 'input_size' not in training:
+                raise ValueError("Missing required 'training.input_size' in config/config.json")
+            input_size = training['input_size']
+            if 'normalize' not in training:
+                raise ValueError("Missing required 'training.normalize' in config/config.json")
+            normalize_cfg = training['normalize']
+        if 'dataloader' not in training or not isinstance(training.get('dataloader'), dict):
+            raise ValueError("Missing required 'training.dataloader' configuration in config/config.json")
+        dataloader_cfg = training['dataloader']
+        if 'num_workers' not in dataloader_cfg:
+            raise ValueError("Missing required 'training.dataloader.num_workers' in config/config.json")
+        raw_workers = dataloader_cfg['num_workers']
         if isinstance(raw_workers, str) and raw_workers.lower() == 'auto':
             try:
                 import os
@@ -66,37 +66,49 @@ class TrainingCoordinator:
                 resolved_workers = int(raw_workers)
             except Exception:
                 resolved_workers = 0
-        # Runtime/performance flags
-        runtime_cfg = training.get('runtime', {}) if isinstance(training.get('runtime'), dict) else {}
+        if 'runtime' not in training or not isinstance(training.get('runtime'), dict):
+            raise ValueError("Missing required 'training.runtime' configuration in config/config.json")
+        runtime_cfg = training['runtime']
         runtime_flags = {
-            'mixed_precision': bool(runtime_cfg.get('mixed_precision', True)),
-            'channels_last': bool(runtime_cfg.get('channels_last', True)),
-            'allow_tf32': bool(runtime_cfg.get('allow_tf32', True)),
-            'cudnn_benchmark': bool(runtime_cfg.get('cudnn_benchmark', True))
+            'mixed_precision': bool(runtime_cfg['mixed_precision']),
+            'channels_last': bool(runtime_cfg['channels_last']),
+            'allow_tf32': bool(runtime_cfg['allow_tf32']),
+            'cudnn_benchmark': bool(runtime_cfg['cudnn_benchmark'])
         }
-        # Resolve epochs to an integer (handle "auto" or invalid)
-        raw_epochs = training.get('epochs', 10)
+        if 'epochs' not in training:
+            raise ValueError("Missing required 'training.epochs' in config/config.json")
+        raw_epochs = training['epochs']
         try:
             epochs = int(raw_epochs)
             if epochs <= 0:
                 epochs = 10
         except Exception:
             epochs = 10
-        # Support val_ratio at training root or nested under split
-        split_block = training.get('split', {}) if isinstance(training.get('split'), dict) else {}
-        val_ratio = training.get('val_ratio', split_block.get('val_ratio', 0.2))
+        split_block = training.get('split') if isinstance(training.get('split'), dict) else None
+        if split_block is not None and 'val_ratio' in split_block:
+            val_ratio = split_block['val_ratio']
+        elif 'val_ratio' in training:
+            val_ratio = training['val_ratio']
+        else:
+            raise ValueError("Missing required 'training.val_ratio' or 'training.split.val_ratio' in config/config.json")
+
+        missing_training_keys = [k for k in ['batch_size', 'learning_rate', 'weight_decay', 'task'] if k not in training]
+        if 'pretrained' not in training and not (isinstance(training.get('model'), dict) and 'pretrained' in training['model']):
+            missing_training_keys.append('pretrained')
+        if missing_training_keys:
+            raise ValueError(f"Missing required training keys in config/config.json: {', '.join(missing_training_keys)}")
 
         return {
-            'batch_size': training.get('batch_size', 32),
+            'batch_size': training['batch_size'],
             'epochs': epochs,
-            'learning_rate': training.get('learning_rate', 0.001),
-            'weight_decay': training.get('weight_decay', 1e-4),
-            'task': training.get('task', 'classification'),
-            'model_type': self.model_type,  # Use instance variable instead of SETTINGS
-            'pretrained': training.get('model', {}).get('pretrained', True),
-            'projects_base_dir': self.settings.get('paths', {}).get('projects_dir') or self.settings.get('paths', {}).get('models_dir', 'projects'),
-            'dataset_path': None,  # Will be set by prepare_training
-            'output_dir': None,  # Will be set by prepare_training
+            'learning_rate': training['learning_rate'],
+            'weight_decay': training['weight_decay'],
+            'task': training['task'],
+            'model_type': self.model_type,
+            'pretrained': (bool(training['pretrained']) if 'pretrained' in training else bool(training['model']['pretrained'])),
+            'projects_base_dir': (self.settings['paths']['projects_dir'] if 'paths' in self.settings and 'projects_dir' in self.settings['paths'] else (self.settings['paths']['models_dir'] if 'paths' in self.settings and 'models_dir' in self.settings['paths'] else None)),
+            'dataset_path': None,
+            'output_dir': None,
             'input': {
                 'channels': 3,
                 'image_size': int(input_size),
@@ -104,18 +116,16 @@ class TrainingCoordinator:
             },
             'dataloader': {
                 'num_workers': resolved_workers,
-                'pin_memory': bool(dataloader_cfg.get('pin_memory', True))
+                'pin_memory': bool(dataloader_cfg['pin_memory'])
             },
             'runtime': runtime_flags,
             'split': {'val_ratio': float(val_ratio)}
         }
 
     def _apply_runtime_settings(self) -> None:
-        """Apply global PyTorch runtime performance settings."""
-        runtime = self.config.get('runtime', {})
+        runtime = self.config['runtime']
         
-        # TF32 settings for faster matrix multiplications on Ampere+ GPUs
-        if runtime.get('allow_tf32', True):
+        if runtime['allow_tf32']:
             try:
                 torch.backends.cuda.matmul.allow_tf32 = True
                 torch.backends.cudnn.allow_tf32 = True
@@ -123,8 +133,7 @@ class TrainingCoordinator:
             except Exception as e:
                 warning(f"Could not enable TF32: {e}")
         
-        # cuDNN benchmark for optimized convolution algorithms
-        if runtime.get('cudnn_benchmark', True):
+        if runtime['cudnn_benchmark']:
             try:
                 torch.backends.cudnn.benchmark = True
                 info("Enabled cuDNN benchmark for optimized convolutions")
@@ -132,17 +141,21 @@ class TrainingCoordinator:
                 warning(f"Could not enable cuDNN benchmark: {e}")
 
     def _get_memory_config(self) -> Dict[str, Any]:
-        """Get memory management configuration."""
-        memory_settings = self.settings.get('memory', {})
+        try:
+            memory_settings = self.settings['memory']
+        except Exception:
+            raise ValueError("Missing required 'memory' section in config/config.json")
+        missing = [k for k in ('target_memory_usage', 'safety_margin', 'augmentation_threads') if k not in memory_settings]
+        if missing:
+            raise ValueError(f"Missing required memory keys in config/config.json: {', '.join(missing)}")
         return {
-            'target_usage': memory_settings.get('target_memory_usage', 0.8),
-            'safety_margin': memory_settings.get('safety_margin', 0.9),
-            'augmentation_threads': memory_settings.get('augmentation_threads', 'auto')
+            'target_usage': memory_settings['target_memory_usage'],
+            'safety_margin': memory_settings['safety_margin'],
+            'augmentation_threads': memory_settings['augmentation_threads']
         }
 
     def _get_model_config(self) -> Dict[str, Any]:
-        """Get model-specific configuration."""
-        model_type = self.config.get('model_type', 'resnet')
+        model_type = self.config['model_type']
         if model_type == 'resnet':
             from system.models.resnet import get_resnet_config
             return get_resnet_config(self.model_name)
@@ -165,30 +178,25 @@ class TrainingCoordinator:
             return {}  # Default empty config
 
     def prepare_training(self, project_name: str) -> Dict[str, Any]:
-        """Prepare all components for training.
-
-        Args:
-            project_name: Name of the project/dataset to use
-
-        Returns:
-            dict: Prepared training configuration
-        """
         info(f"Preparing training for project: {project_name}")
 
-        # Load project-specific settings if exist
-        project_config_path = os.path.join(self.settings.get('paths', {}).get('projects_dir', 'projects'), project_name, 'config.json')
+        try:
+            paths_cfg = self.settings['paths']
+        except Exception:
+            raise ValueError("Missing required 'paths' section in config/config.json")
+        if 'projects_dir' not in paths_cfg:
+            raise ValueError("Missing required 'paths.projects_dir' in config/config.json")
+        project_config_path = os.path.join(paths_cfg['projects_dir'], project_name, 'config.json')
         if os.path.exists(project_config_path):
             try:
                 with open(project_config_path, 'r', encoding='utf-8') as f:
                     project_settings = json.load(f)
-                # Merge project settings with global settings (project overrides)
                 from system.common.deep_merge import deep_merge_json
                 self.settings = deep_merge_json(self.settings, project_settings)
                 info(f"Loaded project settings from {project_config_path}")
             except Exception as e:
                 warning(f"Failed to load project settings: {e}")
         else:
-            # Save current settings to project
             try:
                 os.makedirs(os.path.dirname(project_config_path), exist_ok=True)
                 with open(project_config_path, 'w', encoding='utf-8') as f:
@@ -197,40 +205,31 @@ class TrainingCoordinator:
             except Exception as e:
                 warning(f"Failed to save project settings: {e}")
 
-        # Load configuration from settings
         self.config = self._load_config()
         self.memory_config = self._get_memory_config()
         self.model_config = self._get_model_config()
 
-        # Apply global PyTorch performance settings
         self._apply_runtime_settings()
 
-        # Get project information
         project_info = get_project_info(project_name)
         if not project_info:
             raise ValueError(f"Project not found: {project_name}")
 
         self.config['dataset_path'] = project_info.dataset_path
-        # Only include base labels (exclude folder: prefixed ones)
         base_labels = [lbl for lbl in project_info.labels if not str(lbl).startswith('folder:')]
         labels = base_labels if base_labels else project_info.labels
         self.config['labels'] = labels
         self.config['num_classes'] = len(labels)
-        # Output dir under project (fixed to 'model' to keep it simple/minimal)
         ckpt_dir_name = 'model'
         self.config['output_dir'] = os.path.join(self.config['projects_base_dir'], project_name, ckpt_dir_name)
 
-        # Calculate optimal batch size
         optimal_batch = self._calculate_optimal_batch_size()
         self.config['batch_size'] = optimal_batch['optimal_batch_size']
 
-        # Prepare model
         model = self._prepare_model()
 
-        # Prepare data loaders
         train_loader, val_loader = self._prepare_data_loaders()
 
-        # Prepare training components
         optimizer, scheduler, criterion = self._prepare_training_components(model)
 
         training_config = {
@@ -250,46 +249,44 @@ class TrainingCoordinator:
         return training_config
 
     def _calculate_optimal_batch_size(self) -> Dict[str, Any]:
-        """Calculate optimal batch size based on memory constraints."""
-        # Create a dummy model for batch size calculation
-        model_type = self.config.get('model_type', 'resnet')
+        model_type = self.config['model_type']
         if model_type == 'resnet':
             from system.models.resnet import create_resnet_model, get_resnet_config
-            dummy_model = create_resnet_model(self.model_name, self.config['num_classes'], pretrained=False, task=self.config.get('task', 'classification'))
+            dummy_model = create_resnet_model(self.model_name, self.config['num_classes'], pretrained=False, task=self.config['task'])
             config_func = get_resnet_config
         elif model_type == 'resnext':
             from system.models.resnext import create_resnext_model, get_resnext_config
-            dummy_model = create_resnext_model(self.model_name, self.config['num_classes'], pretrained=False, task=self.config.get('task', 'classification'))
+            dummy_model = create_resnext_model(self.model_name, self.config['num_classes'], pretrained=False, task=self.config['task'])
             config_func = get_resnext_config
         elif model_type == 'mobilenet':
             from system.models.mobilenet import create_mobilenet_model, get_mobilenet_config
-            dummy_model = create_mobilenet_model(self.model_name, self.config['num_classes'], pretrained=False, task=self.config.get('task', 'classification'))
+            dummy_model = create_mobilenet_model(self.model_name, self.config['num_classes'], pretrained=False, task=self.config['task'])
             config_func = get_mobilenet_config
         elif model_type == 'shufflenet':
             from system.models.shufflenet import create_shufflenet_model, get_shufflenet_config
-            dummy_model = create_shufflenet_model(self.model_name, self.config['num_classes'], pretrained=False, task=self.config.get('task', 'classification'))
+            dummy_model = create_shufflenet_model(self.model_name, self.config['num_classes'], pretrained=False, task=self.config['task'])
             config_func = get_shufflenet_config
         elif model_type == 'squeezenet':
             from system.models.squeezenet import create_squeezenet_model, get_squeezenet_config
-            dummy_model = create_squeezenet_model(self.model_name, self.config['num_classes'], pretrained=False, task=self.config.get('task', 'classification'))
+            dummy_model = create_squeezenet_model(self.model_name, self.config['num_classes'], pretrained=False, task=self.config['task'])
             config_func = get_squeezenet_config
         elif model_type == 'efficientnet':
             from system.models.efficientnet import create_efficientnet_model, get_efficientnet_config
-            dummy_model = create_efficientnet_model(self.model_name, self.config['num_classes'], pretrained=False, task=self.config.get('task', 'classification'))
+            dummy_model = create_efficientnet_model(self.model_name, self.config['num_classes'], pretrained=False, task=self.config['task'])
             config_func = get_efficientnet_config
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
 
-        # Get recommended batch size from config
         try:
             model_config = config_func(self.model_name)
-            recommended_batch = model_config.get('recommended_batch_size', 32)
+            if 'recommended_batch_size' not in model_config:
+                raise ValueError(f"recommended_batch_size missing for model '{self.model_name}' in config/config.json")
+            recommended_batch = model_config['recommended_batch_size']
         except:
             recommended_batch = 32
 
-        # Estimate input shape from config
-        channels = int(self.config['input'].get('channels', 3))
-        size = int(self.config['input'].get('image_size', 224))
+        channels = int(self.config['input']['channels'])
+        size = int(self.config['input']['image_size'])
         input_shape = (channels, size, size)
 
         optimal_batch = get_optimal_batch_size(
@@ -303,13 +300,12 @@ class TrainingCoordinator:
         return optimal_batch
 
     def _prepare_model(self):
-        """Prepare model for training."""
-        model_type = self.config.get('model_type', 'resnet')
+        model_type = self.config['model_type']
         model_name = self.model_name
         num_classes = self.config['num_classes']
-        pretrained = bool(self.config.get('pretrained', True))
-        task = self.config.get('task', 'classification')
-        runtime = self.config.get('runtime', {})
+        pretrained = bool(self.config['pretrained'])
+        task = self.config['task']
+        runtime = self.config['runtime']
 
         if model_type == 'resnet':
             from system.models.resnet import create_resnet_model
@@ -332,24 +328,22 @@ class TrainingCoordinator:
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
 
-        # Apply runtime/performance flags
         try:
             import torch
-            if runtime.get('allow_tf32', False):
+            if runtime['allow_tf32']:
                 try:
                     torch.backends.cuda.matmul.allow_tf32 = True  # type: ignore[attr-defined]
                     torch.backends.cudnn.allow_tf32 = True  # type: ignore[attr-defined]
                 except Exception:
                     pass
-            if runtime.get('cudnn_benchmark', False):
+            if runtime['cudnn_benchmark']:
                 try:
                     torch.backends.cudnn.benchmark = True  # type: ignore[attr-defined]
                 except Exception:
                     pass
-            if runtime.get('channels_last', False):
+            if runtime['channels_last']:
                 try:
                     if hasattr(model, 'model'):
-                        # Convert parameters and buffers to channels_last memory format
                         model.model = model.model.to(self_device := (model.device if hasattr(model, 'device') else torch.device('cuda' if torch.cuda.is_available() else 'cpu')))
                         for p in model.model.parameters():
                             try:
@@ -361,27 +355,27 @@ class TrainingCoordinator:
         except Exception:
             pass
 
-        # Optional weight initialization
         try:
-            train_cfg = self.settings.get('training', {})
+            try:
+                train_cfg = self.settings['training']
+            except Exception:
+                raise ValueError("Missing required 'training' section in config/config.json")
             init_cfg = train_cfg.get('weight_init')
             if init_cfg:
-                # ResNetModel wrapper exposes underlying nn.Module as 'model'
                 WeightInitFactory.apply_to_model(model.model, init_cfg)
         except Exception as ex:
             warning(f"Weight initialization skipped: {ex}")
 
-        # Apply coordinator runtime toggles to the model wrapper if available (ResNet)
         try:
             from system.models.resnet import ResNetModel  # type: ignore
-            runtime = self.config.get('runtime', {})
+            runtime = self.config['runtime']
             if isinstance(model, ResNetModel):
                 cuda_enabled = bool(getattr(model, 'device', None) and getattr(model, 'device').type == 'cuda')
-                model.use_amp = bool(runtime.get('mixed_precision', True) and cuda_enabled)
+                model.use_amp = bool(runtime['mixed_precision'] and cuda_enabled)
                 if cuda_enabled:
                     import torch
                     model._scaler = torch.cuda.amp.GradScaler(enabled=bool(model.use_amp))
-                model.channels_last = bool(runtime.get('channels_last', True))
+                model.channels_last = bool(runtime['channels_last'])
         except Exception:
             pass
 
@@ -389,21 +383,24 @@ class TrainingCoordinator:
         return model
 
     def _prepare_data_loaders(self) -> Tuple[DataLoader, DataLoader]:
-        """Prepare data loaders for training and validation."""
-        # Local imports to keep global namespace clean
         from torchvision import datasets, transforms
         from torch.utils.data import random_split, Dataset
         from PIL import Image
         import glob, os
         import torch
 
-        # Define transforms from config when provided
         image_size = int(self.config['input']['image_size'])
         mean = self.config['input']['normalize']['mean']
         std = self.config['input']['normalize']['std']
 
-        train_aug_cfg = self.settings.get('training', {}).get('augmentation', {}).get('train')
-        val_aug_cfg = self.settings.get('training', {}).get('augmentation', {}).get('val')
+        try:
+            training_cfg = self.settings['training']
+        except Exception:
+            raise ValueError("Missing required 'training' section in config/config.json")
+        if 'augmentation' not in training_cfg or not isinstance(training_cfg['augmentation'], dict):
+            raise ValueError("Missing required 'training.augmentation' in config/config.json")
+        train_aug_cfg = training_cfg['augmentation'].get('train')
+        val_aug_cfg = training_cfg['augmentation'].get('val')
 
         if isinstance(train_aug_cfg, list) and train_aug_cfg:
             train_transform = DataAugmentationFactory.create_composition(train_aug_cfg)
@@ -426,11 +423,13 @@ class TrainingCoordinator:
                 transforms.Normalize(mean=mean, std=std)
             ])
 
-        # Decide whether to build multi-label dataset
-        is_multi_label = (self.config.get('task') == 'multi_label')
-        label_list: List[str] = list(self.config.get('labels', []))
+        if 'task' not in self.config:
+            raise ValueError("Missing required 'config.task' value initialized from config/config.json")
+        is_multi_label = (self.config['task'] == 'multi_label')
+        if 'labels' not in self.config:
+            raise ValueError("Missing required 'config.labels' initialized from dataset discovery")
+        label_list: List[str] = list(self.config['labels'])
 
-        # Dataset resolution
         if self.config['dataset_path'] and os.path.exists(self.config['dataset_path']):
             train_path = os.path.join(self.config['dataset_path'], 'train')
             val_path = os.path.join(self.config['dataset_path'], 'val')
@@ -449,7 +448,6 @@ class TrainingCoordinator:
                                     for line in f:
                                         line = line.strip()
                                         if line:
-                                            # Split comma-separated tags and strip whitespace
                                             parts = [p.strip() for p in line.split(',') if p.strip()]
                                             labels_for_img.extend(parts)
                             except Exception:
@@ -486,7 +484,6 @@ class TrainingCoordinator:
                     train_dataset = MultiLabelFolderDataset(train_path, transform=train_transform)
                     val_dataset = MultiLabelFolderDataset(val_path, transform=val_transform)
             else:
-                # No explicit split; scan and split
                 image_extensions = ['*.jpg', '*.jpeg', '*.png', '*.ppm', '*.bmp', '*.pgm', '*.tif', '*.tiff', '*.webp']
                 all_images: List[str] = []
                 for ext in image_extensions:
@@ -500,7 +497,10 @@ class TrainingCoordinator:
                     class_name = os.path.basename(os.path.dirname(img_path))
                     class_images[class_name].append(img_path)
 
-                min_images = self.settings.get('dataset', {}).get('discovery', {}).get('balance_analysis', {}).get('min_images_per_class', 5)
+                try:
+                    min_images = self.settings['dataset']['discovery']['balance_analysis']['min_images_per_class']
+                except Exception:
+                    raise ValueError("Missing 'dataset.discovery.balance_analysis.min_images_per_class' in config/config.json")
                 valid_classes = {cls: imgs for cls, imgs in class_images.items() if len(imgs) >= min_images}
                 if not valid_classes:
                     raise ValueError("No classes found with sufficient images (minimum 5 images per class)")
@@ -572,8 +572,9 @@ class TrainingCoordinator:
                     base_dataset = MultiLabelDataset(all_image_paths, transform=train_transform)
                     base_dataset_val = MultiLabelDataset(all_image_paths, transform=val_transform)
 
-                # Split for train/val using a single index split applied consistently to both views
-                val_ratio = float(self.config.get('split', {}).get('val_ratio', 0.2))
+                if 'split' not in self.config or 'val_ratio' not in self.config['split']:
+                    raise ValueError("Missing required 'config.split.val_ratio' to split dataset. Ensure 'training.val_ratio' is provided in config/config.json")
+                val_ratio = float(self.config['split']['val_ratio'])
                 total_size = len(base_dataset)
                 train_size = int((1.0 - val_ratio) * total_size)
                 val_size = total_size - train_size
@@ -585,14 +586,23 @@ class TrainingCoordinator:
                 train_dataset = Subset(base_dataset, train_indices)
                 val_dataset = Subset(base_dataset_val, val_indices)
         else:
-            # No dataset available - raise error instead of using dummy data
             raise ValueError(f"No valid dataset found at path: {self.config['dataset_path']}. Please ensure the dataset path is correctly configured and contains image files.")
 
-        # Create data loaders
-        dl_cfg = self.settings.get('training', {}).get('dataloader', {})
+        try:
+            dl_cfg = self.settings['training']['dataloader']
+        except Exception:
+            raise ValueError("Missing 'training.dataloader' in config/config.json")
         nw = int(self.config['dataloader']['num_workers'])
-        prefetch_factor = int(dl_cfg.get('prefetch_factor', 2)) if nw > 0 else None
-        persistent_workers = bool(dl_cfg.get('persistent_workers', False)) if nw > 0 else False
+        if nw > 0:
+            if 'prefetch_factor' not in dl_cfg:
+                raise ValueError("Missing 'training.dataloader.prefetch_factor' in config/config.json")
+            if 'persistent_workers' not in dl_cfg:
+                raise ValueError("Missing 'training.dataloader.persistent_workers' in config/config.json")
+            prefetch_factor = int(dl_cfg['prefetch_factor'])
+            persistent_workers = bool(dl_cfg['persistent_workers'])
+        else:
+            prefetch_factor = None
+            persistent_workers = False
 
         train_loader = DataLoader(
             train_dataset,
@@ -618,17 +628,20 @@ class TrainingCoordinator:
         return train_loader, val_loader
 
     def _prepare_training_components(self, model):
-        """Prepare optimizer, scheduler, and criterion."""
-        training_cfg = self.settings.get('training', {})
+        try:
+            training_cfg = self.settings['training']
+        except Exception:
+            raise ValueError("Missing required 'training' section in config/config.json")
         
-        optimizer_type = training_cfg.get('optimizer_type', 'adamw')
+        if 'optimizer_type' not in training_cfg:
+            raise ValueError("Missing required 'training.optimizer_type' in config/config.json")
+        optimizer_type = training_cfg['optimizer_type']
         optimizer_params_source = training_cfg.get('optimizer_params', {})
         optimizer_params = {}
         if isinstance(optimizer_params_source, dict):
             selected_params = optimizer_params_source.get(optimizer_type, {})
             if isinstance(selected_params, dict):
                 optimizer_params.update(selected_params)
-        # Apply flattened overrides for compatibility
         lr_override = training_cfg.get('optimizer_lr', training_cfg.get('learning_rate'))
         if isinstance(lr_override, (int, float)):
             optimizer_params['lr'] = lr_override
@@ -636,12 +649,16 @@ class TrainingCoordinator:
         if isinstance(weight_decay_override, (int, float)):
             optimizer_params['weight_decay'] = weight_decay_override
 
-        optimizer_config = {
-            'type': optimizer_type,
-            'params': optimizer_params
-        }
+        optimizer_config = None
+        if optimizer_type:
+            optimizer_config = {
+                'type': optimizer_type,
+                'params': optimizer_params
+            }
 
-        scheduler_type = training_cfg.get('scheduler_type', 'step_lr')
+        if 'scheduler_type' not in training_cfg:
+            raise ValueError("Missing required 'training.scheduler_type' in config/config.json")
+        scheduler_type = training_cfg['scheduler_type']
         scheduler_params_source = training_cfg.get('scheduler_params', {})
         scheduler_params = {}
         if isinstance(scheduler_params_source, dict):
@@ -655,12 +672,16 @@ class TrainingCoordinator:
         if isinstance(gamma_override, (int, float)):
             scheduler_params['gamma'] = gamma_override
 
-        scheduler_config = {
-            'type': scheduler_type,
-            'params': scheduler_params
-        }
+        scheduler_config = None
+        if scheduler_type:
+            scheduler_config = {
+                'type': scheduler_type,
+                'params': scheduler_params
+            }
 
-        loss_type = training_cfg.get('loss_type', 'cross_entropy')
+        if 'loss_type' not in training_cfg:
+            raise ValueError("Missing required 'training.loss_type' in config/config.json")
+        loss_type = training_cfg['loss_type']
         loss_params_source = training_cfg.get('loss_params', {})
         loss_params = {}
         if isinstance(loss_params_source, dict):
@@ -671,48 +692,31 @@ class TrainingCoordinator:
         if isinstance(reduction_override, str):
             loss_params['reduction'] = reduction_override
 
-        loss_config = {
-            'type': loss_type,
-            'params': loss_params
-        }
+        loss_config = None
+        if loss_type:
+            loss_config = {'type': loss_type, 'params': loss_params}
         
-        # Optimizer from config, fallback to model defaults
-        try:
-            optimizer = get_optimizer_for_model(
-                model.model if hasattr(model, 'model') else model,
-                optimizer_config=optimizer_config,
-                use_case='computer_vision'
-            )
-        except Exception as ex:
-            warning(f"Optimizer from config failed, falling back: {ex}")
-            optimizer = model.get_optimizer(lr=self.config['learning_rate'])
+        optimizer = get_optimizer_for_model(
+            model.model if hasattr(model, 'model') else model,
+            optimizer_config=optimizer_config,
+            use_case='computer_vision'
+        )
 
-        # Scheduler from config
-        try:
-            scheduler = get_scheduler_for_training(
-                optimizer,
-                scheduler_config=scheduler_config,
-                scenario='standard_training'
-            )
-        except Exception as ex:
-            warning(f"Scheduler from config failed, falling back: {ex}")
-            scheduler = model.get_scheduler(optimizer)
+        scheduler = get_scheduler_for_training(
+            optimizer,
+            scheduler_config=scheduler_config,
+            scenario='standard_training'
+        )
 
-        # Loss from config
-        try:
-            criterion = get_loss_for_task(
-                loss_config=loss_config,
-                task_type=self.config.get('task', 'classification')
-            )
-        except Exception as ex:
-            warning(f"Loss from config failed, falling back: {ex}")
-            criterion = model.get_criterion()
+        criterion = get_loss_for_task(
+            loss_config=loss_config,
+            task_type=self.config['task']
+        )
 
         info("Prepared training components (optimizer, scheduler, criterion)")
         return optimizer, scheduler, criterion
 
     def get_training_summary(self, training_config: Dict[str, Any]) -> Dict[str, Any]:
-        """Get summary of training configuration."""
         return {
             'model_type': self.model_type,
             'model_name': self.model_name,
@@ -728,20 +732,10 @@ class TrainingCoordinator:
 
 
 def create_coordinator(model_type: str = 'resnet', model_name: str = 'resnet50') -> TrainingCoordinator:
-    """Factory function to create training coordinator.
-
-    Args:
-        model_type: Type of model ('resnet', etc.)
-        model_name: Specific model name ('resnet50', etc.)
-
-    Returns:
-        TrainingCoordinator: Configured coordinator instance
-    """
     return TrainingCoordinator(model_type, model_name)
 
 
 def get_supported_models() -> Dict[str, List[str]]:
-    """Get dictionary of supported model types and their variants."""
     from system.models.resnet import get_supported_resnet_variants
 
     return {

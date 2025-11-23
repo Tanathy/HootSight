@@ -3,6 +3,10 @@
 This script defines the project ROOT directory (the directory containing
 run.py) and loads the merged configuration from config.json and config_user.json.
 All modules can access the merged configuration through coordinator_settings.SETTINGS.
+
+CLI-only behavior note: All log and error messages in this file are
+intentionally hard-coded in English per the system requirement that
+command-line flows do not use localization.
 """
 
 
@@ -16,7 +20,7 @@ import json
 import re
 import platform
 
-# Import coordinator settings module (we keep localized lang import below for messages)
+# Import coordinator settings module (used for package metadata/settings)
 from system import coordinator_settings as cs
 
 # Define project root as the directory containing this script
@@ -26,8 +30,6 @@ ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-# Import coordinator_settings which will use our ROOT
-from system.coordinator_settings import lang
 from system.log import info, warning, error, success, progress_context
 
 
@@ -47,29 +49,29 @@ def main() -> None:
 
 	# Helper: path to pip via venv python is venv_python -m pip
 	if not os.path.isdir(venv_dir):
-		info(lang("environment.venv_creating", path=venv_dir))
+		info(f"Creating Python virtual environment at {venv_dir}...")
 		result = subprocess.run([sys.executable, "-m", "venv", venv_dir], capture_output=True, text=True)
 		if result.returncode == 0:
-			success(lang("environment.venv_created"))
+			success("Virtual environment ready.")
 		else:
-			error(lang("environment.venv_create_failed", error=result.stderr or result.stdout))
+			error(f"Virtual environment creation failed: {result.stderr or result.stdout}")
 			error(result.stderr or result.stdout)
 			raise RuntimeError("Virtualenv creation failed")
 		venv_created = True
 	else:
-		info(lang("environment.venv_exists"))
+		info("Virtual environment already present.")
 
 	# --- PyTorch/xFormers auto-install if venv was just created (config-driven) ---
 	if venv_created:
 		import shutil
 
 		# First, upgrade pip in the venv
-		info(lang("environment.pip_upgrading"))
+		info("Upgrading pip inside the virtual environment...")
 		result = subprocess.run([venv_python, "-m", "pip", "install", "--upgrade", "pip"], capture_output=True, text=True)
 		if result.returncode == 0:
-			success(lang("environment.pip_upgraded"))
+			success("Pip upgrade completed.")
 		else:
-			error(lang("environment.pip_upgrade_failed", error=result.stderr or result.stdout))
+			error(f"Pip upgrade failed: {result.stderr or result.stdout}")
 			error(result.stderr or result.stdout)
 			raise RuntimeError("Pip upgrade failed")
 
@@ -81,12 +83,12 @@ def main() -> None:
 			if nvcc:
 				try:
 					out = subprocess.check_output([nvcc, "--version"], encoding="utf-8", errors="ignore")
-					info(lang("environment.cuda_debug_nvcc", output=out))
+					info(f"nvcc --version output:\n{out}")
 					match = re.search(r"release (\d+\.\d+)", out)
 					if match:
 						cuda_version = match.group(1)
 				except Exception as e:
-					warning(lang("environment.cuda_debug_nvcc_error", error=str(e)))
+					warning(f"Failed to query nvcc: {e}")
 					pass
 			# Try nvidia-smi
 			if not cuda_version:
@@ -94,14 +96,14 @@ def main() -> None:
 				if nvsmi:
 					try:
 						out = subprocess.check_output([nvsmi], encoding="utf-8", errors="ignore")
-						info(lang("environment.cuda_debug_nvidia_smi", output=out))
+						info(f"nvidia-smi output:\n{out}")
 						match = re.search(r"CUDA Version: (\d+\.\d+)", out)
 						if match:
 							cuda_version = match.group(1)
 					except Exception as e:
-						warning(lang("environment.cuda_debug_nvidia_smi_error", error=str(e)))
+						warning(f"Failed to query nvidia-smi: {e}")
 						pass
-			info(lang("environment.cuda_debug_detected", version=str(cuda_version)))
+			info(f"Detected CUDA version: {cuda_version}")
 			return cuda_version
 
 		system = platform.system().lower()
@@ -123,12 +125,12 @@ def main() -> None:
 
 		# Always install torch when venv is created
 		if torch_cmd:
-			info(lang("environment.pytorch_install", cuda=cuda_version, platform=system))
+			info(f"Installing PyTorch for CUDA {cuda_version} on {system}...")
 			result = subprocess.run(torch_cmd, shell=False, capture_output=True, text=True)
 			if result.returncode == 0:
-				success(lang("environment.pytorch_installed"))
+				success("PyTorch installation finished.")
 			else:
-				error(lang("environment.pytorch_install_failed", error=result.stderr or result.stdout))
+				error(f"PyTorch installation failed: {result.stderr or result.stdout}")
 				error(result.stderr or result.stdout)
 				raise RuntimeError("PyTorch install failed")
 			# --- Always install xformers matching CUDA/ROCm version ---
@@ -154,21 +156,21 @@ def main() -> None:
 				try:
 					out = subprocess.check_output([venv_python, "-m", "pip", "show", "xformers"], encoding="utf-8", stderr=subprocess.DEVNULL)
 					if out:
-						info(lang("environment.xformers_already_installed"))
+						info("xFormers is already installed and up to date.")
 					else:
 						raise Exception("not installed")
 				except Exception:
-					info(lang("environment.xformers_installing", cuda_version=cuda_version or 'unknown'))
+					info(f"Installing xFormers (CUDA {cuda_version or 'unknown'})...")
 					result = subprocess.run(xformers_cmd, shell=False, capture_output=True, text=True)
 					if result.returncode == 0:
-						success(lang("environment.xformers_installed"))
+						success("xFormers installation finished.")
 					else:
-						error(lang("environment.xformers_install_failed", error=result.stderr or result.stdout))
+						error(f"xFormers installation failed: {result.stderr or result.stdout}")
 						# Don't raise, just warn; user can fix manually if needed
 		else:
-			info(lang("environment.pytorch_skip", cuda=str(cuda_version), platform=system))
+			info(f"Skipping PyTorch install (detected CUDA={cuda_version}, platform={system}).")
 
-	info(lang("environment.config_loading"))
+	info("Loading environment configuration...")
 
 	# Ensure environment packages declared in PACKAGES are present in the venv.
 	def ensure_environment_packages(venv_path: str) -> None:
@@ -179,7 +181,7 @@ def main() -> None:
 		- Reads PACKAGES['environment_packages'] (expects list of pip-style specs, e.g. "pkg==1.2.3").
 		- If PACKAGES['pytorch_cuda_version'] is defined, uses that for PyTorch/xformers installation instead of autodetection.
 		- Uses the venv pip to query installed packages and installs missing ones one-by-one.
-		- Prints localized progress messages via lang().
+		- Emits hard-coded English progress messages for CLI clarity.
 		"""
 		try:
 			cs.reload_packages()
@@ -194,7 +196,7 @@ def main() -> None:
 			pytorch_cuda_version = cs.PACKAGES.get("pytorch_cuda_version")
 
 		if not env_pkgs:
-			info(lang("environment.env_packages_all_installed"))
+			info("Environment packages are already installed.")
 			return
 
 		# Use venv python to run pip commands (python -m pip ...)
@@ -250,16 +252,14 @@ def main() -> None:
 					xformers_index = cuda_index_map.get(pytorch_cuda_version, "https://download.pytorch.org/whl/cu121")
 					xformers_spec = f"{spec} --index-url {xformers_index}"
 					processed_pkgs.append(xformers_spec)
-					info(lang("environment.using_compatible_xformers", cuda_version=pytorch_cuda_version))
+					info(f"Using CUDA index {pytorch_cuda_version} for xFormers.")
 				else:
 					processed_pkgs.append(spec)
 			else:
 				processed_pkgs.append(spec)
 
 		# Use a progress bar while attempting package installs
-		desc_text = lang("environment.env_packages_progress_desc")
-		if desc_text == "environment.env_packages_progress_desc":
-			desc_text = "Installing packages"
+		desc_text = "Installing environment packages"
 		with progress_context(total=len(processed_pkgs), desc=desc_text, unit="pkgs") as pbar:
 			for spec in processed_pkgs:
 				# Support either string specs (can include flags) or list-form [pkg, --flag, ...]
@@ -293,12 +293,12 @@ def main() -> None:
 					pbar.update(1)
 					continue
 
-				info(lang("environment.env_package_installing", package=spec))
+				info(f"Installing environment package {spec}...")
 				result = subprocess.run([venv_python_local, "-m", "pip", "install", *spec_args], shell=False, capture_output=True, text=True)
 				if result.returncode == 0:
-					success(lang("environment.env_package_installed", package=spec))
+					success(f"Environment package installed: {spec}")
 				else:
-					error(lang("environment.env_package_install_failed", package=spec, error=result.stderr or result.stdout))
+					error(f"Failed to install environment package {spec}: {result.stderr or result.stdout}")
 				# Advance progress bar regardless of success/failure
 				pbar.update(1)
 
@@ -415,24 +415,24 @@ def main() -> None:
 			child_env["XFORMERS_IGNORE_FLASH_VERSION_CHECK"] = "1"  # Skip version checks
 
 		if child_env:
-			info(lang("environment.env_vars_configured", count=len(child_env)))
+			info(f"Prepared {len(child_env)} environment variable(s) for the training process.")
 	except Exception as ex:
-		warning(lang("environment.env_vars_config_failed", error=str(ex)))
+		warning(f"Failed to configure environment variables: {ex}")
 
-	success(lang("environment.config_loaded"))
+	success("Environment configuration loaded.")
 
 	# --- Re-exec into venv Python to run system/entry.py, passing the root directory ---
 	entry_py = os.path.join(ROOT, "system", "entry.py")
 	if not os.path.isfile(entry_py):
-		error(lang("environment.entry_not_found", path=entry_py))
+		error(f"Entry script not found at {entry_py}.")
 		return
 	
 	# Validate venv python exists before attempting exec
 	if not os.path.isfile(venv_python):
-		error(lang("environment.venv_python_not_found", path=venv_python))
+		error(f"Virtual environment Python executable missing: {venv_python}.")
 		return
 
-	info(lang("environment.re_exec_starting", venv_python=venv_python, entry_py=entry_py, root=str(ROOT)))
+	info(f"Launching training entry via {venv_python} -> {entry_py} (root {ROOT}).")
 	
 	# Force flush all streams multiple times to ensure output is visible
 	for _ in range(3):
@@ -445,7 +445,7 @@ def main() -> None:
 		# Test that the venv python can at least run --version first
 		test_result = subprocess.run([venv_python, "--version"], capture_output=True, text=True, timeout=5)
 		if test_result.returncode != 0:
-			error(lang("environment.venv_python_test_failed", error=test_result.stderr))
+			error(f"Virtual environment Python failed --version sanity check: {test_result.stderr}")
 			return
 			
 		sys.stdout.flush(); sys.stderr.flush()
@@ -460,13 +460,13 @@ def main() -> None:
 			result = subprocess.run([venv_python, entry_py, str(ROOT)])
 		sys.exit(result.returncode)
 	except subprocess.TimeoutExpired:
-		error(lang("environment.re_exec_timeout"))
+		error("Re-execution timed out.")
 		sys.exit(1)
 	except OSError as e:
-		error(lang("environment.re_exec_failed", error=str(e)))
+		error(f"Failed to launch training process: {e}")
 		sys.exit(1)
 	except Exception as e:
-		error(lang("environment.re_exec_unexpected_error", error=str(e)))
+		error(f"Unexpected error while launching training process: {e}")
 		sys.exit(1)
 
 

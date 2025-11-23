@@ -1,13 +1,3 @@
-"""Heatmap generation utilities (Grad-CAM) for Hootsight.
-
-Provides Grad-CAM computation for classification models (optimized for ResNet)
-and helper functions to pick a representative sample image from a project.
-
-Rules respected:
-- No print/logging module; use system.log
-- Config-driven normalization and input size from SETTINGS
-"""
-
 from __future__ import annotations
 
 import os
@@ -32,12 +22,13 @@ from system.models.resnet import ResNetModel
 
 
 def _get_project_paths(project_name: str) -> Tuple[str, str]:
-    """Resolve dataset and model directory for a project.
-
-    Returns: (dataset_path, model_dir)
-    """
-    # Match dataset_discovery absolute resolution
-    base_rel = SETTINGS.get('paths', {}).get('projects_dir') or SETTINGS.get('paths', {}).get('models_dir', 'projects')
+    try:
+        paths_cfg = SETTINGS['paths']
+    except Exception:
+        raise ValueError("Missing required 'paths' section in config/config.json")
+    base_rel = paths_cfg.get('projects_dir')
+    if base_rel is None:
+        raise ValueError("paths.projects_dir must be defined in config/config.json")
     base_path = os.path.dirname(os.path.dirname(__file__))
     base_projects = os.path.join(base_path, base_rel)
     project_root = os.path.join(base_projects, project_name)
@@ -47,7 +38,13 @@ def _get_project_paths(project_name: str) -> Tuple[str, str]:
 
 
 def _collect_images(folder: str) -> list[str]:
-    exts = SETTINGS.get('dataset', {}).get('image_extensions', ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff', '.webp'])
+    try:
+        dataset_cfg = SETTINGS['dataset']
+    except Exception:
+        raise ValueError("Missing required 'dataset' section in config/config.json")
+    exts = dataset_cfg.get('image_extensions')
+    if not isinstance(exts, list) or not exts:
+        raise ValueError("dataset.image_extensions must be a non-empty list in config/config.json")
     results: list[str] = []
     if not os.path.isdir(folder):
         return results
@@ -59,13 +56,7 @@ def _collect_images(folder: str) -> list[str]:
 
 
 def pick_sample_image(project_name: str, preferred_split: str = 'validation') -> Optional[str]:
-    """Pick an image for visualization: prefer dataset/val, else any under dataset.
-
-    Returns: absolute or relative path string, or None.
-    """
     dataset_path, _model_dir = _get_project_paths(project_name)
-    # Prefer validation subfolder when present and non-empty
-    # Try common validation folder names first (deduplicated, preserve order)
     raw_splits = [preferred_split, 'validation', 'val']
     seen = set()
     split_candidates = [s for s in raw_splits if not (s in seen or seen.add(s))]
@@ -84,20 +75,21 @@ def pick_sample_image(project_name: str, preferred_split: str = 'validation') ->
 
 
 def _build_preprocess() -> transforms.Compose:
-    """Build preprocessing pipeline from SETTINGS."""
-    tr_cfg = SETTINGS.get('training', {})
-    # Support nested training.input.image_size or flat training.input_size
+    try:
+        tr_cfg = SETTINGS['training']
+    except Exception:
+        raise ValueError("Missing required 'training' section in config/config.json")
     input_block = tr_cfg.get('input', {}) if isinstance(tr_cfg.get('input'), dict) else {}
-    size = input_block.get('image_size', tr_cfg.get('input_size', 224))
+    size = input_block.get('image_size', tr_cfg.get('input_size'))
+    if size is None:
+        raise ValueError("training.input_size or training.input.image_size must be provided in config/config.json")
     size = int(size)
-    norm = input_block.get('normalize', tr_cfg.get('normalize', {
-        'mean': [0.485, 0.456, 0.406],
-        'std': [0.229, 0.224, 0.225]
-    }))
+    norm = input_block.get('normalize', tr_cfg.get('normalize'))
+    if not isinstance(norm, dict):
+        raise ValueError("training.normalize must be provided in config/config.json")
     mean = norm.get('mean', [0.485, 0.456, 0.406])
     std = norm.get('std', [0.229, 0.224, 0.225])
 
-    # Standard eval-time transforms
     return transforms.Compose([
         transforms.Resize(max(size + 32, size)),
         transforms.CenterCrop(size),
@@ -107,11 +99,6 @@ def _build_preprocess() -> transforms.Compose:
 
 
 def _create_model_from_checkpoint(checkpoint_path: str, map_location: Optional[str] = None):
-    """Create and load model from checkpoint, supporting all model types.
-
-    Returns: (model_wrapper, checkpoint_path)
-    Raises FileNotFoundError if checkpoint missing.
-    """
     if not os.path.isfile(checkpoint_path):
         raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
 
@@ -120,10 +107,8 @@ def _create_model_from_checkpoint(checkpoint_path: str, map_location: Optional[s
     model_name = checkpoint.get('model_name', 'resnet50')
     num_classes = int(checkpoint.get('num_classes', 1000))
 
-    # Infer model type from model_name
     model_type = _infer_model_type(model_name)
 
-    # Create model based on type
     if model_type == 'resnet':
         from system.models.resnet import create_resnet_model
         wrapper = create_resnet_model(model_name=model_name, num_classes=num_classes, pretrained=False, task='classification')
@@ -143,7 +128,6 @@ def _create_model_from_checkpoint(checkpoint_path: str, map_location: Optional[s
         from system.models.efficientnet import create_efficientnet_model
         wrapper = create_efficientnet_model(model_name=model_name, num_classes=num_classes, pretrained=False, task='classification')
     else:
-        # Fallback to ResNet
         warning(f"Unknown model type for {model_name}, falling back to ResNet")
         from system.models.resnet import create_resnet_model
         wrapper = create_resnet_model(model_name='resnet50', num_classes=num_classes, pretrained=False, task='classification')
@@ -154,7 +138,6 @@ def _create_model_from_checkpoint(checkpoint_path: str, map_location: Optional[s
 
 
 def _infer_model_type(model_name: str) -> str:
-    """Infer model type from model name."""
     model_name_lower = model_name.lower()
     if model_name_lower.startswith('resnext'):
         return 'resnext'
@@ -173,16 +156,16 @@ def _infer_model_type(model_name: str) -> str:
 
 
 def _load_model_from_checkpoint(project_name: str, map_location: Optional[str] = None):
-    """Load the best model checkpoint for a project (supports all model types).
-
-    Returns: (model_wrapper, checkpoint_path)
-    Raises FileNotFoundError if checkpoint missing.
-    """
     _dataset_path, model_dir = _get_project_paths(project_name)
-    best_name = SETTINGS.get('training', {}).get('checkpoint', {}).get('best_model_filename', 'best_model.pth')
+    try:
+        checkpoint_cfg = SETTINGS['training']['checkpoint']
+    except Exception:
+        raise ValueError("Missing required 'training.checkpoint' section in config/config.json")
+    best_name = checkpoint_cfg.get('best_model_filename')
+    if not best_name:
+        raise ValueError("training.checkpoint.best_model_filename must be defined in config/config.json")
     ckpt_path = os.path.join(model_dir, best_name)
     if not os.path.isfile(ckpt_path):
-        # Fallback to any .pth in model_dir
         if os.path.isdir(model_dir):
             for f in sorted(os.listdir(model_dir)):
                 if f.lower().endswith('.pth'):
@@ -195,8 +178,6 @@ def _load_model_from_checkpoint(project_name: str, map_location: Optional[str] =
 
 
 def _find_target_layer(module: nn.Module) -> nn.Module:
-    """Find a good last conv layer for Grad-CAM. Optimized for torchvision ResNet."""
-    # Prefer ResNet's layer4 last conv
     try:
         layer4 = getattr(module, 'layer4', None)
         if layer4 is not None and hasattr(layer4, '__getitem__'):
@@ -208,7 +189,6 @@ def _find_target_layer(module: nn.Module) -> nn.Module:
     except Exception:
         pass
 
-    # Fallback: last Conv2d in the network
     target = None
     for m in module.modules():
         if isinstance(m, nn.Conv2d):
@@ -220,7 +200,6 @@ def _find_target_layer(module: nn.Module) -> nn.Module:
 
 @torch.no_grad()
 def predict(model: nn.Module, x: torch.Tensor) -> Tuple[int, torch.Tensor]:
-    """Forward pass to get predicted class index and logits."""
     device = next(model.parameters()).device
     x = x.to(device)
     logits = model(x)
@@ -232,17 +211,12 @@ def predict(model: nn.Module, x: torch.Tensor) -> Tuple[int, torch.Tensor]:
 
 def compute_gradcam(model: nn.Module, x: torch.Tensor, target_class: Optional[int] = None,
                     target_layer: Optional[nn.Module] = None) -> torch.Tensor:
-    """Compute Grad-CAM heatmap for a single image tensor (NCHW, N=1).
-
-    Returns heatmap as tensor in [0,1] with shape (H, W).
-    """
     assert x.ndim == 4 and x.size(0) == 1, "Grad-CAM expects a single image (N=1)"
 
     model.eval()
     device = next(model.parameters()).device
     x = x.to(device)
 
-    # Find target layer if not provided
     layer = target_layer or _find_target_layer(model)
 
     activations: list[torch.Tensor] = []
@@ -255,106 +229,78 @@ def compute_gradcam(model: nn.Module, x: torch.Tensor, target_class: Optional[in
         gradients.append(grad_out[0].detach())
 
     h1 = layer.register_forward_hook(fwd_hook)
-    h2 = layer.register_full_backward_hook(bwd_hook)  # full to be safe with newer PyTorch
+    h2 = layer.register_full_backward_hook(bwd_hook)
 
-    # Forward
     logits = model(x)
     if isinstance(logits, (list, tuple)):
         logits = logits[0]
     if target_class is None:
         target_class = int(torch.argmax(logits, dim=1).item())
 
-    # Backward for target class
     one_hot = torch.zeros_like(logits)
     one_hot[0, target_class] = 1.0
 
     model.zero_grad(set_to_none=True)
     (logits * one_hot).sum().backward()
 
-    # Get captured tensors
-    act = activations[-1]  # [N, C, H, W]
-    grad = gradients[-1]   # [N, C, H, W]
+    act = activations[-1]
+    grad = gradients[-1]
 
-    # Global average pool gradients to obtain channel weights
-    weights = grad.mean(dim=(2, 3), keepdim=True)  # [N, C, 1, 1]
-    cam = (weights * act).sum(dim=1, keepdim=False)  # [N, H, W]
+    weights = grad.mean(dim=(2, 3), keepdim=True)
+    cam = (weights * act).sum(dim=1, keepdim=False)
     cam = F.relu(cam)
 
-    # Normalize to [0,1]
     cam_min = cam.min(dim=1, keepdim=False)[0].min(dim=1, keepdim=False)[0]
     cam_max = cam.max(dim=1, keepdim=False)[0].max(dim=1, keepdim=False)[0]
     cam = (cam - cam_min[:, None, None]) / (cam_max[:, None, None] - cam_min[:, None, None] + 1e-8)
 
-    # Clean hooks
     h1.remove(); h2.remove()
     return cam[0].detach().cpu()
 
 
 def overlay_heatmap_on_image(heatmap: torch.Tensor, image_rgb: Image.Image, alpha: float = 0.5) -> Image.Image:
-    """
-    Overlay the heatmap on the original image using OpenCV with JET colormap.
-    """
-    # Get image dimensions
     W, H = image_rgb.size
 
-    # Convert heatmap to numpy and resize
     heat_np = heatmap.numpy()
     heat_resized = cv2.resize(heat_np, (W, H))
 
-    # Normalize to 0-255
     heat_resized = (heat_resized * 255).astype(np.uint8)
 
-    # Apply JET colormap
     heatmap_colored = cv2.applyColorMap(heat_resized, cv2.COLORMAP_JET)
     heatmap_colored = cv2.cvtColor(heatmap_colored, cv2.COLOR_BGR2RGB)
 
-    # Convert original image to numpy
     original_np = np.array(image_rgb)
 
-    # Overlay with alpha
     output = cv2.addWeighted(original_np, 1 - alpha, heatmap_colored, alpha, 0)
 
-    # Convert back to PIL
     return Image.fromarray(output)
 
 
 def generate_project_heatmap(project_name: str, image_path: Optional[str] = None,
                              target_class: Optional[int] = None, alpha: float = 0.5) -> Tuple[bytes, dict]:
-    """Generate a Grad-CAM overlay PNG for a project.
-
-    Returns: (png_bytes, meta)
-    meta includes: {"project": ..., "image_path": ..., "predicted_class": int, "checkpoint": path}
-    """
-    # Validate project
     proj = get_project_info(project_name)
     if not proj or not proj.has_dataset:
         raise FileNotFoundError(lang("heatmap.project_or_dataset_missing", project=project_name))
 
-    # Choose image
     if not image_path:
         image_path = pick_sample_image(project_name)
     if not image_path or not os.path.isfile(image_path):
         raise FileNotFoundError("No valid image found for heatmap generation")
 
-    # Load image
     pil_img = Image.open(image_path).convert('RGB')
     preprocess = _build_preprocess()
-    x = cast(torch.Tensor, preprocess(pil_img)).unsqueeze(0)  # [1,3,H,W]
+    x = cast(torch.Tensor, preprocess(pil_img)).unsqueeze(0)
 
-    # Load model
     wrapper, ckpt_path = _load_model_from_checkpoint(project_name)
 
-    # Predict to get target class if not specified (no_grad for speed, separate from Grad-CAM pass)
     with torch.no_grad():
         pred_class, _ = predict(wrapper.model, x.clone())
 
     tclass = pred_class if target_class is None else int(target_class)
 
-    # Compute Grad-CAM (requires grad)
     x_grad = x.clone().requires_grad_(True)
     heat = compute_gradcam(wrapper.model, x_grad, target_class=tclass, target_layer=None)
 
-    # Build overlay
     overlay = overlay_heatmap_on_image(heat, pil_img, alpha=alpha)
     buf = io.BytesIO()
     overlay.save(buf, format='PNG')
@@ -373,48 +319,36 @@ def generate_project_heatmap(project_name: str, image_path: Optional[str] = None
 
 def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
                           checkpoint_path: Optional[str] = None) -> dict:
-    """Evaluate a project with heatmap generation.
-
-    Picks a random image from validation/dataset, loads model from checkpoint,
-    generates prediction and Grad-CAM heatmap, returns JSON with base64 heatmap and predictions.
-
-    Returns: {"heatmap": base64_str, "predictions": {"class": int, "logits": list}, "image_path": str, "checkpoint": str}
-    """
-    # Validate project
     proj = get_project_info(project_name)
     if not proj or not proj.has_dataset:
         raise FileNotFoundError(lang("heatmap.project_or_dataset_missing", project=project_name))
 
-    # Choose image
     if not image_path:
         image_path = pick_sample_image(project_name)
     if not image_path or not os.path.isfile(image_path):
         raise FileNotFoundError("No valid image found for evaluation")
 
-    # Load image
     pil_img = Image.open(image_path).convert('RGB')
     preprocess = _build_preprocess()
-    x = cast(torch.Tensor, preprocess(pil_img)).unsqueeze(0)  # [1,3,H,W]
+    x = cast(torch.Tensor, preprocess(pil_img)).unsqueeze(0)
 
-    # Load model
     if checkpoint_path:
-        # Custom checkpoint
         wrapper, ckpt_path = _create_model_from_checkpoint(checkpoint_path)
     else:
-        # Use best model
         wrapper, ckpt_path = _load_model_from_checkpoint(project_name)
 
-    # Predict
     with torch.no_grad():
         pred_class, logits = predict(wrapper.model, x.clone())
 
-    # Get task and labels
-    task = SETTINGS.get('training', {}).get('task', 'classification')
+    try:
+        task = SETTINGS['training']['task']
+    except Exception:
+        raise ValueError("Missing required 'training.task' in config/config.json")
+    if not task:
+        raise ValueError("training.task must be defined in config/config.json")
     labels = proj.labels
 
-    # Compute predicted classes and confidences
     if task == 'multi_label':
-        # Multi-label case
         probabilities = torch.sigmoid(logits)
         threshold = 0.65
         predictions = (probabilities > threshold).float()
@@ -422,37 +356,31 @@ def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
         class_names = [labels[idx] for idx in predicted_classes if idx < len(labels)]
         confidence_values = [probabilities[0, idx].item() for idx in predicted_classes if idx < len(labels)]
     else:
-        # Single-label case
         probabilities = F.softmax(logits, dim=1)[0]
         high_conf_mask = probabilities > 0.65
         predicted_indices = torch.nonzero(high_conf_mask).flatten().tolist()
         class_names = [labels[idx] for idx in predicted_indices if idx < len(labels)]
         confidence_values = [probabilities[idx].item() for idx in predicted_indices]
 
-    # Compute Grad-CAM
     x_grad = x.clone().requires_grad_(True)
     heat = compute_gradcam(wrapper.model, x_grad, target_class=pred_class, target_layer=None)
 
-    # Build overlay
     overlay = overlay_heatmap_on_image(heat, pil_img, alpha=0.5)
     buf = io.BytesIO()
     overlay.save(buf, format='PNG')
     png_data = buf.getvalue()
 
-    # Save to project's heatmaps folder
     heatmaps_dir = os.path.join(_get_project_paths(project_name)[1], '..', 'heatmaps')
     os.makedirs(heatmaps_dir, exist_ok=True)
-    timestamp = int(time.time() * 1000)  # milliseconds
+    timestamp = int(time.time() * 1000)
     heatmap_filename = f"heatmap_{timestamp}.png"
     heatmap_path = os.path.join(heatmaps_dir, heatmap_filename)
     with open(heatmap_path, 'wb') as f:
         f.write(png_data)
     info(f"Heatmap saved to {heatmap_path}")
 
-    # Encode to base64
     heatmap_b64 = base64.b64encode(png_data).decode('utf-8')
 
-    # Prepare predictions
     predictions = {
         "predicted_classes": class_names,
         "confidence_values": confidence_values

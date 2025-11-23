@@ -8,19 +8,29 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 import requests
 
 from system.log import error, info, success, warning
-from system.coordinator_settings import lang
+from system.coordinator_settings import lang, SETTINGS
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-REMOTE_BASE_URL = "https://raw.githubusercontent.com/Tanathy/HootSight/refs/heads/main/"
 REMOTE_CONFIG_PATH = "config/config.json"
 LOCAL_CHECKSUM_PATH = os.path.join(ROOT_DIR, "config", "checksum.json")
-HTTP_TIMEOUT = 20
-SKIP_PATHS: Set[str] = {"config/config.json"}
 DEFAULT_HEADERS = {"User-Agent": "Hootsight-Updater/1.0"}
 
 
+def _get_http_timeout() -> int:
+    return SETTINGS['system']['http_timeout']
+
+
+def _get_remote_base_url() -> str:
+    return SETTINGS['system']['update_repository_url']
+
+
+def _get_skip_paths() -> Set[str]:
+    paths = SETTINGS['system']['update_skip_paths']
+    return set(paths) if isinstance(paths, list) else {"config/config.json"}
+
+
 class UpdateError(RuntimeError):
-    """Raised when the update subsystem encounters an unrecoverable error."""
+    pass
 
 
 def _normalize_path(path: str) -> str:
@@ -31,7 +41,7 @@ def _safe_join(path: str) -> str:
     normalized = _normalize_path(path)
     full_path = os.path.abspath(os.path.join(ROOT_DIR, normalized))
     if not full_path.startswith(ROOT_DIR):
-        raise UpdateError(lang("updates.log.path_escape", path=normalized))
+        raise UpdateError(f"Unsafe path detected: {normalized}")
     return full_path
 
 
@@ -40,14 +50,14 @@ def _load_local_checksums() -> Dict[str, str]:
         with open(LOCAL_CHECKSUM_PATH, "r", encoding="utf-8") as handle:
             data = json.load(handle)
         if not isinstance(data, dict):
-            raise UpdateError(lang("updates.log.local_checksum_invalid", error="not a mapping"))
+            raise UpdateError("Local checksum file is not a valid mapping")
         cleaned = {_normalize_path(key): str(value) for key, value in data.items()}
         return cleaned
     except FileNotFoundError:
-        warning(lang("updates.log.local_checksum_missing"))
+        warning("Local checksum file missing; assuming empty manifest.")
         return {}
     except json.JSONDecodeError as exc:
-        raise UpdateError(lang("updates.log.local_checksum_invalid", error=str(exc))) from exc
+        raise UpdateError(f"Local checksum file is invalid: {exc}") from exc
 
 
 def _write_local_checksums(entries: Dict[str, str]) -> None:
@@ -58,10 +68,10 @@ def _write_local_checksums(entries: Dict[str, str]) -> None:
 
 def _http_get(url: str) -> bytes:
     try:
-        response = requests.get(url, headers=DEFAULT_HEADERS, timeout=HTTP_TIMEOUT)
+        response = requests.get(url, headers=DEFAULT_HEADERS, timeout=_get_http_timeout())
         response.raise_for_status()
         return response.content
-    except requests.RequestException as exc:  # noqa: BLE001 - surface full context
+    except requests.RequestException as exc:
         raise UpdateError(str(exc)) from exc
 
 
@@ -69,34 +79,34 @@ def _http_get_json(url: str) -> Dict[str, Any]:
     payload = _http_get(url)
     try:
         data = json.loads(payload.decode("utf-8"))
-    except json.JSONDecodeError as exc:  # noqa: BLE001
+    except json.JSONDecodeError as exc:
         raise UpdateError(str(exc)) from exc
     if not isinstance(data, dict):
-        raise UpdateError(lang("updates.log.remote_payload_invalid", url=url))
+        raise UpdateError(f"Remote payload is not a valid mapping: {url}")
     return data
 
 
 def _fetch_remote_config() -> Dict[str, Any]:
-    url = f"{REMOTE_BASE_URL}{REMOTE_CONFIG_PATH}"
+    url = f"{_get_remote_base_url()}{REMOTE_CONFIG_PATH}"
     try:
         return _http_get_json(url)
     except UpdateError as exc:
-        raise UpdateError(lang("updates.log.remote_config_failed", error=str(exc))) from exc
+        raise UpdateError(f"Failed to fetch remote config: {exc}") from exc
 
 
 def _resolve_remote_checksum_path(remote_config: Dict[str, Any]) -> str:
-    config_dir = remote_config.get("paths", {}).get("config_dir", "config")
+    config_dir = remote_config['paths']['config_dir']
     checksum_rel = _normalize_path(f"{config_dir.rstrip('/')}/checksum.json")
     return checksum_rel
 
 
 def _fetch_remote_manifest(remote_config: Dict[str, Any]) -> Tuple[Dict[str, str], str]:
     checksum_rel = _resolve_remote_checksum_path(remote_config)
-    checksum_url = f"{REMOTE_BASE_URL}{checksum_rel}"
+    checksum_url = f"{_get_remote_base_url()}{checksum_rel}"
     try:
         payload = _http_get_json(checksum_url)
     except UpdateError as exc:
-        raise UpdateError(lang("updates.log.remote_checksum_failed", error=str(exc))) from exc
+        raise UpdateError(f"Failed to fetch remote manifest: {exc}") from exc
 
     manifest: Dict[str, str] = {}
     for key, value in payload.items():
@@ -112,14 +122,15 @@ def _build_plan(
     remote_manifest, checksum_url = _fetch_remote_manifest(remote_config)
     local_manifest = _load_local_checksums()
 
-    skip_set = {_normalize_path(item) for item in SKIP_PATHS}
+    skip_set = _get_skip_paths()
+    normalized_skip_set = {_normalize_path(item) for item in skip_set}
     normalized_selection: Optional[Set[str]] = None
     if selected_paths is not None:
         normalized_selection = {_normalize_path(path) for path in selected_paths}
 
     plan_entries: List[Dict[str, Any]] = []
     for path, remote_hash in remote_manifest.items():
-        if path in skip_set:
+        if path in normalized_skip_set:
             continue
         if normalized_selection is not None and path not in normalized_selection:
             continue
@@ -137,7 +148,7 @@ def _build_plan(
             }
         )
 
-    orphaned = sorted(path for path in local_manifest.keys() if path not in remote_manifest and path not in skip_set)
+    orphaned = sorted(path for path in local_manifest.keys() if path not in remote_manifest and path not in normalized_skip_set)
     missing_targets: List[str] = []
     if normalized_selection is not None:
         missing_targets = sorted(path for path in normalized_selection if path not in remote_manifest)
@@ -154,7 +165,7 @@ def _build_plan(
 
 
 def check_for_updates(selected_paths: Optional[Iterable[str]] = None) -> Dict[str, Any]:
-    info(lang("updates.log.check_started"))
+    info("Starting update check...")
     timestamp = datetime.utcnow().isoformat() + "Z"
 
     try:
@@ -168,7 +179,7 @@ def check_for_updates(selected_paths: Optional[Iterable[str]] = None) -> Dict[st
             checksum_url,
         ) = _build_plan(selected_paths)
     except UpdateError as exc:
-        error(lang("updates.log.check_failed", error=str(exc)))
+        error(f"Update check failed: {exc}")
         return {
             "status": "error",
             "message": lang("updates.api.check_failed", error=str(exc)),
@@ -176,7 +187,7 @@ def check_for_updates(selected_paths: Optional[Iterable[str]] = None) -> Dict[st
         }
 
     count = len(entries)
-    info(lang("updates.log.check_complete", count=count))
+    info(f"Update check complete: {count} file(s) to update.")
 
     if count:
         message = lang("updates.api.check_success", count=count)
@@ -190,10 +201,10 @@ def check_for_updates(selected_paths: Optional[Iterable[str]] = None) -> Dict[st
         "files": entries,
         "orphaned": orphaned,
         "missing_targets": missing_targets,
-        "skipped": sorted(SKIP_PATHS),
+        "skipped": sorted(_get_skip_paths()),
         "reference": {
-            "base_url": REMOTE_BASE_URL,
-            "config_url": f"{REMOTE_BASE_URL}{REMOTE_CONFIG_PATH}",
+            "base_url": _get_remote_base_url(),
+            "config_url": f"{_get_remote_base_url()}{REMOTE_CONFIG_PATH}",
             "checksum_url": checksum_url,
         },
         "checked_at": timestamp,
@@ -204,7 +215,7 @@ def check_for_updates(selected_paths: Optional[Iterable[str]] = None) -> Dict[st
 
 
 def _download_and_store(path: str, remote_manifest: Dict[str, str], local_manifest: Dict[str, str]) -> None:
-    url = f"{REMOTE_BASE_URL}{path}"
+    url = f"{_get_remote_base_url()}{path}"
     payload = _http_get(url)
     target_path = _safe_join(path)
     os.makedirs(os.path.dirname(target_path), exist_ok=True)
@@ -214,7 +225,7 @@ def _download_and_store(path: str, remote_manifest: Dict[str, str], local_manife
 
 
 def apply_updates(selected_paths: Optional[Iterable[str]] = None) -> Dict[str, Any]:
-    info(lang("updates.log.apply_started"))
+    info("Starting update apply...")
     timestamp = datetime.utcnow().isoformat() + "Z"
 
     try:
@@ -228,7 +239,7 @@ def apply_updates(selected_paths: Optional[Iterable[str]] = None) -> Dict[str, A
             checksum_url,
         ) = _build_plan(selected_paths)
     except UpdateError as exc:
-        error(lang("updates.log.apply_failed", error=str(exc)))
+        error(f"Update plan failed: {exc}")
         return {
             "status": "error",
             "message": lang("updates.api.apply_failed", error=str(exc)),
@@ -236,7 +247,7 @@ def apply_updates(selected_paths: Optional[Iterable[str]] = None) -> Dict[str, A
         }
 
     if not entries:
-        info(lang("updates.log.apply_nothing"))
+        info("No updates to apply.")
         return {
             "status": "noop",
             "message": lang("updates.api.apply_nothing"),
@@ -244,10 +255,10 @@ def apply_updates(selected_paths: Optional[Iterable[str]] = None) -> Dict[str, A
             "failed": [],
             "orphaned": orphaned,
             "missing_targets": missing_targets,
-            "skipped": sorted(SKIP_PATHS),
+            "skipped": sorted(_get_skip_paths()),
             "reference": {
-                "base_url": REMOTE_BASE_URL,
-                "config_url": f"{REMOTE_BASE_URL}{REMOTE_CONFIG_PATH}",
+                "base_url": _get_remote_base_url(),
+                "config_url": f"{_get_remote_base_url()}{REMOTE_CONFIG_PATH}",
                 "checksum_url": checksum_url,
             },
             "checked_at": timestamp,
@@ -261,23 +272,23 @@ def apply_updates(selected_paths: Optional[Iterable[str]] = None) -> Dict[str, A
         try:
             _download_and_store(path, remote_manifest, local_manifest)
             updated.append(path)
-            success(lang("updates.log.apply_file_success", path=path))
+            success(f"Updated: {path}")
         except UpdateError as exc:
             failed.append({"path": path, "error": str(exc)})
-            error(lang("updates.log.apply_file_failed", path=path, error=str(exc)))
+            error(f"Failed to update {path}: {exc}")
         except OSError as exc:
             failed.append({"path": path, "error": str(exc)})
-            error(lang("updates.log.apply_file_failed", path=path, error=str(exc)))
+            error(f"Failed to update {path}: {exc}")
 
     if updated:
         _write_local_checksums(local_manifest)
 
     if failed:
-        warning(lang("updates.log.apply_partial", updated=len(updated), failed=len(failed)))
+        warning(f"Partial update completed: {len(updated)} updated, {len(failed)} failed.")
         status = "partial"
         message = lang("updates.api.apply_partial", updated=len(updated), failed=len(failed))
     else:
-        success(lang("updates.log.apply_complete", count=len(updated)))
+        success(f"Update complete: {len(updated)} file(s) updated.")
         status = "success"
         message = lang("updates.api.apply_success", updated=len(updated))
 
@@ -288,10 +299,10 @@ def apply_updates(selected_paths: Optional[Iterable[str]] = None) -> Dict[str, A
         "failed": failed,
         "orphaned": orphaned,
         "missing_targets": missing_targets,
-        "skipped": sorted(SKIP_PATHS),
+        "skipped": sorted(_get_skip_paths()),
         "reference": {
-            "base_url": REMOTE_BASE_URL,
-            "config_url": f"{REMOTE_BASE_URL}{REMOTE_CONFIG_PATH}",
+            "base_url": _get_remote_base_url(),
+            "config_url": f"{_get_remote_base_url()}{REMOTE_CONFIG_PATH}",
             "checksum_url": checksum_url,
         },
         "checked_at": timestamp,

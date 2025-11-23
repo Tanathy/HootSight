@@ -35,9 +35,13 @@ class ResNetModel:
         self.task = task
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        # Runtime performance settings
-        self.use_amp = SETTINGS.get('training.runtime.mixed_precision', True)
-        self.channels_last = SETTINGS.get('training.runtime.channels_last', True)
+        # Runtime performance settings - require presence in config
+        try:
+            runtime_cfg = SETTINGS['training']['runtime']
+        except Exception:
+            raise ValueError("Missing required 'training.runtime' configuration in config/config.json")
+        self.use_amp = bool(runtime_cfg['mixed_precision'])
+        self.channels_last = bool(runtime_cfg['channels_last'])
         self._scaler = torch.cuda.amp.GradScaler() if self.use_amp and self.device.type == 'cuda' else None
 
         # Initialize model
@@ -118,7 +122,10 @@ class ResNetModel:
     def get_optimizer(self, lr: float = 0.001, weight_decay: float = 1e-4) -> optim.Optimizer:
         """Get AdamW optimizer configured for ResNet."""
         # Try to get from config first
-        training_config = SETTINGS.get('training', {})
+        try:
+            training_config = SETTINGS['training']
+        except Exception:
+            raise ValueError("Missing required 'training' section in config/config.json")
         optimizer_config = training_config.get('optimizer', {})
         if optimizer_config.get('type') == 'adamw':
             params = optimizer_config.get('params', {})
@@ -130,7 +137,10 @@ class ResNetModel:
     def get_scheduler(self, optimizer: optim.Optimizer, step_size: int = 7, gamma: float = 0.1) -> optim.lr_scheduler.StepLR:
         """Get StepLR scheduler configured for ResNet."""
         # Try to get from config first
-        training_config = SETTINGS.get('training', {})
+        try:
+            training_config = SETTINGS['training']
+        except Exception:
+            raise ValueError("Missing required 'training' section in config/config.json")
         scheduler_config = training_config.get('scheduler', {})
         if scheduler_config.get('type') == 'step_lr':
             params = scheduler_config.get('params', {})
@@ -648,21 +658,11 @@ def get_resnet_config(model_name: str) -> Dict[str, Any]:
     Returns:
         dict: Default configuration
     """
-    # Get from config first
-    models_config = SETTINGS.get('models', {}).get('resnet', {}).get('variants', {})
+    # Get variants from config - no baked-in fallback
+    try:
+        models_config = SETTINGS['models']['resnet']['variants']
+    except Exception:
+        raise ValueError("Missing required 'models.resnet.variants' config in config/config.json")
     if model_name in models_config:
         return models_config[model_name]
-    
-    # Fallback to hardcoded values
-    configs = {
-        'resnet18': {'params': 11.7e6, 'recommended_batch_size': 64},
-        'resnet34': {'params': 21.8e6, 'recommended_batch_size': 32},
-        'resnet50': {'params': 25.6e6, 'recommended_batch_size': 32},
-        'resnet101': {'params': 44.5e6, 'recommended_batch_size': 16},
-        'resnet152': {'params': 60.2e6, 'recommended_batch_size': 8}
-    }
-
-    if model_name not in configs:
-        raise ValueError(f"Unsupported ResNet variant: {model_name}")
-
-    return configs[model_name]
+    raise ValueError(f"Unsupported ResNet variant (not found in config): {model_name}")

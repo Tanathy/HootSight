@@ -35,9 +35,13 @@ class MobileNetModel:
         self.task = task
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        # Runtime performance settings
-        self.use_amp = SETTINGS.get('training.runtime.mixed_precision', True)
-        self.channels_last = SETTINGS.get('training.runtime.channels_last', True)
+        # Runtime performance settings - require presence in config
+        try:
+            runtime_cfg = SETTINGS['training']['runtime']
+        except Exception:
+            raise ValueError("Missing required 'training.runtime' configuration in config/config.json")
+        self.use_amp = bool(runtime_cfg['mixed_precision'])
+        self.channels_last = bool(runtime_cfg['channels_last'])
         self._scaler = torch.cuda.amp.GradScaler() if self.use_amp and self.device.type == 'cuda' else None
 
         # Initialize model
@@ -80,7 +84,10 @@ class MobileNetModel:
     def get_optimizer(self, lr: float = 0.001, weight_decay: float = 1e-4) -> optim.Optimizer:
         """Get AdamW optimizer configured for MobileNet."""
         # Try to get from config first
-        training_config = SETTINGS.get('training', {})
+        try:
+            training_config = SETTINGS['training']
+        except Exception:
+            raise ValueError("Missing required 'training' section in config/config.json")
         optimizer_config = training_config.get('optimizer', {})
         if optimizer_config.get('type') == 'adamw':
             params = optimizer_config.get('params', {})
@@ -92,7 +99,10 @@ class MobileNetModel:
     def get_scheduler(self, optimizer: optim.Optimizer, step_size: int = 7, gamma: float = 0.1) -> optim.lr_scheduler.StepLR:
         """Get StepLR scheduler configured for MobileNet."""
         # Try to get from config first
-        training_config = SETTINGS.get('training', {})
+        try:
+            training_config = SETTINGS['training']
+        except Exception:
+            raise ValueError("Missing required 'training' section in config/config.json")
         scheduler_config = training_config.get('scheduler', {})
         if scheduler_config.get('type') == 'step_lr':
             params = scheduler_config.get('params', {})
@@ -363,18 +373,17 @@ def get_mobilenet_config(model_name: str) -> Dict[str, Any]:
         dict: Default configuration
     """
     # Get from config first
-    models_config = SETTINGS.get('models', {}).get('mobilenet', {}).get('variants', {})
+    try:
+        models_config = SETTINGS['models']['mobilenet']['variants']
+    except Exception:
+        raise ValueError("Missing required 'models.mobilenet.variants' in config/config.json")
     if model_name in models_config:
         return models_config[model_name]
-    
-    # Fallback to hardcoded values
+    # No baked-in fallback; require config to contain the variant
     configs = {
         'mobilenet_v2': {'params': 3.5e6, 'recommended_batch_size': 128},
         'mobilenet_v3_large': {'params': 5.5e6, 'recommended_batch_size': 128},
         'mobilenet_v3_small': {'params': 2.5e6, 'recommended_batch_size': 128}
     }
 
-    if model_name not in configs:
-        raise ValueError(f"Unsupported MobileNet variant: {model_name}")
-
-    return configs[model_name]
+    raise ValueError(f"Unsupported MobileNet variant (not found in config): {model_name}")

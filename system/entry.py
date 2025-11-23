@@ -1,7 +1,3 @@
-"""Entry point for Hootsight system.
-
-Starts FastAPI server in background thread and opens UI in pywebview window.
-"""
 import sys
 import os
 import threading
@@ -9,7 +5,6 @@ import time
 import socket
 import uvicorn
 
-# Add project root to Python path
 project_root = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, project_root)
 
@@ -20,7 +15,6 @@ from system.coordinator_settings import SETTINGS
 
 
 def is_port_in_use(host: str, port: int) -> bool:
-    """Check if a port is already in use."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         try:
             sock.bind((host, port))
@@ -30,7 +24,6 @@ def is_port_in_use(host: str, port: int) -> bool:
 
 
 def start_api_server():
-    """Start FastAPI server in background thread."""
     config = SETTINGS.get("api", {})
     host = config.get("host", "127.0.0.1")
     port = config.get("port", 8000)
@@ -46,7 +39,6 @@ def start_api_server():
 
 
 def main():
-    """Main entry point."""
     info("Starting Hootsight system")
     
     # Start API server in background
