@@ -4,7 +4,7 @@ from typing import Dict, Any, Type, List, Optional, Union
 from torch.nn import Module
 
 from system.log import info, warning, error
-from system.coordinator_settings import SETTINGS, lang
+from system.coordinator_settings import SETTINGS
 
 
 class LossFactory:
@@ -66,7 +66,7 @@ class LossFactory:
                    custom_params: Optional[Dict[str, Any]] = None) -> nn.Module:
         if loss_name not in cls.LOSSES:
             available = ', '.join(cls.get_available_losses())
-            raise ValueError(lang("losses.not_supported", loss=loss_name, available=available))
+            raise ValueError(f"Unsupported loss function: {loss_name}. Available options: {available}")
 
         # Get default parameters from config
         default_params = cls._get_default_params().get(loss_name, {}).copy()
@@ -79,17 +79,17 @@ class LossFactory:
             loss_class = cls.LOSSES[loss_name]
             loss = loss_class(**default_params)
 
-            info(lang("losses.created", loss=loss_name, params=default_params))
+            info(f"Loss function created successfully: {loss_name} with parameters {default_params}")
             return loss
 
         except Exception as e:
-            error(lang("losses.creation_failed", loss=loss_name, error=str(e)))
-            raise TypeError(lang("losses.invalid_params", loss=loss_name, error=str(e)))
+            error(f"Failed to create loss function: {str(e)}")
+            raise TypeError(f"Invalid parameters for loss function: {str(e)}")
 
     @classmethod
     def create_from_config(cls, config: Dict[str, Any]) -> nn.Module:
         if 'type' not in config:
-            raise ValueError(lang("losses.config_missing_type"))
+            raise ValueError("Missing 'type' in loss configuration")
 
         loss_name = config['type'].lower()
         # Support flattened configs: if 'params' missing, use all top-level keys except 'type'
@@ -103,7 +103,7 @@ class LossFactory:
     @classmethod
     def _get_loss_description(cls, loss_name: str) -> str:
         desc_key = f"losses.{loss_name}_desc"
-        return lang(desc_key)
+        return ""
 
     @classmethod
     def _get_loss_properties(cls, loss_name: str) -> Dict[str, Any]:
@@ -112,7 +112,7 @@ class LossFactory:
         except Exception:
             raise ValueError("losses.properties not found in config/config.json - check your config")
         if not isinstance(cfg_props, dict) or loss_name not in cfg_props:
-            raise ValueError(lang("losses.missing_properties", loss=loss_name))
+            raise ValueError(f"Missing properties for loss function '{loss_name}' in config/config.json - check losses.properties")
         return cfg_props.get(loss_name, {})
 
 
@@ -162,4 +162,4 @@ def list_all_losses() -> Dict[str, Any]:
 
 
 def get_loss_recommendations_for_task(task_type: str) -> Dict[str, Any]:
-    return {"recommended": [], "description": lang("losses.recommendations_removed")}
+    return {"recommended": [], "description": "Loss recommendations have been removed from the system"}

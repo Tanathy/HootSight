@@ -4,7 +4,7 @@ from typing import Dict, Any, Type, List, Optional, Union
 from torch.nn import Module
 
 from system.log import info, warning, error
-from system.coordinator_settings import SETTINGS, lang
+from system.coordinator_settings import SETTINGS
 
 
 class RegularizationFactory:
@@ -37,7 +37,7 @@ class RegularizationFactory:
 
         defaults = cls._get_default_params()
         if reg_name not in defaults:
-            raise ValueError(lang("regularization.missing_default", reg=reg_name))
+            raise ValueError(f"Missing default parameters for regularization '{reg_name}' in config/config.json - check regularization.defaults")
         return {
             'name': reg_name,
             'class': cls.REGULARIZATIONS[reg_name].__name__,
@@ -53,11 +53,11 @@ class RegularizationFactory:
                             custom_params: Optional[Dict[str, Any]] = None) -> nn.Module:
         if reg_name not in cls.REGULARIZATIONS:
             available = ', '.join(cls.get_available_regularizations())
-            raise ValueError(lang("regularization.not_supported", reg=reg_name, available=available))
+            raise ValueError(f"Unsupported regularization: {reg_name}. Available options: {available}")
 
         defaults = cls._get_default_params()
         if reg_name not in defaults:
-            raise ValueError(lang("regularization.missing_default", reg=reg_name))
+            raise ValueError(f"Missing default parameters for regularization '{reg_name}' in config/config.json - check regularization.defaults")
         default_params = defaults.get(reg_name, {}).copy()
 
         if custom_params:
@@ -67,17 +67,17 @@ class RegularizationFactory:
             reg_class = cls.REGULARIZATIONS[reg_name]
             regularization = reg_class(**default_params)
 
-            info(lang("regularization.created", reg=reg_name, params=default_params))
+            info(f"Regularization layer created successfully: {reg_name} with parameters {default_params}")
             return regularization
 
         except Exception as e:
-            error(lang("regularization.creation_failed", reg=reg_name, error=str(e)))
-            raise TypeError(lang("regularization.invalid_params", reg=reg_name, error=str(e)))
+            error(f"Failed to create regularization layer: {str(e)}")
+            raise TypeError(f"Invalid parameters for regularization layer: {str(e)}")
 
     @classmethod
     def create_from_config(cls, config: Dict[str, Any]) -> nn.Module:
         if 'type' not in config:
-            raise ValueError(lang("regularization.config_missing_type"))
+            raise ValueError("Missing 'type' in regularization configuration")
 
         reg_name = config['type'].lower()
         custom_params = config.get('params', {})
@@ -87,7 +87,7 @@ class RegularizationFactory:
     @classmethod
     def _get_regularization_description(cls, reg_name: str) -> str:
         desc_key = f"regularization.{reg_name}_desc"
-        return lang(desc_key)
+        return ""
 
     @classmethod
     def _get_regularization_properties(cls, reg_name: str) -> Dict[str, Any]:
@@ -96,7 +96,7 @@ class RegularizationFactory:
         except Exception:
             raise ValueError("regularization.properties not found in config/config.json - check your config")
         if not isinstance(cfg_props, dict) or reg_name not in cfg_props:
-            raise ValueError(lang("regularization.missing_properties", reg=reg_name))
+            raise ValueError(f"Missing properties for regularization '{reg_name}' in config/config.json - check regularization.properties")
         return cfg_props.get(reg_name, {})
 
     @classmethod
@@ -120,7 +120,7 @@ def get_regularization_for_model(reg_config: Optional[Dict[str, Any]] = None,
         reg_config = training_config.get('regularization', {})
 
     if not reg_config:
-        raise ValueError(lang("regularization.no_config_for_model"))
+        raise ValueError("No regularization configuration found. Add 'training.regularization' to config/config.json")
 
     return RegularizationFactory.create_from_config(reg_config)
 
@@ -133,4 +133,4 @@ def list_all_regularizations() -> Dict[str, Any]:
 
 
 def get_regularization_recommendations_for_case(use_case: str) -> Dict[str, Any]:
-    return {"recommended": [], "description": lang("regularization.recommendations_removed")}
+    return {"recommended": [], "description": "Regularization recommendations have been removed from the system"}

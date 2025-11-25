@@ -4,7 +4,7 @@ from typing import Dict, Any, Type, List, Optional, Union
 from torch.nn import Module
 
 from system.log import info, warning, error
-from system.coordinator_settings import SETTINGS, lang
+from system.coordinator_settings import SETTINGS
 
 
 class DataAugmentationFactory:
@@ -59,7 +59,7 @@ class DataAugmentationFactory:
                           custom_params: Optional[Dict[str, Any]] = None):
         if aug_name not in cls.AUGMENTATIONS:
             available = ', '.join(cls.get_available_augmentations())
-            raise ValueError(lang("augmentation.not_supported", aug=aug_name, available=available))
+            raise ValueError(f"Unsupported augmentation: {aug_name}. Available options: {available}")
 
         
         default_params = cls._get_default_params().get(aug_name, {}).copy()
@@ -82,17 +82,17 @@ class DataAugmentationFactory:
                 normalised_params = cls._convert_param_types(aug_name, default_params)
                 augmentation = aug_class(**normalised_params)
 
-            info(lang("augmentation.created", aug=aug_name, params=default_params))
+            info(f"Augmentation created successfully: {aug_name} with parameters {default_params}")
             return augmentation
 
         except Exception as e:
-            error(lang("augmentation.creation_failed", aug=aug_name, error=str(e)))
-            raise TypeError(lang("augmentation.invalid_params", aug=aug_name, error=str(e)))
+            error(f"Failed to create augmentation: {str(e)}")
+            raise TypeError(f"Invalid parameters for augmentation: {str(e)}")
 
     @classmethod
     def create_from_config(cls, config: Dict[str, Any]):
         if 'type' not in config:
-            raise ValueError(lang("augmentation.config_missing_type"))
+            raise ValueError("Missing 'type' in augmentation configuration")
 
         aug_name = config['type'].lower()
         custom_params = config.get('params', {})
@@ -128,7 +128,7 @@ class DataAugmentationFactory:
     @classmethod
     def _get_augmentation_description(cls, aug_name: str) -> str:
         desc_key = f"augmentation.{aug_name}_desc"
-        return lang(desc_key)
+        return ""
 
     @classmethod
     def _get_augmentation_properties(cls, aug_name: str) -> Dict[str, Any]:
@@ -219,4 +219,4 @@ def list_all_augmentations() -> Dict[str, Any]:
 
 
 def get_augmentation_recommendations_for_dataset(dataset_type: str) -> Dict[str, Any]:
-    return {"recommended": [], "description": lang("augmentation.recommendations_removed")}
+    return {"recommended": [], "description": "Augmentation recommendations removed"}

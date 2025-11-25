@@ -4,7 +4,7 @@ from typing import Dict, List, Any, Optional
 from pathlib import Path
 
 from system.log import info, warning, error
-from system.coordinator_settings import SETTINGS, lang
+from system.coordinator_settings import SETTINGS
 
 
 class DatasetType:
@@ -136,20 +136,20 @@ def analyze_balance_and_generate_recommendations(label_distribution: Dict[str, i
     
     if analysis["critical_shortage"]:
         critical_labels = [item["label"] for item in analysis["critical_shortage"]]
-        recommendations.append(lang("recommendations.critical_shortage", labels=critical_labels))
+        recommendations.append(f"Critical data shortage detected in: {critical_labels}")
     
     if analysis["over_represented"]:
         over_labels = [item["label"] for item in analysis["over_represented"] if item["ratio"] > severe_over_representation_ratio]
         if over_labels:
-            recommendations.append(lang("recommendations.reduce_oversampled", labels=over_labels))
+            recommendations.append(f"Consider reducing oversampled labels: {over_labels}")
     
     if analysis["under_represented"]:
         under_labels = [item["label"] for item in analysis["under_represented"]]
-        recommendations.append(lang("recommendations.augment_undersampled", labels=under_labels))
+        recommendations.append(f"Consider augmenting undersampled labels: {under_labels}")
     
     if balance_score < balance_config.get('balance_score_thresholds', {}).get('poor', 0.3):
-        recommendations.append(lang("recommendations.weighted_loss"))
-        recommendations.append(lang("recommendations.stratified_sampling"))
+        recommendations.append("Consider using weighted loss functions")
+        recommendations.append("Consider using stratified sampling")
     
     if dataset_type == DatasetType.FOLDER_LABELS and detailed_distribution:
         hierarchical_issues = []
@@ -167,12 +167,12 @@ def analyze_balance_and_generate_recommendations(label_distribution: Dict[str, i
                     hierarchical_issues.append(f"{parent} (balance: {sub_balance:.2f})")
         
         if hierarchical_issues:
-            recommendations.append(lang("recommendations.hierarchical_imbalance", categories=hierarchical_issues))
+            recommendations.append(f"Hierarchical imbalance detected in: {hierarchical_issues}")
     
     if total_images < small_dataset_threshold:
-        recommendations.append(lang("recommendations.small_dataset"))
+        recommendations.append("Small dataset detected - consider data augmentation")
     elif total_images < tiny_dataset_threshold:
-        recommendations.append(lang("recommendations.tiny_dataset"))
+        recommendations.append("Very small dataset - high risk of overfitting")
     
     return balance_score, analysis, recommendations
 

@@ -4,7 +4,7 @@ from typing import Dict, Any, Type, List, Optional, Union
 from torch.optim import Optimizer
 
 from system.log import info, warning, error
-from system.coordinator_settings import SETTINGS, lang
+from system.coordinator_settings import SETTINGS
 
 
 class LRSchedulerFactory:
@@ -59,7 +59,7 @@ class LRSchedulerFactory:
                         custom_params: Optional[Dict[str, Any]] = None):
         if scheduler_name not in cls.SCHEDULERS:
             available = ', '.join(cls.get_available_schedulers())
-            raise ValueError(lang("schedulers.not_supported", scheduler=scheduler_name, available=available))
+            raise ValueError(f"Unsupported scheduler: {scheduler_name}. Available options: {available}")
 
         default_params = cls._get_default_params().get(scheduler_name, {}).copy()
         
@@ -70,19 +70,19 @@ class LRSchedulerFactory:
             scheduler_class = cls.SCHEDULERS[scheduler_name]
             scheduler = scheduler_class(optimizer, **default_params)
 
-            info(lang("schedulers.created", scheduler=scheduler_name, params=default_params))
+            info(f"Scheduler created successfully: {scheduler_name} with parameters {default_params}")
             return scheduler
 
         except Exception as e:
-            error(lang("schedulers.creation_failed", scheduler=scheduler_name, error=str(e)))
-            raise TypeError(lang("schedulers.invalid_params", scheduler=scheduler_name, error=str(e)))
+            error(f"Failed to create scheduler: {str(e)}")
+            raise TypeError(f"Invalid parameters for scheduler: {str(e)}")
 
     @classmethod
     def create_from_config(cls,
                           optimizer: Optimizer,
                           config: Dict[str, Any]):
         if 'type' not in config:
-            raise ValueError(lang("schedulers.config_missing_type"))
+            raise ValueError("Missing 'type' in scheduler configuration")
 
         scheduler_name = config['type'].lower()
         if 'params' in config and isinstance(config['params'], dict):
@@ -95,7 +95,7 @@ class LRSchedulerFactory:
     @classmethod
     def _get_scheduler_description(cls, scheduler_name: str) -> str:
         desc_key = f"schedulers.{scheduler_name}_desc"
-        return lang(desc_key)
+        return ""
 
     @classmethod
     def _get_scheduler_properties(cls, scheduler_name: str) -> Dict[str, Any]:
@@ -104,7 +104,7 @@ class LRSchedulerFactory:
         except Exception:
             raise ValueError("schedulers.properties not found in config/config.json - check your config")
         if not isinstance(cfg_props, dict) or scheduler_name not in cfg_props:
-            raise ValueError(lang("schedulers.missing_properties", scheduler=scheduler_name))
+            raise ValueError(f"Missing properties for scheduler '{scheduler_name}' in config/config.json - check schedulers.properties")
         return cfg_props.get(scheduler_name, {})
 
 
@@ -151,4 +151,4 @@ def list_all_schedulers() -> Dict[str, Any]:
 
 
 def get_scheduler_recommendations_for_scenario(scenario: str) -> Dict[str, Any]:
-    return {"recommended": [], "description": lang("schedulers.recommendations_removed")}
+    return {"recommended": [], "description": "Scheduler recommendations have been removed from the system"}

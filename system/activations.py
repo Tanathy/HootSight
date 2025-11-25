@@ -4,7 +4,7 @@ from typing import Dict, Any, Type, List, Optional, Union
 from torch.nn import Module
 
 from system.log import info, warning, error
-from system.coordinator_settings import SETTINGS, lang
+from system.coordinator_settings import SETTINGS
 
 
 class ActivationFactory:
@@ -71,7 +71,7 @@ class ActivationFactory:
                          custom_params: Optional[Dict[str, Any]] = None) -> nn.Module:
         if activation_name not in cls.ACTIVATIONS:
             available = ', '.join(cls.get_available_activations())
-            raise ValueError(lang("activations.not_supported", activation=activation_name, available=available))
+            raise ValueError(f"Unsupported activation: {activation_name}. Available options: {available}")
         default_params = cls._get_default_params().get(activation_name, {}).copy()
 
         
@@ -82,17 +82,17 @@ class ActivationFactory:
             activation_class = cls.ACTIVATIONS[activation_name]
             activation = activation_class(**default_params)
             
-            info(lang("activations.created", activation=activation_name, params=default_params))
+            info(f"Activation created successfully: {activation_name} with parameters {default_params}")
             return activation
             
         except Exception as e:
-            error(lang("activations.creation_failed", activation=activation_name, error=str(e)))
-            raise TypeError(lang("activations.invalid_params", activation=activation_name, error=str(e)))
+            error(f"Failed to create activation: {str(e)}")
+            raise TypeError(f"Invalid parameters for activation: {str(e)}")
 
     @classmethod
     def create_from_config(cls, config: Dict[str, Any]) -> nn.Module:
         if 'type' not in config:
-            raise ValueError(lang("activations.config_missing_type"))
+            raise ValueError("Missing 'type' in activation configuration")
         
         activation_name = config['type'].lower()
         custom_params = config.get('params', {})
@@ -102,7 +102,7 @@ class ActivationFactory:
     @classmethod
     def _get_activation_description(cls, activation_name: str) -> str:
         desc_key = f"activations.{activation_name}_desc"
-        return lang(desc_key)
+        return ""
 
     @classmethod
     def _get_activation_properties(cls, activation_name: str) -> Dict[str, Any]:
@@ -137,4 +137,4 @@ def list_all_activations() -> Dict[str, Any]:
 
 
 def get_activation_recommendations_for_task(task_type: str) -> Dict[str, Any]:
-    return {"recommended": [], "description": lang("activations.recommendations_removed")}
+    return {"recommended": [], "description": "Activation recommendations removed"}

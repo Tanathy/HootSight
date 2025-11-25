@@ -4,7 +4,7 @@ from typing import Dict, Any, Type, List, Optional
 from torch.nn import Module
 
 from system.log import info, warning, error
-from system.coordinator_settings import SETTINGS, lang
+from system.coordinator_settings import SETTINGS
 
 
 class OptimizerFactory:
@@ -60,7 +60,7 @@ class OptimizerFactory:
                         custom_params: Optional[Dict[str, Any]] = None) -> optim.Optimizer:
         if optimizer_name not in cls.OPTIMIZERS:
             available = ', '.join(cls.get_available_optimizers())
-            raise ValueError(lang("optimizers.not_supported", optimizer=optimizer_name, available=available))
+            raise ValueError(f"Unsupported optimizer: {optimizer_name}. Available options: {available}")
         
         default_params = cls._get_default_params().get(optimizer_name, {}).copy()
         
@@ -71,19 +71,19 @@ class OptimizerFactory:
             optimizer_class = cls.OPTIMIZERS[optimizer_name]
             optimizer = optimizer_class(model_parameters, **default_params)
             
-            info(lang("optimizers.created", optimizer=optimizer_name, params=default_params))
+            info(f"Optimizer created successfully: {optimizer_name} with parameters {default_params}")
             return optimizer
             
         except Exception as e:
-            error(lang("optimizers.creation_failed", optimizer=optimizer_name, error=str(e)))
-            raise TypeError(lang("optimizers.invalid_params", optimizer=optimizer_name, error=str(e)))
+            error(f"Failed to create optimizer: {str(e)}")
+            raise TypeError(f"Invalid parameters for optimizer: {str(e)}")
 
     @classmethod
     def create_from_config(cls, 
                           model_parameters, 
                           config: Dict[str, Any]) -> optim.Optimizer:
         if 'type' not in config:
-            raise ValueError(lang("optimizers.config_missing_type"))
+            raise ValueError("Missing 'type' in optimizer configuration")
         
         optimizer_name = config['type'].lower()
         if 'params' in config and isinstance(config['params'], dict):
@@ -96,7 +96,7 @@ class OptimizerFactory:
     @classmethod
     def _get_optimizer_description(cls, optimizer_name: str) -> str:
         desc_key = f"optimizers.{optimizer_name}_desc"
-        return lang(desc_key)
+        return ""
 
     @classmethod
     def _get_optimizer_properties(cls, optimizer_name: str) -> Dict[str, Any]:
@@ -152,4 +152,4 @@ def list_all_optimizers() -> Dict[str, Any]:
 
 
 def get_optimizer_recommendations_for_task(task_type: str) -> Dict[str, Any]:
-    return {"recommended": [], "description": lang("optimizers.recommendations_removed")}
+    return {"recommended": [], "description": "Optimizer recommendations have been removed from the system"}

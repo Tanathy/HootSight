@@ -16,7 +16,7 @@ import cv2
 import numpy as np
 
 from system.log import info, warning, error
-from system.coordinator_settings import SETTINGS, lang
+from system.coordinator_settings import SETTINGS
 from system.dataset_discovery import get_project_info
 from system.models.resnet import ResNetModel
 
@@ -69,7 +69,7 @@ def pick_sample_image(project_name: str, preferred_split: str = 'validation') ->
     if not candidates:
         candidates = _collect_images(dataset_path)
     if not candidates:
-        warning(lang("heatmap.no_images", project=project_name))
+        warning(f"No images found for project {project_name}")
         return None
     return random.choice(candidates)
 
@@ -172,7 +172,7 @@ def _load_model_from_checkpoint(project_name: str, map_location: Optional[str] =
                     ckpt_path = os.path.join(model_dir, f)
                     break
     if not os.path.isfile(ckpt_path):
-        raise FileNotFoundError(lang("heatmap.checkpoint_missing", dir=model_dir))
+        raise FileNotFoundError(f"Model checkpoint not found in directory: {model_dir}")
 
     return _create_model_from_checkpoint(ckpt_path, map_location)
 
@@ -276,11 +276,11 @@ def overlay_heatmap_on_image(heatmap: torch.Tensor, image_rgb: Image.Image, alph
     return Image.fromarray(output)
 
 
-def generate_project_heatmap(project_name: str, image_path: Optional[str] = None,
-                             target_class: Optional[int] = None, alpha: float = 0.5) -> Tuple[bytes, dict]:
+def generate_heatmap(project_name: str, image_path: Optional[str] = None,
+                     target_class: Optional[int] = None, alpha: float = 0.5) -> Tuple[bytes, dict]:
     proj = get_project_info(project_name)
     if not proj or not proj.has_dataset:
-        raise FileNotFoundError(lang("heatmap.project_or_dataset_missing", project=project_name))
+        raise FileNotFoundError(f"Project {project_name} or its dataset not found")
 
     if not image_path:
         image_path = pick_sample_image(project_name)
@@ -313,7 +313,7 @@ def generate_project_heatmap(project_name: str, image_path: Optional[str] = None
         'used_class': int(tclass),
         'checkpoint': ckpt_path
     }
-    info(lang("heatmap.generated", project=project_name, image=os.path.basename(image_path), clazz=tclass))
+    info(f"Generated heatmap for {project_name} using image {os.path.basename(image_path)} (class {tclass})")
     return data, meta
 
 
@@ -321,7 +321,7 @@ def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
                           checkpoint_path: Optional[str] = None) -> dict:
     proj = get_project_info(project_name)
     if not proj or not proj.has_dataset:
-        raise FileNotFoundError(lang("heatmap.project_or_dataset_missing", project=project_name))
+        raise FileNotFoundError(f"Project {project_name} or its dataset not found")
 
     if not image_path:
         image_path = pick_sample_image(project_name)
@@ -393,5 +393,5 @@ def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
         "checkpoint": os.path.basename(ckpt_path)
     }
 
-    info(lang("heatmap.generated", project=project_name, image=os.path.basename(image_path), clazz=pred_class))
+    info(f"Generated heatmap for {project_name} using image {os.path.basename(image_path)} (class {pred_class})")
     return result

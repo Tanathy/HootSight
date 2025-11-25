@@ -4,7 +4,7 @@ from typing import Dict, Any, Type, List, Optional, Union, Tuple
 from torch.nn import Module
 
 from system.log import info, warning, error
-from system.coordinator_settings import SETTINGS, lang
+from system.coordinator_settings import SETTINGS
 
 
 class PoolingFactory:
@@ -49,7 +49,7 @@ class PoolingFactory:
 
         defaults = cls._get_default_params()
         if pool_name not in defaults:
-            raise ValueError(lang("pooling.missing_default", pool=pool_name))
+            raise ValueError(f"Missing default parameters for pooling layer '{pool_name}' in config/config.json - check pooling.defaults")
         return {
             'name': pool_name,
             'class': cls.POOLINGS[pool_name].__name__,
@@ -65,11 +65,11 @@ class PoolingFactory:
                       custom_params: Optional[Dict[str, Any]] = None) -> nn.Module:
         if pool_name not in cls.POOLINGS:
             available = ', '.join(cls.get_available_poolings())
-            raise ValueError(lang("pooling.not_supported", pool=pool_name, available=available))
+            raise ValueError(f"Unsupported pooling layer: {pool_name}. Available options: {available}")
 
         defaults = cls._get_default_params()
         if pool_name not in defaults:
-            raise ValueError(lang("pooling.missing_default", pool=pool_name))
+            raise ValueError(f"Missing default parameters for pooling layer '{pool_name}' in config/config.json - check pooling.defaults")
         default_params = defaults.get(pool_name, {}).copy()
 
         if custom_params:
@@ -79,17 +79,17 @@ class PoolingFactory:
             pool_class = cls.POOLINGS[pool_name]
             pooling = pool_class(**default_params)
 
-            info(lang("pooling.created", pool=pool_name, params=default_params))
+            info(f"Pooling layer created successfully: {pool_name} with parameters {default_params}")
             return pooling
 
         except Exception as e:
-            error(lang("pooling.creation_failed", pool=pool_name, error=str(e)))
-            raise TypeError(lang("pooling.invalid_params", pool=pool_name, error=str(e)))
+            error(f"Failed to create pooling layer: {str(e)}")
+            raise TypeError(f"Invalid parameters for pooling layer: {str(e)}")
 
     @classmethod
     def create_from_config(cls, config: Dict[str, Any]) -> nn.Module:
         if 'type' not in config:
-            raise ValueError(lang("pooling.config_missing_type"))
+            raise ValueError("Missing 'type' in pooling configuration")
 
         pool_name = config['type'].lower()
         custom_params = config.get('params', {})
@@ -99,7 +99,7 @@ class PoolingFactory:
     @classmethod
     def _get_pooling_description(cls, pool_name: str) -> str:
         desc_key = f"pooling.{pool_name}_desc"
-        return lang(desc_key)
+        return ""
 
     @classmethod
     def _get_pooling_properties(cls, pool_name: str) -> Dict[str, Any]:
@@ -108,7 +108,7 @@ class PoolingFactory:
         except Exception:
             raise ValueError("pooling.properties not found in config/config.json - check your config")
         if not isinstance(cfg_props, dict) or pool_name not in cfg_props:
-            raise ValueError(lang("pooling.missing_properties", pool=pool_name))
+            raise ValueError(f"Missing properties for pooling layer '{pool_name}' in config/config.json - check pooling.properties")
         return cfg_props.get(pool_name, {})
 
     @classmethod
@@ -132,7 +132,7 @@ def get_pooling_for_network(pool_config: Optional[Dict[str, Any]] = None,
         pool_config = training_config.get('pooling', {})
 
     if not pool_config:
-        raise ValueError(lang("pooling.no_config_for_network"))
+        raise ValueError("No pooling configuration found. Add 'training.pooling' to config/config.json")
 
     return PoolingFactory.create_from_config(pool_config)
 
@@ -145,4 +145,4 @@ def list_all_poolings() -> Dict[str, Any]:
 
 
 def get_pooling_recommendations_for_case(use_case: str) -> Dict[str, Any]:
-    return {"recommended": [], "description": lang("pooling.recommendations_removed")}
+    return {"recommended": [], "description": "Pooling recommendations have been removed from the system"}

@@ -4,7 +4,7 @@ from typing import Dict, Any, Type, List, Optional, Union, Tuple
 from torch.nn import Module
 
 from system.log import info, warning, error
-from system.coordinator_settings import SETTINGS, lang
+from system.coordinator_settings import SETTINGS
 
 
 class NormalizationFactory:
@@ -35,7 +35,7 @@ class NormalizationFactory:
 
         defaults = cls._get_default_params()
         if norm_name not in defaults:
-            raise ValueError(lang("normalization.missing_default", norm=norm_name))
+            raise ValueError(f"Missing default parameters for normalization '{norm_name}' in config/config.json - check normalization.defaults")
         return {
             'name': norm_name,
             'class': cls.NORMALIZATIONS[norm_name].__name__,
@@ -51,11 +51,11 @@ class NormalizationFactory:
                            custom_params: Optional[Dict[str, Any]] = None) -> nn.Module:
         if norm_name not in cls.NORMALIZATIONS:
             available = ', '.join(cls.get_available_normalizations())
-            raise ValueError(lang("normalization.not_supported", norm=norm_name, available=available))
+            raise ValueError(f"Unsupported normalization: {norm_name}. Available options: {available}")
 
         defaults = cls._get_default_params()
         if norm_name not in defaults:
-            raise ValueError(lang("normalization.missing_default", norm=norm_name))
+            raise ValueError(f"Missing default parameters for normalization '{norm_name}' in config/config.json - check normalization.defaults")
         default_params = defaults.get(norm_name, {}).copy()
 
         if custom_params:
@@ -64,31 +64,31 @@ class NormalizationFactory:
         if norm_name in ['batch_norm1d', 'batch_norm2d', 'batch_norm3d', 'sync_batch_norm',
                         'instance_norm1d', 'instance_norm2d', 'instance_norm3d']:
             if default_params.get('num_features') is None:
-                raise ValueError(lang("normalization.missing_num_features", norm=norm_name))
+                raise ValueError(f"Missing 'num_features' parameter for {norm_name}")
 
         if norm_name == 'group_norm':
             if default_params.get('num_channels') is None:
-                raise ValueError(lang("normalization.missing_num_channels", norm=norm_name))
+                raise ValueError(f"Missing 'num_channels' parameter for {norm_name}")
 
         if norm_name == 'layer_norm':
             if default_params.get('normalized_shape') is None:
-                raise ValueError(lang("normalization.missing_normalized_shape", norm=norm_name))
+                raise ValueError(f"Missing 'normalized_shape' parameter for {norm_name}")
 
         try:
             norm_class = cls.NORMALIZATIONS[norm_name]
             normalization = norm_class(**default_params)
 
-            info(lang("normalization.created", norm=norm_name, params=default_params))
+            info(f"Normalization layer created successfully: {norm_name} with parameters {default_params}")
             return normalization
 
         except Exception as e:
-            error(lang("normalization.creation_failed", norm=norm_name, error=str(e)))
-            raise TypeError(lang("normalization.invalid_params", norm=norm_name, error=str(e)))
+            error(f"Failed to create normalization layer: {str(e)}")
+            raise TypeError(f"Invalid parameters for normalization layer: {str(e)}")
 
     @classmethod
     def create_from_config(cls, config: Dict[str, Any]) -> nn.Module:
         if 'type' not in config:
-            raise ValueError(lang("normalization.config_missing_type"))
+            raise ValueError("Missing 'type' in normalization configuration")
 
         norm_name = config['type'].lower()
         custom_params = config.get('params', {})
@@ -98,7 +98,7 @@ class NormalizationFactory:
     @classmethod
     def _get_normalization_description(cls, norm_name: str) -> str:
         desc_key = f"normalization.{norm_name}_desc"
-        return lang(desc_key)
+        return ""
 
     @classmethod
     def _get_normalization_properties(cls, norm_name: str) -> Dict[str, Any]:
@@ -107,7 +107,7 @@ class NormalizationFactory:
         except Exception:
             raise ValueError("normalization.properties not found in config/config.json - check your config")
         if not isinstance(cfg_props, dict) or norm_name not in cfg_props:
-            raise ValueError(lang("normalization.missing_properties", norm=norm_name))
+            raise ValueError(f"Missing properties for normalization '{norm_name}' in config/config.json - check normalization.properties")
         return cfg_props.get(norm_name, {})
 
     @classmethod
@@ -131,7 +131,7 @@ def get_normalization_for_network(norm_config: Optional[Dict[str, Any]] = None,
         norm_config = training_config.get('normalization', {})
 
         if not norm_config:
-            raise ValueError(lang("normalization.no_config_for_network"))
+            raise ValueError("No normalization configuration found. Add 'training.normalization' to config/config.json")
 
     return NormalizationFactory.create_from_config(norm_config)
 
@@ -144,4 +144,4 @@ def list_all_normalizations() -> Dict[str, Any]:
 
 
 def get_normalization_recommendations_for_case(use_case: str) -> Dict[str, Any]:
-    return {"recommended": [], "description": lang("normalization.recommendations_removed")}
+    return {"recommended": [], "description": "Normalization recommendations have been removed from the system"}

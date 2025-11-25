@@ -371,9 +371,9 @@ def save_user_settings() -> None:
     try:
         with open(USER_CONFIG_PATH, 'w', encoding='utf-8') as f:
             json.dump(SETTINGS, f, indent=2, ensure_ascii=False)
-        info(lang("coordinator_settings.user_settings_saved", path=USER_CONFIG_PATH))
+        info(f"User settings saved to {USER_CONFIG_PATH}")
     except Exception as ex:
-        error(lang("coordinator_settings.user_settings_save_failed", error=str(ex)))
+        error(f"Failed to save user settings: {str(ex)}")
         raise
 
 __all__ = [

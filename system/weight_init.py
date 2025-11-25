@@ -4,7 +4,7 @@ from typing import Dict, Any, Callable, List, Optional, Union
 from torch.nn import Module
 
 from system.log import info, warning, error
-from system.coordinator_settings import SETTINGS, lang
+from system.coordinator_settings import SETTINGS
 
 
 class WeightInitFactory:
@@ -63,7 +63,7 @@ class WeightInitFactory:
                            custom_params: Optional[Dict[str, Any]] = None) -> None:
         if init_name not in cls.INITIALIZERS:
             available = ', '.join(cls.get_available_initializers())
-            raise ValueError(lang("weight_init.not_supported", init=init_name, available=available))
+            raise ValueError(f"Unsupported weight initialization: {init_name}. Available options: {available}")
 
         default_params = cls._get_default_params().get(init_name, {}).copy()
         
@@ -97,11 +97,11 @@ class WeightInitFactory:
                     else:
                         nn.init.constant_(param, 0)
 
-            info(lang("weight_init.applied", init=init_name, module=type(module).__name__, params=default_params))
+            info(f"Weight initialization applied successfully: {init_name} to {type(module).__name__} with parameters {default_params}")
 
         except Exception as e:
-            error(lang("weight_init.application_failed", init=init_name, error=str(e)))
-            raise TypeError(lang("weight_init.invalid_params", init=init_name, error=str(e)))
+            error(f"Failed to apply weight initialization: {str(e)}")
+            raise TypeError(f"Invalid parameters for weight initialization: {str(e)}")
 
     @classmethod
     def apply_to_model(cls,
@@ -129,7 +129,7 @@ class WeightInitFactory:
     @classmethod
     def _get_initializer_description(cls, init_name: str) -> str:
         desc_key = f"weight_init.{init_name}_desc"
-        return lang(desc_key)
+        return ""
 
     @classmethod
     def _get_initializer_properties(cls, init_name: str) -> Dict[str, Any]:
@@ -142,7 +142,7 @@ class WeightInitFactory:
             raise ValueError("training.weight_init.properties not found in config/config.json - check training.weight_init")
         cfg_props = weight_init_config.get('properties', {})
         if not isinstance(cfg_props, dict) or init_name not in cfg_props:
-            raise ValueError(lang("weight_init.missing_properties", init=init_name))
+            raise ValueError(f"Missing properties for weight initialization '{init_name}' in config/config.json - check training.weight_init.properties")
         return cfg_props.get(init_name, {})
 
 
@@ -160,4 +160,4 @@ def list_all_initializers() -> Dict[str, Any]:
 
 
 def get_initializer_recommendations_for_layer(layer_type: str) -> Dict[str, Any]:
-    return {"recommended": [], "description": lang("weight_init.recommendations_removed")}
+    return {"recommended": [], "description": "Weight initialization recommendations have been removed from the system"}

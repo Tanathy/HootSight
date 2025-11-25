@@ -1,102 +1,16 @@
 {
   "language_name": "English",
-  "activations": {
-    "not_supported": "Unsupported activation: {activation}. Available options: {available}",
-    "created": "Activation function created successfully: {activation} with parameters {params}",
-    "creation_failed": "Failed to create activation function: {error}",
-    "invalid_params": "Invalid parameters for activation function: {error}",
-    "config_missing_type": "Missing 'type' in activation configuration",
-    "recommendations_removed": "Activation recommendations have been removed from the system"
-  },
-  "augmentation": {
-    "not_supported": "Unsupported augmentation: {aug}. Available options: {available}",
-    "created": "Augmentation created successfully: {aug} with parameters {params}",
-    "creation_failed": "Failed to create augmentation: {error}",
-    "invalid_params": "Invalid parameters for augmentation: {error}",
-    "config_missing_type": "Missing 'type' in augmentation configuration",
-    "preview_invalid_phase": "Invalid augmentation phase: {phase}",
-    "preview_no_images": "No dataset images are available for augmentation preview in project {project}.",
-    "preview_failed": "Failed to generate augmentation preview: {error}",
-    "preview_generated": "Generated augmentation preview for {phase} phase"
-  },
-  "coordinator_settings": {
-    "user_settings_saved": "User settings saved to {path}",
-    "user_settings_save_failed": "Failed to save user settings: {error}"
-  },
-  "recommendations": {
-    "critical_shortage": "Critical data shortage detected in: {labels}",
-    "reduce_oversampled": "Consider reducing oversampled labels: {labels}",
-    "augment_undersampled": "Consider augmenting undersampled labels: {labels}",
-    "weighted_loss": "Consider using weighted loss functions",
-    "stratified_sampling": "Consider using stratified sampling",
-    "hierarchical_imbalance": "Hierarchical imbalance detected in: {categories}",
-    "small_dataset": "Small dataset detected - consider data augmentation",
-    "tiny_dataset": "Very small dataset - high risk of overfitting"
-  },
-  "losses": {
-    "not_supported": "Unsupported loss function: {loss}. Available options: {available}",
-    "created": "Loss function created successfully: {loss} with parameters {params}",
-    "creation_failed": "Failed to create loss function: {error}",
-    "invalid_params": "Invalid parameters for loss function: {error}",
-    "config_missing_type": "Missing 'type' in loss configuration",
-    "recommendations_removed": "Loss recommendations have been removed from the system"
-  },
-  "normalization": {
-    "not_supported": "Unsupported normalization: {norm}. Available options: {available}",
-    "missing_num_features": "Missing 'num_features' parameter for {norm}",
-    "missing_num_channels": "Missing 'num_channels' parameter for {norm}",
-    "missing_normalized_shape": "Missing 'normalized_shape' parameter for {norm}",
-    "created": "Normalization layer created successfully: {norm} with parameters {params}",
-    "creation_failed": "Failed to create normalization layer: {error}",
-    "invalid_params": "Invalid parameters for normalization layer: {error}",
-    "config_missing_type": "Missing 'type' in normalization configuration",
-    "recommendations_removed": "Normalization recommendations have been removed from the system"
-  },
-  "optimizers": {
-    "not_supported": "Unsupported optimizer: {optimizer}. Available options: {available}",
-    "created": "Optimizer created successfully: {optimizer} with parameters {params}",
-    "creation_failed": "Failed to create optimizer: {error}",
-    "invalid_params": "Invalid parameters for optimizer: {error}",
-    "config_missing_type": "Missing 'type' in optimizer configuration",
-    "recommendations_removed": "Optimizer recommendations have been removed from the system"
-  },
-  "pooling": {
-    "not_supported": "Unsupported pooling layer: {pool}. Available options: {available}",
-    "created": "Pooling layer created successfully: {pool} with parameters {params}",
-    "creation_failed": "Failed to create pooling layer: {error}",
-    "invalid_params": "Invalid parameters for pooling layer: {error}",
-    "config_missing_type": "Missing 'type' in pooling configuration",
-    "recommendations_removed": "Pooling recommendations have been removed from the system"
-  },
-  "regularization": {
-    "not_supported": "Unsupported regularization: {reg}. Available options: {available}",
-    "created": "Regularization layer created successfully: {reg} with parameters {params}",
-    "creation_failed": "Failed to create regularization layer: {error}",
-    "invalid_params": "Invalid parameters for regularization layer: {error}",
-    "config_missing_type": "Missing 'type' in regularization configuration",
-    "recommendations_removed": "Regularization recommendations have been removed from the system"
-  },
-  "schedulers": {
-    "not_supported": "Unsupported scheduler: {scheduler}. Available options: {available}",
-    "created": "Scheduler created successfully: {scheduler} with parameters {params}",
-    "creation_failed": "Failed to create scheduler: {error}",
-    "invalid_params": "Invalid parameters for scheduler: {error}",
-    "config_missing_type": "Missing 'type' in scheduler configuration",
-    "recommendations_removed": "Scheduler recommendations have been removed from the system"
-  },
-  "weight_init": {
-    "not_supported": "Unsupported weight initialization: {init}. Available options: {available}",
-    "applied": "Weight initialization applied successfully: {init} to {module} with parameters {params}",
-    "application_failed": "Failed to apply weight initialization: {error}",
-    "invalid_params": "Invalid parameters for weight initialization: {error}",
-    "recommendations_removed": "Weight initialization recommendations have been removed from the system"
-  },
-  "heatmap": {
-    "no_images": "No images found for project {project}",
-    "checkpoint_missing": "Model checkpoint not found in directory: {dir}",
-    "project_or_dataset_missing": "Project {project} or its dataset not found",
-    "generated": "Generated heatmap for {project} using image {image} (class {clazz})"
-  },
+
+
+
+
+
+
+
+
+
+
+
   "app": {
     "brand": "Hootsight"
   },
