@@ -155,6 +155,42 @@ class DeleteItemsResponse(BaseModel):
     deleted: int
     missing: List[str] = Field(default_factory=list)
 
+class FolderCreateRequest(BaseModel):
+    path: str = Field(min_length=1, description="Relative path within data_source")
+
+class FolderRenameRequest(BaseModel):
+    old_path: str = Field(min_length=1)
+    new_name: str = Field(min_length=1)
+
+class FolderDeleteRequest(BaseModel):
+    path: str = Field(min_length=1)
+    recursive: bool = Field(default=False)
+
+class FolderOperationResponse(BaseModel):
+    success: bool
+    path: str
+    message: str = ""
+
+class UploadResponse(BaseModel):
+    uploaded: int
+    failed: int
+    files: List[str] = Field(default_factory=list)
+    errors: List[str] = Field(default_factory=list)
+
+
+class DuplicateGroup(BaseModel):
+    content_hash: str
+    images: List[ImageItem]
+
+
+class DuplicateScanResponse(BaseModel):
+    total_groups: int
+    total_duplicates: int
+    groups: List[DuplicateGroup]
+    scanned_images: int
+    duration_seconds: float
+
+
 __all__ = [
     "AnnotationUpdate",
     "BoundsModel",
@@ -169,9 +205,16 @@ __all__ = [
     "DeleteItemsResponse",
     "DiscoveryResponse",
     "DiscoveryStatus",
+    "DuplicateGroup",
+    "DuplicateScanResponse",
+    "FolderCreateRequest",
+    "FolderDeleteRequest",
     "FolderNode",
+    "FolderOperationResponse",
+    "FolderRenameRequest",
     "ImageItem",
     "PaginatedItems",
     "ProjectSummary",
     "StatsSummary",
+    "UploadResponse",
 ]

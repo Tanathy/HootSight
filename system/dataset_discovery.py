@@ -7,11 +7,58 @@ from system.log import info, warning, error
 from system.coordinator_settings import SETTINGS
 
 
+DEFAULT_BALANCE_SCORE_THRESHOLDS: Dict[str, float] = {
+    "legendary": 0.98,
+    "excellent": 0.95,
+    "very_good": 0.90,
+    "good": 0.85,
+    "balanced": 0.80,
+    "slightly_unbalanced": 0.70,
+    "fair": 0.60,
+    "poor": 0.45,
+    "very_poor": 0.35,
+    "critical": 0.25
+}
+
+
+def resolve_balance_score_thresholds(custom_thresholds: Optional[Dict[str, Any]] = None) -> Dict[str, float]:
+    thresholds = DEFAULT_BALANCE_SCORE_THRESHOLDS.copy()
+    if isinstance(custom_thresholds, dict):
+        for key, value in custom_thresholds.items():
+            if isinstance(value, (int, float)):
+                thresholds[key] = float(value)
+    return thresholds
+
+
+def get_configured_balance_thresholds() -> Dict[str, float]:
+    try:
+        custom = SETTINGS['dataset']['discovery']['balance_analysis'].get('balance_score_thresholds', {})
+    except Exception:
+        custom = {}
+    return resolve_balance_score_thresholds(custom)
+
+
+def format_status_label(key: str) -> str:
+    return key.replace('_', ' ').title()
+
+
+def classify_balance_status(balance_score: float, thresholds: Optional[Dict[str, float]] = None) -> str:
+    effective_thresholds = thresholds or get_configured_balance_thresholds()
+    if not effective_thresholds:
+        return "Critical"
+    sorted_thresholds = sorted(effective_thresholds.items(), key=lambda item: item[1], reverse=True)
+    for status_key, min_score in sorted_thresholds:
+        if balance_score >= min_score:
+            return format_status_label(status_key)
+    return format_status_label(sorted_thresholds[-1][0])
+
+
 class DatasetType:
-    FOLDER_LABELS = "folder_labels"
-    TXT_ANNOTATIONS = "txt_annotations"
-    JSON_ANNOTATIONS = "json_annotations"
-    CSV_ANNOTATIONS = "csv_annotations"
+    MULTI_LABEL = "multi_label"           # txt files with short comma-separated tags (80%+ short tags)
+    FOLDER_CLASSIFICATION = "folder_classification"  # images organized in folders, minimal txt (<30%)
+    ANNOTATION = "annotation"             # txt files with sentences/long descriptions
+    MIXED = "mixed"                       # mixture of folders and varied txt content
+    CLEAN = "clean"                       # just images, no folders, no txt
     UNKNOWN = "unknown"
 
 
@@ -53,16 +100,7 @@ class ProjectInfo:
         }
     
     def get_balance_status(self) -> str:
-        if self.balance_score >= 0.9:
-            return "Excellent"
-        elif self.balance_score >= 0.7:
-            return "Good"
-        elif self.balance_score >= 0.5:
-            return "Fair"
-        elif self.balance_score >= 0.3:
-            return "Poor"
-        else:
-            return "Critical"
+        return classify_balance_status(self.balance_score)
 
 
 def get_image_files(directory: str) -> List[str]:
@@ -94,6 +132,7 @@ def analyze_balance_and_generate_recommendations(label_distribution: Dict[str, i
         balance_config = SETTINGS['dataset']['discovery']['balance_analysis']
     except Exception:
         raise ValueError("Missing 'dataset.discovery.balance_analysis' in config/config.json")
+    balance_thresholds = resolve_balance_score_thresholds(balance_config.get('balance_score_thresholds'))
     min_images_per_class = balance_config['min_images_per_class']
     critical_shortage_threshold = balance_config['critical_shortage_threshold']
     over_representation_ratio = balance_config['over_representation_ratio']
@@ -147,11 +186,12 @@ def analyze_balance_and_generate_recommendations(label_distribution: Dict[str, i
         under_labels = [item["label"] for item in analysis["under_represented"]]
         recommendations.append(f"Consider augmenting undersampled labels: {under_labels}")
     
-    if balance_score < balance_config.get('balance_score_thresholds', {}).get('poor', 0.3):
+    intervention_threshold = balance_thresholds.get('poor', balance_thresholds.get('very_poor', 0.35))
+    if balance_score < intervention_threshold:
         recommendations.append("Consider using weighted loss functions")
         recommendations.append("Consider using stratified sampling")
     
-    if dataset_type == DatasetType.FOLDER_LABELS and detailed_distribution:
+    if dataset_type == DatasetType.FOLDER_CLASSIFICATION and detailed_distribution:
         hierarchical_issues = []
         parent_categories = {}
         for key, count in detailed_distribution.items():
@@ -196,7 +236,66 @@ def calculate_balance_score(label_distribution: Dict[str, int]) -> float:
     return balance_score
 
 
+def _analyze_txt_content(txt_files: List[str], sample_size: int = 50) -> dict:
+    """
+    Analyze txt file content to determine tag vs annotation style.
+    Returns stats about the content patterns.
+    """
+    if not txt_files:
+        return {"has_txt": False}
+    
+    sampled = txt_files[:sample_size] if len(txt_files) > sample_size else txt_files
+    
+    total_entries = 0
+    short_tag_entries = 0  # 1-2 words
+    long_entries = 0       # 3+ words or sentence-like
+    comma_separated_files = 0
+    
+    for txt_path in sampled:
+        try:
+            with open(txt_path, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read().strip()
+                if not content:
+                    continue
+                
+                # Check if comma-separated
+                if ',' in content:
+                    comma_separated_files += 1
+                    tags = [t.strip() for t in content.split(',') if t.strip()]
+                else:
+                    tags = [content]
+                
+                for tag in tags:
+                    total_entries += 1
+                    word_count = len(tag.split())
+                    if word_count <= 2:
+                        short_tag_entries += 1
+                    else:
+                        long_entries += 1
+        except Exception:
+            continue
+    
+    short_tag_ratio = short_tag_entries / total_entries if total_entries > 0 else 0
+    comma_ratio = comma_separated_files / len(sampled) if sampled else 0
+    
+    return {
+        "has_txt": True,
+        "total_entries": total_entries,
+        "short_tag_ratio": short_tag_ratio,
+        "long_entry_ratio": 1 - short_tag_ratio,
+        "comma_separated_ratio": comma_ratio
+    }
+
+
 def analyze_dataset_type(dataset_path: str) -> tuple[str, List[str], int, Dict[str, int], float, Dict[str, int], Dict[str, Any], List[str]]:
+    """
+    Analyze dataset and determine its type (priority order):
+    1. MULTI_LABEL: txt files with tags present (highest priority if txt coverage is good)
+    2. ANNOTATION: txt files with sentence-like content
+    3. FOLDER_CLASSIFICATION: images organized in folders without significant txt
+    4. CLEAN: just images, no organization
+    5. MIXED: varied content that doesn't fit other categories
+    """
     if not os.path.exists(dataset_path):
         return DatasetType.UNKNOWN, [], 0, {}, 0.0, {}, {}, []
     
@@ -207,18 +306,36 @@ def analyze_dataset_type(dataset_path: str) -> tuple[str, List[str], int, Dict[s
         return DatasetType.UNKNOWN, [], 0, {}, 0.0, {}, {}, []
     
     txt_count = 0
+    txt_files_list = []
     for img_file in image_files:
         txt_file = os.path.splitext(img_file)[0] + '.txt'
         if os.path.exists(txt_file):
             txt_count += 1
+            txt_files_list.append(txt_file)
     
     txt_percentage = (txt_count / image_count) * 100 if image_count > 0 else 0
-    try:
-        min_coverage = SETTINGS['dataset']['discovery']['annotation_formats']['txt_annotations']['min_coverage_percent']
-    except Exception:
-        raise ValueError("Missing 'dataset.discovery.annotation_formats.txt_annotations.min_coverage_percent' in config/config.json")
     
-    if txt_percentage >= min_coverage:
+    subdirs = [d for d in os.listdir(dataset_path) 
+               if os.path.isdir(os.path.join(dataset_path, d)) and not d.startswith('.')]
+    
+    has_folder_structure = False
+    folder_with_images = []
+    folder_label_distribution = {}
+    
+    if subdirs:
+        for subdir in subdirs:
+            subdir_path = os.path.join(dataset_path, subdir)
+            subdir_images = get_image_files(subdir_path)
+            if subdir_images:
+                folder_with_images.append(subdir)
+                transformed_key = subdir.replace(' ', '_').replace('/', '.')
+                folder_label_distribution[transformed_key] = len(subdir_images)
+        has_folder_structure = len(folder_with_images) > 0
+    
+    txt_analysis = _analyze_txt_content(txt_files_list) if txt_files_list else None
+    
+    # PRIORITY 1: If we have excellent txt coverage (>80%) -> MULTI_LABEL or ANNOTATION
+    if txt_analysis and txt_percentage >= 80:
         labels, label_distribution = extract_labels_from_txt_files_with_counts(dataset_path, image_files)
         
         folder_structure = get_recursive_folder_structure(dataset_path)
@@ -230,90 +347,55 @@ def analyze_dataset_type(dataset_path: str) -> tuple[str, List[str], int, Dict[s
             combined_distribution = label_distribution
             combined_labels = labels
         
-        balance_score, balance_analysis, recommendations = analyze_balance_and_generate_recommendations(
-            label_distribution, combined_distribution, DatasetType.TXT_ANNOTATIONS
-        )
-        
-        return (DatasetType.TXT_ANNOTATIONS, combined_labels, image_count, 
-               label_distribution, balance_score, combined_distribution, balance_analysis, recommendations)
-    
-    subdirs = [d for d in os.listdir(dataset_path) 
-               if os.path.isdir(os.path.join(dataset_path, d))]
-    
-    if subdirs:
-        folder_with_images = []
-        label_distribution = {}
-        transformed_label_distribution = {}
-        
-        for subdir in subdirs:
-            subdir_path = os.path.join(dataset_path, subdir)
-            subdir_images = get_image_files(subdir_path)
-            if subdir_images:
-                folder_with_images.append(subdir)
-                label_distribution[subdir] = len(subdir_images)
-                transformed_key = subdir.replace(' ', '_').replace('/', '.')
-                transformed_label_distribution[transformed_key] = len(subdir_images)
-        
-        if folder_with_images:
-            detailed_structure = {}
-            for folder in folder_with_images:
-                folder_path = os.path.join(dataset_path, folder)
-                sub_structure = get_recursive_folder_structure(folder_path)
-                if sub_structure:
-                    for sub_path, count in sub_structure.items():
-                        if sub_path != 'root':
-                            transformed_folder = folder.replace(' ', '_').replace('/', '.')
-                            detailed_key = f"{transformed_folder}.{sub_path}"
-                        else:
-                            detailed_key = folder.replace(' ', '_').replace('/', '.')
-                        detailed_structure[detailed_key] = count
-                else:
-                    transformed_folder = folder.replace(' ', '_').replace('/', '.')
-                    detailed_structure[transformed_folder] = transformed_label_distribution[transformed_folder]
-            
-            balance_score, balance_analysis, recommendations = analyze_balance_and_generate_recommendations(
-                transformed_label_distribution, detailed_structure, DatasetType.FOLDER_LABELS
-            )
-            
-            transformed_labels = [folder.replace(' ', '_').replace('/', '.') for folder in folder_with_images]
-            all_labels = transformed_labels + [k for k in detailed_structure.keys() if '.' in k and k not in transformed_labels]
-            
-            return (DatasetType.FOLDER_LABELS, all_labels, image_count, 
-                   transformed_label_distribution, balance_score, detailed_structure, balance_analysis, recommendations)
-    
-    json_files = [f for f in os.listdir(dataset_path) if f.endswith('.json')]
-    if json_files:
-        labels, label_distribution = extract_labels_from_json_with_counts(os.path.join(dataset_path, json_files[0]))
-        
-        balance_score, balance_analysis, recommendations = analyze_balance_and_generate_recommendations(
-            label_distribution, label_distribution, DatasetType.JSON_ANNOTATIONS
-        )
-        
-        return (DatasetType.JSON_ANNOTATIONS, labels, image_count, 
-               label_distribution, balance_score, label_distribution, balance_analysis, recommendations)
-    
-    csv_files = [f for f in os.listdir(dataset_path) if f.endswith('.csv')]
-    if csv_files:
-        labels, label_distribution = extract_labels_from_csv_with_counts(os.path.join(dataset_path, csv_files[0]))
-        
-        folder_structure = get_recursive_folder_structure(dataset_path)
-        if folder_structure:
-            combined_distribution = {**label_distribution, **{f"folder:{k}": v for k, v in folder_structure.items()}}
-            folder_labels = [f"folder:{k}" for k in folder_structure.keys()]
-            combined_labels = labels + folder_labels
+        # MULTI_LABEL: >80% short tags, ANNOTATION: <30% short tags
+        if txt_analysis['short_tag_ratio'] >= 0.8:
+            dataset_type = DatasetType.MULTI_LABEL
+        elif txt_analysis['short_tag_ratio'] < 0.3:
+            dataset_type = DatasetType.ANNOTATION
         else:
-            combined_distribution = label_distribution
-            combined_labels = labels
+            dataset_type = DatasetType.MIXED
         
         balance_score, balance_analysis, recommendations = analyze_balance_and_generate_recommendations(
-            label_distribution, combined_distribution, DatasetType.CSV_ANNOTATIONS
+            label_distribution, combined_distribution, dataset_type
         )
-
-        return (DatasetType.CSV_ANNOTATIONS, combined_labels, image_count,
+        
+        return (dataset_type, combined_labels, image_count, 
                label_distribution, balance_score, combined_distribution, balance_analysis, recommendations)
     
-    warning(f"Unknown dataset type in {dataset_path}")
-    return DatasetType.UNKNOWN, [], image_count, {}, 0.0, {}, {}, []
+    # PRIORITY 2: Folder-based classification (no significant txt)
+    if has_folder_structure:
+        detailed_structure = {}
+        for folder in folder_with_images:
+            folder_path = os.path.join(dataset_path, folder)
+            sub_structure = get_recursive_folder_structure(folder_path)
+            transformed_folder = folder.replace(' ', '_').replace('/', '.')
+            if sub_structure:
+                for sub_path, count in sub_structure.items():
+                    if sub_path != 'root':
+                        detailed_key = f"{transformed_folder}.{sub_path}"
+                    else:
+                        detailed_key = transformed_folder
+                    detailed_structure[detailed_key] = count
+            else:
+                detailed_structure[transformed_folder] = folder_label_distribution[transformed_folder]
+        
+        balance_score, balance_analysis, recommendations = analyze_balance_and_generate_recommendations(
+            folder_label_distribution, detailed_structure, DatasetType.FOLDER_CLASSIFICATION
+        )
+        
+        transformed_labels = list(folder_label_distribution.keys())
+        all_labels = transformed_labels + [k for k in detailed_structure.keys() if '.' in k and k not in transformed_labels]
+        
+        return (DatasetType.FOLDER_CLASSIFICATION, all_labels, image_count, 
+               folder_label_distribution, balance_score, detailed_structure, balance_analysis, recommendations)
+    
+    # PRIORITY 3: Clean dataset (just images, no structure)
+    if txt_percentage < 5:
+        return DatasetType.CLEAN, [], image_count, {}, 0.0, {}, {}, []
+    
+    # Fallback: MIXED
+    warning(f"Mixed/unknown dataset type in {dataset_path}")
+    return DatasetType.MIXED, [], image_count, {}, 0.0, {}, {}, []
 
 
 def get_recursive_folder_structure(directory: str) -> Dict[str, int]:
@@ -489,7 +571,14 @@ def extract_labels_from_csv(csv_file: str) -> List[str]:
     return sorted(list(labels))
 
 
-def discover_projects() -> List[ProjectInfo]:
+def discover_projects(compute_stats: bool = False) -> List[ProjectInfo]:
+    """
+    Discover all projects in the projects directory.
+    
+    Args:
+        compute_stats: If False (default), only basic info is gathered (fast).
+                      If True, full statistics are computed (expensive).
+    """
     try:
         paths_cfg = SETTINGS['paths']
     except Exception:
@@ -517,34 +606,101 @@ def discover_projects() -> List[ProjectInfo]:
             project.has_model_dir = os.path.exists(project.model_path)
             
             if project.has_dataset:
-                (dataset_type, labels, image_count, label_distribution, balance_score, 
-                 detailed_distribution, balance_analysis, recommendations) = analyze_dataset_type(project.dataset_path)
-                
-                project.dataset_type = dataset_type
-                project.labels = labels
-                project.image_count = image_count
-                project.label_distribution = label_distribution
-                project.detailed_distribution = detailed_distribution
-                project.balance_score = balance_score
-                project.balance_analysis = balance_analysis
-                project.recommendations = recommendations
-                
-            else:
-                warning(f"Project '{item}': No dataset directory found")
+                if compute_stats:
+                    # Full analysis - expensive
+                    (dataset_type, labels, image_count, label_distribution, balance_score, 
+                     detailed_distribution, balance_analysis, recommendations) = analyze_dataset_type(project.dataset_path)
+                    
+                    project.dataset_type = dataset_type
+                    project.labels = labels
+                    project.image_count = image_count
+                    project.label_distribution = label_distribution
+                    project.detailed_distribution = detailed_distribution
+                    project.balance_score = balance_score
+                    project.balance_analysis = balance_analysis
+                    project.recommendations = recommendations
+                else:
+                    # Lightweight - just count images, no label analysis
+                    image_files = get_image_files(project.dataset_path)
+                    project.image_count = len(image_files)
+                    project.dataset_type = _detect_dataset_type_fast(project.dataset_path)
             
             projects.append(project)
     
     return projects
 
 
-def get_project_info(project_name: str) -> Optional[ProjectInfo]:
-    projects = discover_projects()
+def _detect_dataset_type_fast(dataset_path: str) -> str:
+    """Quick detection of dataset type without full analysis."""
+    if not os.path.exists(dataset_path):
+        return DatasetType.UNKNOWN
+    
+    has_folders = False
+    has_txt = False
+    image_count = 0
+    txt_count = 0
+    
+    try:
+        entries = os.listdir(dataset_path)
+    except OSError:
+        return DatasetType.UNKNOWN
+    
+    for entry in entries[:50]:
+        entry_path = os.path.join(dataset_path, entry)
+        if os.path.isdir(entry_path) and not entry.startswith('.'):
+            for f in os.listdir(entry_path)[:10]:
+                if f.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff', '.webp')):
+                    has_folders = True
+                    break
+        elif entry.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff', '.webp')):
+            image_count += 1
+        elif entry.lower().endswith('.txt'):
+            txt_count += 1
+            has_txt = True
+    
+    if image_count == 0 and not has_folders:
+        return DatasetType.UNKNOWN
+    
+    txt_ratio = txt_count / max(image_count, 1)
+    
+    if has_folders and txt_ratio < 0.3:
+        return DatasetType.FOLDER_CLASSIFICATION
+    
+    if has_txt and txt_ratio >= 0.3:
+        return DatasetType.MULTI_LABEL
+    
+    if not has_folders and not has_txt and image_count > 0:
+        return DatasetType.CLEAN
+    
+    return DatasetType.MIXED
+
+
+def get_project_info(project_name: str, compute_stats: bool = False) -> Optional[ProjectInfo]:
+    """
+    Get info for a specific project.
+    
+    Args:
+        project_name: Name of the project
+        compute_stats: If True, compute full statistics (expensive)
+    """
+    projects = discover_projects(compute_stats=compute_stats)
     
     for project in projects:
         if project.name == project_name:
             return project
     
     return None
+
+
+def compute_project_stats(project_name: str) -> Optional[Dict[str, Any]]:
+    """
+    Compute full statistics for a project and return as dict.
+    This is the expensive operation that should only be called explicitly.
+    """
+    project = get_project_info(project_name, compute_stats=True)
+    if project is None:
+        return None
+    return project.to_dict()
 
 
 def get_discovery_summary() -> Dict[str, Any]:

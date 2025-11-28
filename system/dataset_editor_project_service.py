@@ -22,6 +22,8 @@ from system.dataset_editor_models import (
     BulkTagResponse,
     DeleteItemsResponse,
     DiscoveryResponse,
+    DuplicateGroup,
+    DuplicateScanResponse,
     FolderNode,
     ImageItem,
     PaginatedItems,
@@ -29,7 +31,9 @@ from system.dataset_editor_models import (
     StatsSummary,
 )
 from system.dataset_editor_settings import get_dataset_editor_settings
-from system.log import warning
+from system.duplicate_detection import scan_for_duplicates
+from system.log import warning, info
+from system import characteristics_db
 
 if TYPE_CHECKING:
     from system.dataset_editor_discovery import DiscoveryJob
@@ -114,6 +118,10 @@ class ProjectIndex:
         self.editor_store = EditorStore(root)
 
     def ensure_loaded(self) -> None:
+        """
+        Load items from cache/snapshot if available.
+        Does NOT run automatic discovery - user must explicitly sync.
+        """
         if self._loaded:
             return
         snapshot = self.editor_store.load_snapshot()
@@ -127,13 +135,22 @@ class ProjectIndex:
             if snapshot:
                 self._hydrate_from_snapshot(snapshot)
                 return
-            self._perform_scan()
+            # No snapshot - stay empty until user triggers sync
+            self._loaded = True
 
+    def sync(self, job: Optional["DiscoveryJob"] = None) -> DiscoveryResponse:
+        """
+        Sync/discover images from data_source folder.
+        This is the single entry point for scanning - called explicitly by user.
+        """
+        return self._perform_scan(job)
+
+    # Keep for backward compatibility
     def refresh(self) -> DiscoveryResponse:
-        return self._perform_scan()
+        return self.sync()
 
     def run_discovery(self, job: Optional["DiscoveryJob"] = None) -> DiscoveryResponse:
-        return self._perform_scan(job)
+        return self.sync(job)
 
     def _perform_scan(self, job: Optional["DiscoveryJob"] = None) -> DiscoveryResponse:
         if job:
@@ -245,6 +262,9 @@ class ProjectIndex:
             duration_seconds=duration,
             updated_at=datetime.now(timezone.utc),
         )
+
+        # Save computed stats to characteristics.db after discovery
+        self.save_computed_stats()
 
         if job:
             if removed_count:
@@ -552,6 +572,65 @@ class ProjectIndex:
             added_tags=add_tags,
             removed_tags=remove_tags,
             updated_at=datetime.now(timezone.utc),
+        )
+
+    def scan_duplicates(self) -> DuplicateScanResponse:
+        """
+        Scan all images in the project for duplicates based on content hash.
+        Returns groups of duplicate images.
+        """
+        self.ensure_loaded()
+        start_time = time.time()
+        
+        # Collect all image records
+        records = [
+            {"relative_path": record.relative_path, "record": record}
+            for record in self.items.values()
+        ]
+        
+        if not records:
+            return DuplicateScanResponse(
+                total_groups=0,
+                total_duplicates=0,
+                groups=[],
+                scanned_images=0,
+                duration_seconds=0.0,
+            )
+        
+        # Scan for duplicates
+        hash_map, duplicate_groups = scan_for_duplicates(
+            [{"relative_path": r["relative_path"]} for r in records],
+            self.data_source_dir,
+            max_workers=4,
+        )
+        
+        # Build response groups with full ImageItem data
+        groups: List[DuplicateGroup] = []
+        total_duplicates = 0
+        
+        for content_hash, paths in duplicate_groups.items():
+            images: List[ImageItem] = []
+            for path in paths:
+                normalized = path.replace("\\", "/")
+                record = self.items.get(normalized)
+                if record:
+                    images.append(record.to_model(self.name))
+            
+            if len(images) > 1:
+                groups.append(DuplicateGroup(
+                    content_hash=content_hash,
+                    images=images,
+                ))
+                total_duplicates += len(images)
+        
+        duration = time.time() - start_time
+        
+        return DuplicateScanResponse(
+            total_groups=len(groups),
+            total_duplicates=total_duplicates,
+            groups=groups,
+            scanned_images=len(records),
+            duration_seconds=round(duration, 2),
         )
 
     @staticmethod
@@ -888,6 +967,44 @@ class ProjectIndex:
             balance_analysis=balance_analysis,
         )
 
+    def save_computed_stats(self) -> bool:
+        """
+        Compute stats and save them to characteristics.db for caching.
+        Called after discovery/sync or on explicit refresh.
+        """
+        try:
+            stats_model = self.stats()
+            
+            label_dist = stats_model.label_distribution or {}
+            balance_anal = stats_model.balance_analysis or {}
+            
+            # Build stats dict for characteristics_db.save_stats()
+            stats_dict = {
+                "dataset_type": "multi_label",  # or detect from project config
+                "image_count": stats_model.total_images,
+                "labels": list(label_dist.keys()),
+                "label_distribution": label_dist,
+                "balance_score": stats_model.balance_score,
+                "balance_status": stats_model.balance_status,
+                "balance_analysis": {
+                    "total_images": stats_model.total_images,
+                    "num_labels": len(label_dist),
+                    **balance_anal,
+                },
+                "has_dataset": self.dataset_dir.exists() and any(self.dataset_dir.iterdir()) if self.dataset_dir.exists() else False,
+                "has_model_dir": (self.root / "model").exists(),
+            }
+            
+            # Save to characteristics.db
+            characteristics_db.save_stats(self.name, stats_dict)
+            characteristics_db.save_label_index(self.name, label_dist)
+            
+            info(f"Saved computed stats for project {self.name}: {stats_model.total_images} images, {len(label_dist)} labels")
+            return True
+        except Exception as ex:
+            warning(f"Failed to save computed stats for {self.name}: {ex}")
+            return False
+
     def folder_tree(self) -> FolderNode:
         self.ensure_loaded()
 
@@ -912,6 +1029,18 @@ class ProjectIndex:
 
         ensure_node("")
 
+        # First, scan filesystem for all directories (including empty ones)
+        if self.data_source_dir.exists():
+            for dir_path in self.data_source_dir.rglob("*"):
+                if dir_path.is_dir():
+                    try:
+                        relative = dir_path.relative_to(self.data_source_dir)
+                        relative_str = str(relative).replace("\\", "/")
+                        ensure_node(relative_str)
+                    except ValueError:
+                        pass
+
+        # Then count images per folder from loaded items
         for record in self.items.values():
             relative_dir = record.relative_dir
             ensure_node(relative_dir)
@@ -933,6 +1062,203 @@ class ProjectIndex:
         root = ensure_node("")
         sort_children(root)
         return root
+
+    def _validate_path_within_data_source(self, relative_path: str) -> Path:
+        """Validate that a path is within data_source and return absolute path."""
+        normalized = relative_path.replace("\\", "/").strip("/")
+        if not normalized:
+            raise ValueError("Path cannot be empty")
+        
+        # Check for path traversal attempts
+        if ".." in normalized or normalized.startswith("/"):
+            raise ValueError("Invalid path: path traversal not allowed")
+        
+        full_path = self.data_source_dir / normalized
+        
+        # Resolve and verify it's still within data_source
+        try:
+            resolved = full_path.resolve()
+            data_source_resolved = self.data_source_dir.resolve()
+            if not str(resolved).startswith(str(data_source_resolved)):
+                raise ValueError("Path must be within data_source directory")
+        except Exception:
+            raise ValueError("Invalid path")
+        
+        return full_path
+
+    def create_folder(self, relative_path: str) -> Path:
+        """Create a new folder within data_source."""
+        full_path = self._validate_path_within_data_source(relative_path)
+        
+        if full_path.exists():
+            raise ValueError(f"Folder already exists: {relative_path}")
+        
+        full_path.mkdir(parents=True, exist_ok=False)
+        return full_path
+
+    def rename_folder(self, old_relative_path: str, new_name: str) -> Path:
+        """Rename a folder within data_source."""
+        if not new_name or "/" in new_name or "\\" in new_name:
+            raise ValueError("Invalid folder name")
+        
+        old_path = self._validate_path_within_data_source(old_relative_path)
+        
+        if not old_path.exists():
+            raise ValueError(f"Folder not found: {old_relative_path}")
+        
+        if not old_path.is_dir():
+            raise ValueError(f"Not a folder: {old_relative_path}")
+        
+        new_path = old_path.parent / new_name
+        
+        if new_path.exists():
+            raise ValueError(f"A folder with name '{new_name}' already exists")
+        
+        # Rename the folder
+        old_path.rename(new_path)
+        
+        # Update internal records
+        old_prefix = old_relative_path.replace("\\", "/").rstrip("/")
+        new_prefix = str(new_path.relative_to(self.data_source_dir)).replace("\\", "/")
+        
+        with self._lock:
+            updated_items: Dict[str, ImageRecord] = {}
+            for record_id, record in list(self.items.items()):
+                if record.relative_dir == old_prefix or record.relative_dir.startswith(old_prefix + "/"):
+                    # Update record paths
+                    new_relative_dir = new_prefix + record.relative_dir[len(old_prefix):]
+                    new_relative_path = new_relative_dir + "/" + record.filename if new_relative_dir else record.filename
+                    new_record_id = new_relative_path
+                    
+                    # Create updated record
+                    new_image_path = self.data_source_dir / new_relative_path
+                    updated_record = ImageRecord(
+                        id=new_record_id,
+                        image_path=new_image_path,
+                        annotation_path=new_image_path.with_suffix(".txt"),
+                        bounds_path=new_image_path.with_name(f"{new_image_path.stem}-bounds.json"),
+                        relative_dir=new_relative_dir,
+                        relative_path=new_relative_path,
+                        filename=record.filename,
+                        extension=record.extension,
+                        category=new_relative_dir.split("/")[0] if new_relative_dir else "root",
+                        width=record.width,
+                        height=record.height,
+                        min_dimension=record.min_dimension,
+                        annotation=record.annotation,
+                        tags=record.tags,
+                        bounds=record.bounds,
+                        has_custom_bounds=record.has_custom_bounds,
+                        updated_at=record.updated_at,
+                    )
+                    updated_items[new_record_id] = updated_record
+                    del self.items[record_id]
+            
+            self.items.update(updated_items)
+        
+        # Refresh to update editor store
+        self._write_cache_snapshot()
+        
+        return new_path
+
+    def delete_folder(self, relative_path: str, recursive: bool = False) -> int:
+        """Delete a folder within data_source. Returns number of deleted images."""
+        full_path = self._validate_path_within_data_source(relative_path)
+        
+        if not full_path.exists():
+            raise ValueError(f"Folder not found: {relative_path}")
+        
+        if not full_path.is_dir():
+            raise ValueError(f"Not a folder: {relative_path}")
+        
+        # Check if folder is empty or recursive delete is allowed
+        contents = list(full_path.iterdir())
+        if contents and not recursive:
+            raise ValueError("Folder is not empty. Use recursive=true to delete non-empty folders.")
+        
+        # Collect all images to delete
+        normalized_path = relative_path.replace("\\", "/").rstrip("/")
+        images_to_delete = []
+        
+        with self._lock:
+            for record_id, record in self.items.items():
+                if record.relative_dir == normalized_path or record.relative_dir.startswith(normalized_path + "/"):
+                    images_to_delete.append(record_id)
+        
+        # Delete images through existing method
+        deleted_count = 0
+        if images_to_delete:
+            result = self.delete_items(images_to_delete)
+            deleted_count = result.deleted
+        
+        # Delete the folder itself (and any remaining non-image files)
+        import shutil
+        if full_path.exists():
+            shutil.rmtree(full_path)
+        
+        return deleted_count
+
+    def upload_images(self, files: List[tuple], target_folder: str = "") -> dict:
+        """
+        Upload images to data_source.
+        files: List of (filename, file_content_bytes) tuples
+        target_folder: Relative path within data_source (empty string for root)
+        Returns: { uploaded: int, failed: int, files: [], errors: [] }
+        """
+        result = {
+            "uploaded": 0,
+            "failed": 0,
+            "files": [],
+            "errors": []
+        }
+        
+        # Validate target folder
+        if target_folder:
+            target_path = self._validate_path_within_data_source(target_folder)
+            if not target_path.exists():
+                target_path.mkdir(parents=True, exist_ok=True)
+        else:
+            target_path = self.data_source_dir
+        
+        allowed_extensions = SETTINGS.image_extensions
+        
+        for filename, content in files:
+            try:
+                # Sanitize filename
+                safe_filename = Path(filename).name
+                if not safe_filename:
+                    result["errors"].append(f"Invalid filename: {filename}")
+                    result["failed"] += 1
+                    continue
+                
+                # Check extension
+                ext = Path(safe_filename).suffix.lower()
+                if ext not in allowed_extensions:
+                    result["errors"].append(f"Invalid file type: {safe_filename} (allowed: {', '.join(allowed_extensions)})")
+                    result["failed"] += 1
+                    continue
+                
+                # Write file
+                file_path = target_path / safe_filename
+                
+                # Handle duplicate filenames
+                counter = 1
+                original_stem = file_path.stem
+                while file_path.exists():
+                    file_path = target_path / f"{original_stem}_{counter}{ext}"
+                    counter += 1
+                
+                file_path.write_bytes(content)
+                
+                relative_path = str(file_path.relative_to(self.data_source_dir)).replace("\\", "/")
+                result["files"].append(relative_path)
+                result["uploaded"] += 1
+                
+            except Exception as e:
+                result["errors"].append(f"Failed to upload {filename}: {str(e)}")
+                result["failed"] += 1
+        
+        return result
 
 class ProjectRepository:
     def __init__(self, base_dir: Path):

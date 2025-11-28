@@ -1,244 +1,221 @@
 from __future__ import annotations
 
-import dbm
+"""
+Dataset Editor Metadata Store - Legacy compatibility wrapper.
+
+This module wraps the centralized characteristics_db for dataset editor operations.
+The actual storage is now in characteristics.db (SQLite) using:
+- snapshots table: image metadata with hash-based IDs
+- dataset_status table: build status tracking
+- build_cache table: incremental build data
+
+Legacy methods are preserved for backward compatibility but delegate to characteristics_db.
+"""
+
 import json
-import pickle
-import sqlite3
 from pathlib import Path
 from threading import RLock
 from typing import Dict, Iterable, Optional, Sequence
 
 from system.log import warning
+from system import characteristics_db as cdb
 
 FINGERPRINT_FIELD = "_fingerprint"
+
 
 def _dump_json(data: dict) -> str:
     return json.dumps(data, ensure_ascii=False, separators=(",", ":"))
 
+
+def _convert_to_new_format(key: str, old_data: dict) -> dict:
+    """Convert old snapshot format to new normalized format."""
+    return {
+        'relative_path': key,
+        'relative_dir': old_data.get('relative_dir', ''),
+        'filename': old_data.get('filename', ''),
+        'extension': old_data.get('extension', ''),
+        'category': old_data.get('category', ''),
+        'width': old_data.get('width', 0),
+        'height': old_data.get('height', 0),
+        'min_dimension': old_data.get('min_dimension', 0),
+        'tags': old_data.get('tags', []),
+        'crop': old_data.get('bounds', old_data.get('crop', {})),
+        'fingerprint': old_data.get(FINGERPRINT_FIELD, old_data.get('fingerprint', {})),
+        'updated_at': old_data.get('updated_at', ''),
+    }
+
+
+def _convert_from_new_format(new_data: dict) -> dict:
+    """Convert new normalized format back to old format for compatibility."""
+    crop = new_data.get('crop', {})
+    return {
+        'id': new_data.get('relative_path', ''),
+        'relative_dir': new_data.get('relative_dir', ''),
+        'relative_path': new_data.get('relative_path', ''),
+        'filename': new_data.get('filename', ''),
+        'extension': new_data.get('extension', ''),
+        'category': new_data.get('category', ''),
+        'width': new_data.get('width', 0),
+        'height': new_data.get('height', 0),
+        'min_dimension': new_data.get('min_dimension', 0),
+        'annotation': ', '.join(new_data.get('tags', [])),
+        'tags': new_data.get('tags', []),
+        'bounds': {
+            'zoom': crop.get('zoom', 1.0),
+            'center_x': crop.get('center_x', 0.5),
+            'center_y': crop.get('center_y', 0.5),
+        },
+        'has_custom_bounds': crop.get('zoom', 1.0) != 1.0 or crop.get('center_x', 0.5) != 0.5 or crop.get('center_y', 0.5) != 0.5,
+        'updated_at': new_data.get('updated_at', ''),
+        FINGERPRINT_FIELD: new_data.get('fingerprint', {}),
+    }
+
+
 class EditorStore:
+    """
+    Dataset Editor Store - now backed by characteristics.db.
+    
+    This class provides the same interface as before but delegates
+    all storage operations to the centralized characteristics_db module.
+    """
 
     def __init__(self, project_root: Path):
         self.project_root = project_root
-        self._legacy_dbm_path = project_root / "dataset_editor"
-        self._db_path = project_root / "dataset_index.db"
+        self.project_name = project_root.name
         self._lock = RLock()
+        
+        # Migrate old database if needed
+        cdb.migrate_from_dataset_index(self.project_name)
+        
+        # Run legacy migrations
         self._migrate_legacy_store_files()
-        self._ensure_schema()
         self._migrate_legacy_json()
-        self._migrate_from_dbm()
         self._migrate_snapshot_cache()
 
     def bulk_upsert(self, payloads: Dict[str, dict]) -> None:
+        """Insert or update multiple records."""
         if not payloads:
             return
-        rows = [(key, _dump_json(payload)) for key, payload in payloads.items()]
-        with self._lock, self._connect() as conn:
-            conn.executemany(
-                """
-                INSERT INTO payloads(id, payload_json)
-                VALUES (?, ?)
-                ON CONFLICT(id) DO UPDATE SET payload_json=excluded.payload_json
-                """,
-                rows,
-            )
-            self._ensure_status_rows(conn, list(payloads.keys()))
+        
+        records = {key: _convert_to_new_format(key, data) for key, data in payloads.items()}
+        with self._lock:
+            cdb.snapshot_upsert(self.project_name, records)
+            cdb.status_ensure_rows(self.project_name, list(payloads.keys()))
 
     def upsert(self, key: str, payload: dict) -> None:
+        """Insert or update a single record."""
         if not key:
             return
         self.bulk_upsert({key: payload})
 
     def prune(self, valid_keys: Iterable[str]) -> None:
-        keep = set(valid_keys)
-        with self._lock, self._connect() as conn:
-            if keep:
-                placeholders = ",".join(["?"] * len(keep))
-                conn.execute(f"DELETE FROM payloads WHERE id NOT IN ({placeholders})", tuple(keep))
-                conn.execute(f"DELETE FROM dataset_status WHERE id NOT IN ({placeholders})", tuple(keep))
-            else:
-                conn.execute("DELETE FROM payloads")
-                conn.execute("DELETE FROM dataset_status")
+        """Remove all records not in valid_keys."""
+        with self._lock:
+            cdb.snapshot_prune(self.project_name, valid_keys)
 
     def remove(self, keys: Iterable[str]) -> None:
-        target = list(keys)
-        if not target:
-            return
-        with self._lock, self._connect() as conn:
-            conn.executemany("DELETE FROM payloads WHERE id=?", [(key,) for key in target])
-            conn.executemany("DELETE FROM dataset_status WHERE id=?", [(key,) for key in target])
-            conn.executemany("DELETE FROM snapshots WHERE id=?", [(key,) for key in target])
-            conn.executemany("DELETE FROM build_cache WHERE id=?", [(key,) for key in target])
+        """Remove specific records."""
+        with self._lock:
+            cdb.snapshot_remove(self.project_name, keys)
 
     def get(self, key: str) -> Optional[dict]:
+        """Get a single record by key (relative_path)."""
         if not key:
             return None
-        with self._lock, self._connect() as conn:
-            row = conn.execute("SELECT payload_json FROM payloads WHERE id=?", (key,)).fetchone()
-        return json.loads(row[0]) if row else None
+        with self._lock:
+            data = cdb.snapshot_get(self.project_name, key)
+            if data:
+                return _convert_from_new_format(data)
+            return None
 
     def items(self) -> Dict[str, dict]:
-        with self._lock, self._connect() as conn:
-            rows = conn.execute("SELECT id, payload_json FROM payloads").fetchall()
-        return {row[0]: json.loads(row[1]) for row in rows}
+        """Get all records."""
+        with self._lock:
+            all_data = cdb.snapshot_load_all(self.project_name)
+            return {key: _convert_from_new_format(data) for key, data in all_data.items()}
 
     def keys(self) -> list[str]:
-        with self._lock, self._connect() as conn:
-            rows = conn.execute("SELECT id FROM payloads").fetchall()
-        return [row[0] for row in rows]
+        """Get all record keys (relative_paths)."""
+        with self._lock:
+            all_data = cdb.snapshot_load_all(self.project_name)
+            return list(all_data.keys())
 
     def count(self) -> int:
-        with self._lock, self._connect() as conn:
-            (value,) = conn.execute("SELECT COUNT(*) FROM payloads").fetchone()
-        return int(value)
+        """Get count of records."""
+        return cdb.snapshot_count(self.project_name)
 
     def should_update(self, key: str, fingerprint: dict) -> bool:
+        """Check if record needs update based on fingerprint."""
         if not key:
             return False
-        existing = self.get(key)
-        if not existing:
-            return True
-        return existing.get(FINGERPRINT_FIELD) != fingerprint
+        return cdb.snapshot_should_update(self.project_name, key, fingerprint)
 
     def load_snapshot(self) -> Dict[str, dict]:
-        with self._lock, self._connect() as conn:
-            rows = conn.execute("SELECT id, data_json FROM snapshots").fetchall()
-        return {row[0]: json.loads(row[1]) for row in rows}
+        """Load all snapshot records."""
+        with self._lock:
+            all_data = cdb.snapshot_load_all(self.project_name)
+            return {key: _convert_from_new_format(data) for key, data in all_data.items()}
 
     def snapshot_count(self) -> int:
-        with self._lock, self._connect() as conn:
-            (value,) = conn.execute("SELECT COUNT(*) FROM snapshots").fetchone()
-        return int(value)
+        """Get count of snapshots."""
+        return cdb.snapshot_count(self.project_name)
 
     def write_snapshot(self, records: Dict[str, dict]) -> None:
-        with self._lock, self._connect() as conn:
-            conn.execute("DELETE FROM snapshots")
-            rows = [(key, _dump_json(value)) for key, value in records.items()]
-            conn.executemany("INSERT INTO snapshots(id, data_json) VALUES (?, ?)", rows)
-            self._ensure_status_rows(conn, list(records.keys()))
+        """Write snapshot records (replaces existing)."""
+        with self._lock:
+            # Clear and rewrite
+            cdb.snapshot_prune(self.project_name, [])  # Clear all
+            if records:
+                converted = {key: _convert_to_new_format(key, data) for key, data in records.items()}
+                cdb.snapshot_upsert(self.project_name, converted)
+                cdb.status_ensure_rows(self.project_name, list(records.keys()))
 
     def update_snapshot_entry(self, key: str, data: dict) -> None:
-        with self._lock, self._connect() as conn:
-            conn.execute(
-                """
-                INSERT INTO snapshots(id, data_json)
-                VALUES (?, ?)
-                ON CONFLICT(id) DO UPDATE SET data_json=excluded.data_json
-                """,
-                (key, _dump_json(data)),
-            )
-            self._ensure_status_rows(conn, [key])
+        """Update a single snapshot entry."""
+        with self._lock:
+            converted = _convert_to_new_format(key, data)
+            cdb.snapshot_upsert(self.project_name, {key: converted})
+            cdb.status_ensure_rows(self.project_name, [key])
 
     def remove_snapshot_entries(self, keys: Iterable[str]) -> None:
-        target = list(keys)
-        if not target:
-            return
-        with self._lock, self._connect() as conn:
-            conn.executemany("DELETE FROM snapshots WHERE id=?", [(key,) for key in target])
+        """Remove snapshot entries."""
+        with self._lock:
+            cdb.snapshot_remove(self.project_name, keys)
 
     def pending_dataset_ids(self) -> list[str]:
-        with self._lock, self._connect() as conn:
-            rows = conn.execute(
-                "SELECT id FROM dataset_status WHERE in_dataset=0 OR needs_update=1",
-            ).fetchall()
-        return [row[0] for row in rows]
+        """Get IDs of items pending dataset build."""
+        return cdb.status_get_pending(self.project_name)
 
     def mark_dataset_built(self, record_id: str) -> None:
-        self._set_status(record_id, in_dataset=1, needs_update=0)
+        """Mark item as built in dataset."""
+        cdb.status_mark_built(self.project_name, record_id)
 
     def mark_dataset_needs_update(self, record_id: str) -> None:
-        with self._lock, self._connect() as conn:
-            self._ensure_status_rows(conn, [record_id])
-            conn.execute("UPDATE dataset_status SET needs_update=1 WHERE id=? AND in_dataset=1", (record_id,))
+        """Mark item as needing rebuild."""
+        cdb.status_mark_needs_update(self.project_name, record_id)
 
     def mark_dataset_not_built(self, record_id: str) -> None:
-        self._set_status(record_id, in_dataset=0)
+        """Mark item as not in dataset."""
+        cdb.status_mark_not_built(self.project_name, record_id)
 
     def remove_status(self, record_ids: Iterable[str]) -> None:
-        target = list(record_ids)
-        if not target:
-            return
-        with self._lock, self._connect() as conn:
-            conn.executemany("DELETE FROM dataset_status WHERE id=?", [(key,) for key in target])
-
-    def _set_status(self, record_id: str, *, in_dataset: Optional[int] = None, needs_update: Optional[int] = None) -> None:
-        with self._lock, self._connect() as conn:
-            self._ensure_status_rows(conn, [record_id])
-            assignments: list[str] = []
-            params: list[int | str] = []
-            if in_dataset is not None:
-                assignments.append("in_dataset=?")
-                params.append(int(bool(in_dataset)))
-            if needs_update is not None:
-                assignments.append("needs_update=?")
-                params.append(int(bool(needs_update)))
-            params.append(record_id)
-            if assignments:
-                conn.execute(f"UPDATE dataset_status SET {', '.join(assignments)} WHERE id=?", tuple(params))
+        """Remove status entries (handled by snapshot_remove)."""
+        pass  # Status is removed with snapshots automatically
 
     def load_build_cache(self) -> Dict[str, dict]:
-        with self._lock, self._connect() as conn:
-            rows = conn.execute("SELECT id, data_json FROM build_cache").fetchall()
-        return {row[0]: json.loads(row[1]) for row in rows}
+        """Load build cache."""
+        return cdb.build_cache_load(self.project_name)
 
     def update_build_cache(self, updates: Dict[str, dict], deletions: Iterable[str]) -> None:
-        delete_rows = [(key,) for key in deletions]
-        upsert_rows = [(key, _dump_json(value)) for key, value in updates.items()]
-        with self._lock, self._connect() as conn:
-            if delete_rows:
-                conn.executemany("DELETE FROM build_cache WHERE id=?", delete_rows)
-            if upsert_rows:
-                conn.executemany(
-                    """
-                    INSERT INTO build_cache(id, data_json)
-                    VALUES (?, ?)
-                    ON CONFLICT(id) DO UPDATE SET data_json=excluded.data_json
-                    """,
-                    upsert_rows,
-                )
+        """Update build cache."""
+        cdb.build_cache_update(self.project_name, updates, deletions)
 
-    def _connect(self):
-        return sqlite3.connect(self._db_path)
-
-    def _ensure_schema(self) -> None:
-        with self._lock, self._connect() as conn:
-            conn.executescript(
-                """
-                PRAGMA journal_mode=WAL;
-                CREATE TABLE IF NOT EXISTS payloads (
-                    id TEXT PRIMARY KEY,
-                    payload_json TEXT NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS snapshots (
-                    id TEXT PRIMARY KEY,
-                    data_json TEXT NOT NULL
-                );
-                CREATE TABLE IF NOT EXISTS dataset_status (
-                    id TEXT PRIMARY KEY,
-                    in_dataset INTEGER NOT NULL DEFAULT 0,
-                    needs_update INTEGER NOT NULL DEFAULT 0
-                );
-                CREATE TABLE IF NOT EXISTS build_cache (
-                    id TEXT PRIMARY KEY,
-                    data_json TEXT NOT NULL
-                );
-                CREATE INDEX IF NOT EXISTS idx_dataset_pending ON dataset_status(in_dataset, needs_update);
-                """
-            )
-
-    def _ensure_status_rows(self, conn: sqlite3.Connection, keys: Sequence[str]) -> None:
-        rows = [(key,) for key in keys]
-        if not rows:
-            return
-        conn.executemany(
-            """
-            INSERT INTO dataset_status(id, in_dataset, needs_update)
-            VALUES (?, 0, 0)
-            ON CONFLICT(id) DO NOTHING
-            """,
-            rows,
-        )
+    # =========================================================================
+    # Legacy migration methods
+    # =========================================================================
 
     def _migrate_legacy_store_files(self) -> None:
+        """Migrate old .editor_store files to dataset_editor naming."""
         legacy_pattern = ".editor_store"
         for child in self.project_root.glob(f"{legacy_pattern}*"):
             replacement = child.name.replace(legacy_pattern, "dataset_editor", 1)
@@ -251,6 +228,7 @@ class EditorStore:
                 warning(f"Failed to rename legacy editor store file {child}: {exc}")
 
     def _migrate_legacy_json(self) -> None:
+        """Migrate old editor.json format."""
         json_path = self.project_root / "editor.json"
         if not json_path.exists():
             return
@@ -272,26 +250,10 @@ class EditorStore:
                 self.bulk_upsert(entries)
             except Exception as exc:
                 warning(f"Failed to migrate legacy editor.json payload: {exc}")
-            if not self._legacy_store_exists():
-                self._write_legacy_dbm(entries)
         self._archive_legacy_file(json_path)
 
-    def _legacy_store_exists(self) -> bool:
-        stem = self._legacy_dbm_path.name
-        return any(child for child in self.project_root.glob(f"{stem}*") if child.is_file())
-
-    def _write_legacy_dbm(self, entries: Dict[str, dict]) -> None:
-        if not entries:
-            return
-        try:
-            with dbm.open(str(self._legacy_dbm_path), "n") as db:
-                for key, value in entries.items():
-                    encoded = key.encode("utf-8") if not isinstance(key, (bytes, bytearray)) else key
-                    db[encoded] = pickle.dumps(value)
-        except Exception as exc:
-            warning(f"Failed to persist legacy dataset editor DBM cache: {exc}")
-
     def _archive_legacy_file(self, path: Path) -> None:
+        """Archive a legacy file."""
         target = path.with_suffix(path.suffix + ".bak")
         counter = 1
         while target.exists():
@@ -302,28 +264,8 @@ class EditorStore:
         except OSError as exc:
             warning(f"Unable to archive legacy file {path}: {exc}")
 
-    def _migrate_from_dbm(self) -> None:
-        if not self._legacy_store_exists():
-            return
-        entries: Dict[str, dict] = {}
-        try:
-            with dbm.open(str(self._legacy_dbm_path), "r") as db:
-                for raw_key in db.keys():
-                    key = raw_key.decode("utf-8") if isinstance(raw_key, (bytes, bytearray)) else str(raw_key)
-                    entries[key] = pickle.loads(db[raw_key])
-        except Exception as exc:
-            warning(f"Failed to read legacy dataset editor DBM cache: {exc}")
-            entries = {}
-        if entries:
-            self.bulk_upsert(entries)
-        for child in self.project_root.glob("dataset_editor*"):
-            backup = child.with_suffix(child.suffix + ".legacy")
-            try:
-                child.rename(backup)
-            except OSError as exc:
-                warning(f"Unable to archive legacy dataset editor file {child}: {exc}")
-
     def _migrate_snapshot_cache(self) -> None:
+        """Migrate old .project_index_cache.json format."""
         cache_path = self.project_root / ".project_index_cache.json"
         if not cache_path.exists():
             return
@@ -345,5 +287,6 @@ class EditorStore:
             cache_path.rename(backup)
         except OSError as exc:
             warning(f"Unable to archive legacy dataset snapshot cache: {exc}")
+
 
 __all__ = ["EditorStore", "FINGERPRINT_FIELD"]

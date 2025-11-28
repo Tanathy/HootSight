@@ -4,10 +4,56 @@
   "title": "Hootsight Configuration Schema",
   "description": "schema.description",
   "type": "object",
+  "ui_definitions": {
+    "widgets": {
+      "dropdown": { "description": "Select from predefined options" },
+      "switch": { "description": "Boolean toggle switch" },
+      "text": { "description": "Single line text input" },
+      "textarea": { "description": "Multi-line text input" },
+      "slider": { "description": "Numeric slider with input field" },
+      "number": { "description": "Numeric input without slider" },
+      "array": { "description": "List/array editor" },
+      "path": { "description": "File or directory path selector" },
+      "auto_or_number": { "description": "Toggle between 'auto' and numeric value" },
+      "nested": { "description": "Nested object group" },
+      "readonly": { "description": "Display only, not editable" }
+    },
+    "groups": {
+      "general": { "label": "schema.ui_group.general", "order": 1, "collapsible": false },
+      "api": { "label": "schema.ui_group.api", "order": 2, "collapsible": true },
+      "ui_settings": { "label": "schema.ui_group.ui_settings", "order": 3, "collapsible": true },
+      "paths": { "label": "schema.ui_group.paths", "order": 4, "collapsible": true },
+      "system": { "label": "schema.ui_group.system", "order": 5, "collapsible": true },
+      "memory": { "label": "schema.ui_group.memory", "order": 6, "collapsible": true },
+      "dataset": { "label": "schema.ui_group.dataset", "order": 7, "collapsible": true },
+      "dataset_editor": { "label": "schema.ui_group.dataset_editor", "order": 8, "collapsible": true },
+      "training.model": { "label": "schema.ui_group.training_model", "order": 10, "collapsible": true },
+      "training.hyperparameters": { "label": "schema.ui_group.training_hyperparameters", "order": 11, "collapsible": true },
+      "training.dataloader": { "label": "schema.ui_group.training_dataloader", "order": 12, "collapsible": true },
+      "training.augmentation": { "label": "schema.ui_group.training_augmentation", "order": 13, "collapsible": true },
+      "training.optimizer": { "label": "schema.ui_group.training_optimizer", "order": 14, "collapsible": true },
+      "training.scheduler": { "label": "schema.ui_group.training_scheduler", "order": 15, "collapsible": true },
+      "training.loss": { "label": "schema.ui_group.training_loss", "order": 16, "collapsible": true },
+      "training.checkpoint": { "label": "schema.ui_group.training_checkpoint", "order": 17, "collapsible": true },
+      "training.early_stopping": { "label": "schema.ui_group.training_early_stopping", "order": 18, "collapsible": true },
+      "training.gradient": { "label": "schema.ui_group.training_gradient", "order": 19, "collapsible": true },
+      "training.runtime": { "label": "schema.ui_group.training_runtime", "order": 20, "collapsible": true },
+      "optimizers": { "label": "schema.ui_group.optimizers", "order": 30, "collapsible": true, "collapsed_default": true },
+      "schedulers": { "label": "schema.ui_group.schedulers", "order": 31, "collapsible": true, "collapsed_default": true },
+      "losses": { "label": "schema.ui_group.losses", "order": 32, "collapsible": true, "collapsed_default": true },
+      "activations": { "label": "schema.ui_group.activations", "order": 33, "collapsible": true, "collapsed_default": true },
+      "augmentations": { "label": "schema.ui_group.augmentations", "order": 34, "collapsible": true, "collapsed_default": true },
+      "regularization": { "label": "schema.ui_group.regularization", "order": 35, "collapsible": true, "collapsed_default": true },
+      "normalization": { "label": "schema.ui_group.normalization", "order": 36, "collapsible": true, "collapsed_default": true },
+      "pooling": { "label": "schema.ui_group.pooling", "order": 37, "collapsible": true, "collapsed_default": true },
+      "models": { "label": "schema.ui_group.models", "order": 40, "collapsible": true, "collapsed_default": true }
+    }
+  },
   "properties": {
     "general": {
       "type": "object",
       "description": "schema.general_description",
+      "ui": { "group": "general", "order": 1 },
       "properties": {
         "language": {
           "type": "string",
@@ -16,7 +62,8 @@
           "enum_descriptor": {
             "en": "schema.general_language_enum_descriptor.en"
           },
-          "default": "en"
+          "default": "en",
+          "ui": { "widget": "dropdown", "order": 1 }
         }
       },
       "required": ["language"],
@@ -25,19 +72,22 @@
     "api": {
       "type": "object",
       "description": "schema.api_description",
+      "ui": { "group": "api", "order": 2 },
       "properties": {
         "host": {
           "type": "string",
           "description": "schema.api_host_description",
           "format": "hostname",
-          "default": "127.0.0.1"
+          "default": "127.0.0.1",
+          "ui": { "widget": "text", "order": 1 }
         },
         "port": {
           "type": "integer",
           "description": "schema.api_port_description",
           "minimum": 1,
           "maximum": 65535,
-          "default": 8000
+          "default": 8000,
+          "ui": { "widget": "number", "order": 2 }
         }
       },
       "additionalProperties": false
@@ -45,32 +95,37 @@
     "ui": {
       "type": "object",
       "description": "schema.ui_description",
+      "ui": { "group": "ui_settings", "order": 3 },
       "properties": {
         "title": {
           "type": "string",
           "description": "schema.ui_title_description",
           "minLength": 1,
           "maxLength": 100,
-          "default": "Hootsight"
+          "default": "Hootsight",
+          "ui": { "widget": "text", "order": 1 }
         },
         "width": {
           "type": "integer",
           "description": "schema.ui_width_description",
           "minimum": 800,
           "maximum": 3840,
-          "default": 1200
+          "default": 1200,
+          "ui": { "widget": "slider", "order": 2, "step": 10 }
         },
         "height": {
           "type": "integer",
           "description": "schema.ui_height_description",
           "minimum": 600,
           "maximum": 2160,
-          "default": 800
+          "default": 800,
+          "ui": { "widget": "slider", "order": 3, "step": 10 }
         },
         "resizable": {
           "type": "boolean",
           "description": "schema.ui_resizable_description",
-          "default": true
+          "default": true,
+          "ui": { "widget": "switch", "order": 4 }
         }
       },
       "additionalProperties": false
@@ -78,42 +133,56 @@
     "paths": {
       "type": "object",
       "description": "schema.paths_description",
+      "ui": { "group": "paths", "order": 4 },
       "properties": {
         "projects_dir": {
           "type": "string",
           "description": "schema.paths_projects_dir_description",
           "minLength": 1,
-          "default": "projects"
+          "default": "projects",
+          "ui": { "widget": "path", "order": 1, "path_type": "directory" }
         },
         "ui_dir": {
           "type": "string",
           "description": "schema.paths_ui_dir_description",
           "minLength": 1,
-          "default": "ui"
+          "default": "ui",
+          "ui": { "widget": "path", "order": 2, "path_type": "directory" }
         },
         "config_dir": {
           "type": "string",
           "description": "schema.paths_config_dir_description",
           "minLength": 1,
-          "default": "config"
+          "default": "config",
+          "ui": { "widget": "path", "order": 3, "path_type": "directory" }
         },
         "localizations_dir": {
           "type": "string",
           "description": "schema.paths_localizations_dir_description",
           "minLength": 1,
-          "default": "config/localizations"
+          "default": "config/localizations",
+          "ui": { "widget": "path", "order": 4, "path_type": "directory" }
         },
         "packages_file": {
           "type": "string",
           "description": "schema.paths_packages_file_description",
           "minLength": 1,
-          "default": "config/packages.jsonc"
+          "default": "config/packages.jsonc",
+          "ui": { "widget": "path", "order": 5, "path_type": "file" }
         },
         "cache_dir": {
           "type": "string",
           "description": "schema.paths_cache_dir_description",
           "minLength": 1,
-          "default": "cache"
+          "default": "cache",
+          "ui": { "widget": "path", "order": 6, "path_type": "directory" }
+        },
+        "docs_dir": {
+          "type": "string",
+          "description": "schema.paths_docs_dir_description",
+          "minLength": 1,
+          "default": "docs",
+          "ui": { "widget": "path", "order": 7, "path_type": "directory" }
         }
       },
       "additionalProperties": false
@@ -121,6 +190,7 @@
     "system": {
       "type": "object",
       "description": "schema.system_description",
+      "ui": { "group": "system", "order": 5 },
       "properties": {
         "max_threads": {
           "oneOf": [
@@ -131,40 +201,46 @@
           "enum_descriptor": {
             "auto": "schema.system_max_threads_enum_descriptor.auto"
           },
-          "default": "auto"
+          "default": "auto",
+          "ui": { "widget": "auto_or_number", "order": 1 }
         },
         "fallback_batch_size": {
           "type": "integer",
           "description": "schema.system_fallback_batch_size_description",
           "minimum": 1,
           "maximum": 512,
-          "default": 8
+          "default": 8,
+          "ui": { "widget": "slider", "order": 2, "step": 1 }
         },
         "startup_wait_seconds": {
           "type": "integer",
           "description": "schema.system_startup_wait_seconds_description",
           "minimum": 0,
           "maximum": 60,
-          "default": 2
+          "default": 2,
+          "ui": { "widget": "slider", "order": 3, "step": 1 }
         },
         "http_timeout": {
           "type": "integer",
           "description": "schema.system_http_timeout_description",
           "minimum": 5,
           "maximum": 300,
-          "default": 20
+          "default": 20,
+          "ui": { "widget": "slider", "order": 4, "step": 5 }
         },
         "update_repository_url": {
           "type": "string",
           "description": "schema.system_update_repository_url_description",
           "format": "uri",
-          "default": "https://raw.githubusercontent.com/Tanathy/HootSight/refs/heads/main/"
+          "default": "https://raw.githubusercontent.com/Tanathy/HootSight/refs/heads/main/",
+          "ui": { "widget": "text", "order": 5 }
         },
         "update_skip_paths": {
           "type": "array",
           "description": "schema.system_update_skip_paths_description",
           "items": { "type": "string", "minLength": 1 },
-          "default": ["config/config.json"]
+          "default": ["config/config.json"],
+          "ui": { "widget": "array", "order": 6 }
         }
       },
       "additionalProperties": false
@@ -172,20 +248,23 @@
       "dataset_editor": {
         "type": "object",
         "description": "schema.dataset_editor_description",
+        "ui": { "group": "dataset_editor", "order": 8 },
         "properties": {
           "page_sizes": {
             "type": "array",
             "description": "schema.dataset_editor_page_sizes_description",
             "items": { "type": "integer", "minimum": 10, "maximum": 1000 },
             "minItems": 1,
-            "default": [25, 50, 100, 200, 500, 750]
+            "default": [25, 50, 100, 200, 500, 750],
+            "ui": { "widget": "array", "order": 1 }
           },
           "default_page_size": {
             "type": "integer",
             "description": "schema.dataset_editor_default_page_size_description",
             "minimum": 1,
             "maximum": 1000,
-            "default": 50
+            "default": 50,
+            "ui": { "widget": "slider", "order": 2, "step": 10 }
           },
           "size_presets": {
             "type": "object",
@@ -199,14 +278,16 @@
               "Generic": [128, 256, 512, 768, 1024],
               "YOLO": [416, 512, 640, 960],
               "ResNet": [224, 256, 384, 448, 512]
-            }
+            },
+            "ui": { "widget": "nested", "order": 3, "visible": false }
           },
           "default_size": {
             "type": "integer",
             "description": "schema.dataset_editor_default_size_description",
             "minimum": 32,
             "maximum": 4096,
-            "default": 512
+            "default": 512,
+            "ui": { "widget": "slider", "order": 4, "step": 32 }
           },
           "build_workers": {
             "oneOf": [
@@ -217,7 +298,8 @@
             "enum_descriptor": {
               "auto": "schema.dataset_editor_build_workers_enum_descriptor.auto"
             },
-            "default": "auto"
+            "default": "auto",
+            "ui": { "widget": "auto_or_number", "order": 5 }
           },
           "discovery_workers": {
             "oneOf": [
@@ -228,30 +310,35 @@
             "enum_descriptor": {
               "auto": "schema.dataset_editor_discovery_workers_enum_descriptor.auto"
             },
-            "default": "auto"
+            "default": "auto",
+            "ui": { "widget": "auto_or_number", "order": 6 }
           },
           "project_name_validation": {
             "type": "object",
             "description": "schema.dataset_editor_project_name_validation_description",
+            "ui": { "widget": "nested", "order": 7 },
             "properties": {
               "min_length": {
                 "type": "integer",
                 "description": "schema.dataset_editor_project_name_validation_min_length_description",
                 "minimum": 1,
                 "maximum": 50,
-                "default": 3
+                "default": 3,
+                "ui": { "widget": "number", "order": 1 }
               },
               "max_length": {
                 "type": "integer",
                 "description": "schema.dataset_editor_project_name_validation_max_length_description",
                 "minimum": 10,
                 "maximum": 256,
-                "default": 64
+                "default": 64,
+                "ui": { "widget": "number", "order": 2 }
               },
               "pattern": {
                 "type": "string",
                 "description": "schema.dataset_editor_project_name_validation_pattern_description",
-                "default": "^[A-Za-z0-9][A-Za-z0-9_-]*$"
+                "default": "^[A-Za-z0-9][A-Za-z0-9_-]*$",
+                "ui": { "widget": "text", "order": 3 }
               }
             },
             "additionalProperties": false
@@ -262,20 +349,23 @@
     "memory": {
       "type": "object",
       "description": "schema.memory_description",
+      "ui": { "group": "memory", "order": 6 },
       "properties": {
         "target_memory_usage": {
           "type": "number",
           "description": "schema.memory_target_memory_usage_description",
           "minimum": 0.1,
           "maximum": 1.0,
-          "default": 0.8
+          "default": 0.8,
+          "ui": { "widget": "slider", "order": 1, "step": 0.05, "precision": 2 }
         },
         "safety_margin": {
           "type": "number",
           "description": "schema.memory_safety_margin_description",
           "minimum": 0.1,
           "maximum": 1.0,
-          "default": 0.9
+          "default": 0.9,
+          "ui": { "widget": "slider", "order": 2, "step": 0.05, "precision": 2 }
         },
         "augmentation_threads": {
           "oneOf": [
@@ -286,7 +376,96 @@
           "enum_descriptor": {
             "auto": "schema.memory_augmentation_threads_enum_descriptor.auto"
           },
-          "default": "auto"
+          "default": "auto",
+          "ui": { "widget": "auto_or_number", "order": 3 }
+        },
+        "reserved_memory_ratio": {
+          "type": "number",
+          "description": "schema.memory_reserved_memory_ratio_description",
+          "minimum": 0.0,
+          "maximum": 0.5,
+          "default": 0.1,
+          "ui": { "widget": "slider", "order": 4, "step": 0.05, "precision": 2 }
+        },
+        "memory_per_sample_multiplier": {
+          "type": "number",
+          "description": "schema.memory_per_sample_multiplier_description",
+          "minimum": 1.0,
+          "maximum": 10.0,
+          "default": 2.5,
+          "ui": { "widget": "slider", "order": 5, "step": 0.5, "precision": 1 }
+        },
+        "min_batch_size": {
+          "type": "integer",
+          "description": "schema.memory_min_batch_size_description",
+          "minimum": 1,
+          "maximum": 64,
+          "default": 1,
+          "ui": { "widget": "number", "order": 6 }
+        },
+        "max_batch_size": {
+          "type": "integer",
+          "description": "schema.memory_max_batch_size_description",
+          "minimum": 1,
+          "maximum": 512,
+          "default": 128,
+          "ui": { "widget": "number", "order": 7 }
+        },
+        "memory_thresholds": {
+          "type": "object",
+          "description": "schema.memory_thresholds_description",
+          "ui": { "widget": "nested", "order": 8 },
+          "properties": {
+            "high_usage": {
+              "type": "number",
+              "description": "schema.memory_thresholds_high_usage_description",
+              "minimum": 0.5,
+              "maximum": 1.0,
+              "default": 0.9,
+              "ui": { "widget": "slider", "step": 0.05, "precision": 2 }
+            },
+            "moderate_usage": {
+              "type": "number",
+              "description": "schema.memory_thresholds_moderate_usage_description",
+              "minimum": 0.3,
+              "maximum": 0.9,
+              "default": 0.7,
+              "ui": { "widget": "slider", "step": 0.05, "precision": 2 }
+            },
+            "low_usage": {
+              "type": "number",
+              "description": "schema.memory_thresholds_low_usage_description",
+              "minimum": 0.1,
+              "maximum": 0.7,
+              "default": 0.5,
+              "ui": { "widget": "slider", "step": 0.05, "precision": 2 }
+            }
+          },
+          "additionalProperties": false
+        },
+        "batch_size_limits": {
+          "type": "object",
+          "description": "schema.memory_batch_size_limits_description",
+          "ui": { "widget": "nested", "order": 9 },
+          "properties": {
+            "small_batch_warning": {
+              "type": "integer",
+              "description": "schema.memory_batch_size_limits_small_description",
+              "minimum": 1,
+              "maximum": 32,
+              "default": 4,
+              "ui": { "widget": "number" }
+            },
+            "large_batch_warning": {
+              "type": "integer",
+              "description": "schema.memory_batch_size_limits_large_description",
+              "minimum": 16,
+              "maximum": 256,
+              "default": 64,
+              "ui": { "widget": "number" }
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -294,6 +473,7 @@
     "training": {
       "type": "object",
       "description": "schema.training_description",
+      "ui": { "group": "training.model", "order": 10 },
       "properties": {
         "model_type": {
           "type": "string",
@@ -307,7 +487,8 @@
             "squeezenet": "schema.training_model_type_enum_descriptor.squeezenet",
             "efficientnet": "schema.training_model_type_enum_descriptor.efficientnet"
           },
-          "default": "resnet"
+          "default": "resnet",
+          "ui": { "widget": "dropdown", "group": "training.model", "order": 1 }
         },
         "model_name": {
           "type": "string",
@@ -328,12 +509,14 @@
             "squeezenet": ["squeezenet1_0", "squeezenet1_1"],
             "efficientnet": ["efficientnet_b0", "efficientnet_b1", "efficientnet_b2", "efficientnet_b3", "efficientnet_b4", "efficientnet_b5", "efficientnet_b6", "efficientnet_b7", "efficientnet_v2_s", "efficientnet_v2_m", "efficientnet_v2_l"]
           },
-          "default": "resnet50"
+          "default": "resnet50",
+          "ui": { "widget": "dropdown", "group": "training.model", "order": 2, "depends_on": { "field": "model_type", "source": "model_type_variants" } }
         },
         "pretrained": {
           "type": "boolean",
           "description": "schema.training_pretrained_description",
-          "default": true
+          "default": true,
+          "ui": { "widget": "switch", "group": "training.model", "order": 3 }
         },
         "task": {
           "type": "string",
@@ -345,7 +528,8 @@
             "detection": "schema.training_task_enum_descriptor.detection",
             "segmentation": "schema.training_task_enum_descriptor.segmentation"
           },
-          "default": "multi_label"
+          "default": "multi_label",
+          "ui": { "widget": "dropdown", "group": "training.model", "order": 4 }
         },
         "batch_size": {
           "oneOf": [
@@ -353,7 +537,8 @@
             { "type": "integer", "minimum": 1, "maximum": 512 }
           ],
           "description": "schema.training_batch_size_description",
-          "default": "auto"
+          "default": "auto",
+          "ui": { "widget": "auto_or_number", "group": "training.hyperparameters", "order": 1 }
         },
         "epochs": {
           "oneOf": [
@@ -364,46 +549,53 @@
           "enum_descriptor": {
             "auto": "schema.training_epochs_enum_descriptor.auto"
           },
-          "default": "auto"
+          "default": "auto",
+          "ui": { "widget": "auto_or_number", "group": "training.hyperparameters", "order": 2 }
         },
         "learning_rate": {
           "type": "number",
           "description": "schema.training_learning_rate_description",
           "minimum": 1e-8,
           "maximum": 1.0,
-          "default": 0.001
+          "default": 0.001,
+          "ui": { "widget": "slider", "group": "training.hyperparameters", "order": 3, "scale": "log", "precision": 6 }
         },
         "weight_decay": {
           "type": "number",
           "description": "schema.training_weight_decay_description",
           "minimum": 0.0,
           "maximum": 1.0,
-          "default": 0.0001
+          "default": 0.0001,
+          "ui": { "widget": "slider", "group": "training.hyperparameters", "order": 4, "scale": "log", "precision": 6 }
         },
         "input_size": {
           "type": "integer",
           "description": "schema.training_input_size_description",
           "minimum": 32,
           "maximum": 1024,
-          "default": 224
+          "default": 224,
+          "ui": { "widget": "slider", "group": "training.hyperparameters", "order": 5, "step": 32 }
         },
         "normalize": {
           "type": "object",
           "description": "schema.training_normalize_description",
+          "ui": { "widget": "nested", "group": "training.hyperparameters", "order": 6 },
           "properties": {
             "mean": {
               "type": "array",
               "description": "schema.training_normalize_mean_description",
               "items": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
               "minItems": 3,
-              "maxItems": 3
+              "maxItems": 3,
+              "ui": { "widget": "array", "order": 1 }
             },
             "std": {
               "type": "array",
               "description": "schema.training_normalize_std_description",
               "items": { "type": "number", "minimum": 0.001, "maximum": 1.0 },
               "minItems": 3,
-              "maxItems": 3
+              "maxItems": 3,
+              "ui": { "widget": "array", "order": 2 }
             }
           },
           "required": ["mean", "std"],
@@ -414,35 +606,41 @@
           "description": "schema.training_val_ratio_description",
           "minimum": 0.0,
           "maximum": 1.0,
-          "default": 0.2
+          "default": 0.2,
+          "ui": { "widget": "slider", "group": "training.hyperparameters", "order": 7, "step": 0.05, "precision": 2 }
         },
         "dataloader": {
           "type": "object",
           "description": "schema.training_dataloader_description",
+          "ui": { "widget": "nested", "group": "training.dataloader", "order": 1 },
           "properties": {
             "num_workers": {
               "type": "integer",
               "description": "schema.training_dataloader_num_workers_description",
               "minimum": 0,
               "maximum": 32,
-              "default": 0
+              "default": 0,
+              "ui": { "widget": "slider", "order": 1, "step": 1 }
             },
             "pin_memory": {
               "type": "boolean",
               "description": "schema.training_dataloader_pin_memory_description",
-              "default": true
+              "default": true,
+              "ui": { "widget": "switch", "order": 2 }
             },
             "persistent_workers": {
               "type": "boolean",
               "description": "schema.training_dataloader_persistent_workers_description",
-              "default": false
+              "default": false,
+              "ui": { "widget": "switch", "order": 3 }
             },
             "prefetch_factor": {
               "type": "integer",
               "description": "schema.training_dataloader_prefetch_factor_description",
               "minimum": 1,
               "maximum": 10,
-              "default": 2
+              "default": 2,
+              "ui": { "widget": "slider", "order": 4, "step": 1 }
             }
           },
           "additionalProperties": false
@@ -450,6 +648,7 @@
         "augmentation": {
           "type": "object",
           "description": "schema.training_augmentation_description",
+          "ui": { "widget": "nested", "group": "training.augmentation", "order": 1 },
           "properties": {
             "train": {
               "type": "array",
@@ -461,7 +660,8 @@
                   "params": { "type": "object" }
                 },
                 "required": ["type"]
-              }
+              },
+              "ui": { "widget": "array", "order": 1, "item_type": "augmentation" }
             },
             "val": {
               "type": "array",
@@ -473,7 +673,8 @@
                   "params": { "type": "object" }
                 },
                 "required": ["type"]
-              }
+              },
+              "ui": { "widget": "array", "order": 2, "item_type": "augmentation" }
             }
           },
           "additionalProperties": false
@@ -481,6 +682,7 @@
         "activations": {
           "type": "object",
           "description": "schema.activations_description",
+          "ui": { "widget": "nested", "group": "activations", "order": 1, "visible": false },
           "properties": {
             "defaults": {
               "type": "object",
@@ -511,6 +713,7 @@
         "augmentations": {
           "type": "object",
           "description": "schema.augmentations_description",
+          "ui": { "widget": "nested", "group": "augmentations", "order": 1, "visible": false },
           "properties": {
             "defaults": {
               "type": "object",
@@ -556,21 +759,24 @@
             "lbfgs": "schema.training_optimizer_type_enum_descriptor.lbfgs",
             "asgd": "schema.training_optimizer_type_enum_descriptor.asgd"
           },
-          "default": "adamw"
+          "default": "adamw",
+          "ui": { "widget": "dropdown", "group": "training.optimizer", "order": 1 }
         },
         "optimizer_lr": {
           "type": "number",
           "description": "schema.training_optimizer_lr_description",
           "minimum": 1e-8,
           "maximum": 1.0,
-          "default": 0.001
+          "default": 0.001,
+          "ui": { "widget": "slider", "group": "training.optimizer", "order": 2, "scale": "log", "precision": 6 }
         },
         "optimizer_weight_decay": {
           "type": "number",
           "description": "schema.training_optimizer_weight_decay_description",
           "minimum": 0.0,
           "maximum": 1.0,
-          "default": 0.01
+          "default": 0.01,
+          "ui": { "widget": "slider", "group": "training.optimizer", "order": 3, "scale": "log", "precision": 6 }
         },
         "optimizer_params": {
           "type": "object",
@@ -579,7 +785,7 @@
             "type": "object",
             "additionalProperties": true
           },
-          "visible": false
+          "ui": { "widget": "nested", "group": "training.optimizer", "order": 4, "visible": false }
         },
         "scheduler_type": {
           "type": "string",
@@ -599,21 +805,24 @@
             "lambda_lr": "schema.training_scheduler_type_enum_descriptor.lambda_lr",
             "multiplicative_lr": "schema.training_scheduler_type_enum_descriptor.multiplicative_lr"
           },
-          "default": "step_lr"
+          "default": "step_lr",
+          "ui": { "widget": "dropdown", "group": "training.scheduler", "order": 1 }
         },
         "scheduler_step_size": {
           "type": "integer",
           "description": "schema.training_scheduler_step_size_description",
           "minimum": 1,
           "maximum": 1000,
-          "default": 7
+          "default": 7,
+          "ui": { "widget": "slider", "group": "training.scheduler", "order": 2, "step": 1 }
         },
         "scheduler_gamma": {
           "type": "number",
           "description": "schema.training_scheduler_gamma_description",
           "minimum": 0.001,
           "maximum": 1.0,
-          "default": 0.1
+          "default": 0.1,
+          "ui": { "widget": "slider", "group": "training.scheduler", "order": 3, "step": 0.01, "precision": 3 }
         },
         "scheduler_params": {
           "type": "object",
@@ -622,7 +831,7 @@
             "type": "object",
             "additionalProperties": true
           },
-          "visible": false
+          "ui": { "widget": "nested", "group": "training.scheduler", "order": 4, "visible": false }
         },
         "loss_type": {
           "type": "string",
@@ -649,7 +858,8 @@
             "poisson_nll": "schema.training_loss_type_enum_descriptor.poisson_nll",
             "gaussian_nll": "schema.training_loss_type_enum_descriptor.gaussian_nll"
           },
-          "default": "cross_entropy"
+          "default": "cross_entropy",
+          "ui": { "widget": "dropdown", "group": "training.loss", "order": 1 }
         },
         "loss_reduction": {
           "type": "string",
@@ -660,7 +870,8 @@
             "sum": "schema.training_loss_reduction_enum_descriptor.sum",
             "none": "schema.training_loss_reduction_enum_descriptor.none"
           },
-          "default": "mean"
+          "default": "mean",
+          "ui": { "widget": "dropdown", "group": "training.loss", "order": 2 }
         },
         "loss_params": {
           "type": "object",
@@ -669,38 +880,66 @@
             "type": "object",
             "additionalProperties": true
           },
-          "visible": false
+          "ui": { "widget": "nested", "group": "training.loss", "order": 3, "visible": false }
         },
         "weight_init": {
            "type": "object",
            "description": "schema.training_weight_init_description",
+           "ui": { "widget": "nested", "group": "training.hyperparameters", "order": 10 },
            "properties": {
-              "type": { "type": "string" },
-              "params": { "type": "object" }
+              "type": { 
+                 "type": "string", 
+                 "enum": ["kaiming_normal", "kaiming_uniform", "xavier_normal", "xavier_uniform", "normal", "uniform", "trunc_normal", "orthogonal", "sparse", "constant", "zeros", "ones", "eye", "dirac"],
+                 "enum_descriptor": {
+                    "kaiming_normal": "schema.weight_init_type_enum_descriptor.kaiming_normal",
+                    "kaiming_uniform": "schema.weight_init_type_enum_descriptor.kaiming_uniform",
+                    "xavier_normal": "schema.weight_init_type_enum_descriptor.xavier_normal",
+                    "xavier_uniform": "schema.weight_init_type_enum_descriptor.xavier_uniform",
+                    "normal": "schema.weight_init_type_enum_descriptor.normal",
+                    "uniform": "schema.weight_init_type_enum_descriptor.uniform",
+                    "trunc_normal": "schema.weight_init_type_enum_descriptor.trunc_normal",
+                    "orthogonal": "schema.weight_init_type_enum_descriptor.orthogonal",
+                    "sparse": "schema.weight_init_type_enum_descriptor.sparse",
+                    "constant": "schema.weight_init_type_enum_descriptor.constant",
+                    "zeros": "schema.weight_init_type_enum_descriptor.zeros",
+                    "ones": "schema.weight_init_type_enum_descriptor.ones",
+                    "eye": "schema.weight_init_type_enum_descriptor.eye",
+                    "dirac": "schema.weight_init_type_enum_descriptor.dirac"
+                 },
+                 "default": "kaiming_normal",
+                 "ui": { "widget": "dropdown", "order": 1 } 
+              },
+              "params": { 
+                 "type": "object", 
+                 "description": "schema.training_weight_init_params_description",
+                 "ui": { "widget": "dynamic_params", "order": 2, "config_path": "training.weight_init.defaults" } 
+              }
            },
            "required": ["type"],
-           "additionalProperties": false
+           "additionalProperties": true
         },
         "checkpoint": {
            "type": "object",
            "description": "schema.training_checkpoint_description",
+           "ui": { "widget": "nested", "group": "training.checkpoint", "order": 1 },
            "properties": {
-              "save_best_only": { "type": "boolean", "default": true },
-              "save_frequency": { "type": "integer", "minimum": 1, "maximum": 100, "default": 1 },
-              "max_checkpoints": { "type": "integer", "minimum": 1, "maximum": 50, "default": 5 },
-              "checkpoint_dir": { "type": "string", "default": "model" },
-              "best_model_filename": { "type": "string", "default": "best_model.pth" },
-              "training_history_filename": { "type": "string", "default": "training_history.json" }
+              "save_best_only": { "type": "boolean", "default": true, "ui": { "widget": "switch", "order": 1 } },
+              "save_frequency": { "type": "integer", "minimum": 1, "maximum": 100, "default": 1, "ui": { "widget": "slider", "order": 2, "step": 1 } },
+              "max_checkpoints": { "type": "integer", "minimum": 1, "maximum": 50, "default": 5, "ui": { "widget": "slider", "order": 3, "step": 1 } },
+              "checkpoint_dir": { "type": "string", "default": "model", "ui": { "widget": "path", "order": 4, "path_type": "directory" } },
+              "best_model_filename": { "type": "string", "default": "best_model.pth", "ui": { "widget": "text", "order": 5 } },
+              "training_history_filename": { "type": "string", "default": "training_history.json", "ui": { "widget": "text", "order": 6 } }
            },
            "additionalProperties": false
         },
         "early_stopping": {
            "type": "object",
            "description": "schema.training_early_stopping_description",
+           "ui": { "widget": "nested", "group": "training.early_stopping", "order": 1 },
            "properties": {
-              "enabled": { "type": "boolean", "default": false },
-              "patience": { "type": "integer", "minimum": 1, "maximum": 100, "default": 10 },
-              "min_delta": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.001 },
+              "enabled": { "type": "boolean", "default": false, "ui": { "widget": "switch", "order": 1 } },
+              "patience": { "type": "integer", "minimum": 1, "maximum": 100, "default": 10, "ui": { "widget": "slider", "order": 2, "step": 1 } },
+              "min_delta": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.001, "ui": { "widget": "slider", "order": 3, "step": 0.001, "precision": 4 } },
               "monitor": {
                  "type": "string",
                  "enum": ["val_loss", "val_accuracy"],
@@ -708,7 +947,8 @@
                     "val_loss": "schema.training_early_stopping_monitor_enum_descriptor.val_loss",
                     "val_accuracy": "schema.training_early_stopping_monitor_enum_descriptor.val_accuracy"
                  },
-                 "default": "val_loss"
+                 "default": "val_loss",
+                 "ui": { "widget": "dropdown", "order": 4 }
               }
            },
            "additionalProperties": false
@@ -716,36 +956,42 @@
         "gradient": {
            "type": "object",
            "description": "schema.training_gradient_description",
+           "ui": { "widget": "nested", "group": "training.gradient", "order": 1 },
            "properties": {
-              "clip_norm": { "oneOf": [{ "type": "null" }, { "type": "number", "minimum": 0.0, "maximum": 10.0 }] },
-              "clip_value": { "oneOf": [{ "type": "null" }, { "type": "number", "minimum": 0.0, "maximum": 10.0 }] },
-              "accumulation_steps": { "type": "integer", "minimum": 1, "maximum": 100, "default": 1 }
+              "clip_norm": { "oneOf": [{ "type": "null" }, { "type": "number", "minimum": 0.0, "maximum": 10.0 }], "ui": { "widget": "number", "order": 1 } },
+              "clip_value": { "oneOf": [{ "type": "null" }, { "type": "number", "minimum": 0.0, "maximum": 10.0 }], "ui": { "widget": "number", "order": 2 } },
+              "accumulation_steps": { "type": "integer", "minimum": 1, "maximum": 100, "default": 1, "ui": { "widget": "slider", "order": 3, "step": 1 } }
            },
            "additionalProperties": false
         },
         "runtime": {
            "type": "object",
            "description": "schema.training_runtime_description",
+           "ui": { "widget": "nested", "group": "training.runtime", "order": 1 },
            "properties": {
               "mixed_precision": {
                  "type": "boolean",
                  "description": "schema.training_runtime_mixed_precision_description",
-                 "default": true
+                 "default": true,
+                 "ui": { "widget": "switch", "order": 1 }
               },
               "channels_last": {
                  "type": "boolean",
                  "description": "schema.training_runtime_channels_last_description",
-                 "default": true
+                 "default": true,
+                 "ui": { "widget": "switch", "order": 2 }
               },
               "allow_tf32": {
                  "type": "boolean",
                  "description": "schema.training_runtime_allow_tf32_description",
-                 "default": true
+                 "default": true,
+                 "ui": { "widget": "switch", "order": 3 }
               },
               "cudnn_benchmark": {
                  "type": "boolean",
                  "description": "schema.training_runtime_cudnn_benchmark_description",
-                 "default": true
+                 "default": true,
+                 "ui": { "widget": "switch", "order": 4 }
               }
            },
            "additionalProperties": false
@@ -756,12 +1002,214 @@
     "dataset": {
        "type": "object",
        "description": "schema.dataset_description",
+       "ui": { "group": "dataset", "order": 7 },
        "properties": {
          "image_extensions": {
            "type": "array",
            "description": "schema.dataset_image_extensions_description",
            "items": { "type": "string", "pattern": "^\\..+$" },
-           "default": [".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".webp"]
+           "default": [".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".webp"],
+           "ui": { "widget": "array", "order": 1 }
+         },
+         "discovery": {
+           "type": "object",
+           "description": "schema.dataset_discovery_description",
+           "ui": { "widget": "nested", "order": 2 },
+           "properties": {
+             "annotation_formats": {
+               "type": "object",
+               "description": "schema.dataset_discovery_annotation_formats_description",
+               "ui": { "widget": "nested", "order": 1 },
+               "properties": {
+                 "txt_annotations": {
+                   "type": "object",
+                   "description": "schema.dataset_discovery_txt_annotations_description",
+                   "ui": { "widget": "nested", "order": 1 },
+                   "properties": {
+                     "min_coverage_percent": {
+                       "type": "number",
+                       "description": "schema.dataset_discovery_txt_annotations_min_coverage_percent_description",
+                       "minimum": 0,
+                       "maximum": 100,
+                       "default": 60,
+                       "ui": { "widget": "slider", "order": 1, "step": 1 }
+                     }
+                   },
+                   "additionalProperties": false
+                 }
+               },
+               "additionalProperties": false
+             },
+             "balance_analysis": {
+               "type": "object",
+               "description": "schema.dataset_discovery_balance_analysis_description",
+               "ui": { "widget": "nested", "order": 2 },
+               "properties": {
+                 "min_images_per_class": {
+                   "type": "integer",
+                   "description": "schema.dataset_discovery_balance_analysis_min_images_per_class_description",
+                   "minimum": 1,
+                   "maximum": 1000,
+                   "default": 5,
+                   "ui": { "widget": "number", "order": 1 }
+                 },
+                 "critical_shortage_threshold": {
+                   "type": "integer",
+                   "description": "schema.dataset_discovery_balance_analysis_critical_shortage_threshold_description",
+                   "minimum": 1,
+                   "maximum": 1000,
+                   "default": 3,
+                   "ui": { "widget": "number", "order": 2 }
+                 },
+                 "over_representation_ratio": {
+                   "type": "number",
+                   "description": "schema.dataset_discovery_balance_analysis_over_representation_ratio_description",
+                   "minimum": 1.0,
+                   "maximum": 10.0,
+                   "default": 1.8,
+                   "ui": { "widget": "slider", "order": 3, "step": 0.1, "precision": 2 }
+                 },
+                 "under_representation_ratio": {
+                   "type": "number",
+                   "description": "schema.dataset_discovery_balance_analysis_under_representation_ratio_description",
+                   "minimum": 0.0,
+                   "maximum": 1.0,
+                   "default": 0.6,
+                   "ui": { "widget": "slider", "order": 4, "step": 0.05, "precision": 2 }
+                 },
+                 "severe_over_representation_ratio": {
+                   "type": "number",
+                   "description": "schema.dataset_discovery_balance_analysis_severe_over_representation_ratio_description",
+                   "minimum": 1.0,
+                   "maximum": 10.0,
+                   "default": 3.0,
+                   "ui": { "widget": "slider", "order": 5, "step": 0.1, "precision": 2 }
+                 },
+                 "hierarchical_balance_threshold": {
+                   "type": "number",
+                   "description": "schema.dataset_discovery_balance_analysis_hierarchical_balance_threshold_description",
+                   "minimum": 0.0,
+                   "maximum": 1.0,
+                   "default": 0.65,
+                   "ui": { "widget": "slider", "order": 6, "step": 0.05, "precision": 2 }
+                 },
+                 "dataset_size_warnings": {
+                   "type": "object",
+                   "description": "schema.dataset_discovery_balance_analysis_dataset_size_warnings_description",
+                   "ui": { "widget": "nested", "order": 7 },
+                   "properties": {
+                     "tiny_dataset": {
+                       "type": "integer",
+                       "description": "schema.dataset_discovery_balance_analysis_dataset_size_warnings_tiny_dataset_description",
+                       "minimum": 0,
+                       "maximum": 100000,
+                       "default": 100,
+                       "ui": { "widget": "number", "order": 1 }
+                     },
+                     "small_dataset": {
+                       "type": "integer",
+                       "description": "schema.dataset_discovery_balance_analysis_dataset_size_warnings_small_dataset_description",
+                       "minimum": 0,
+                       "maximum": 100000,
+                       "default": 500,
+                       "ui": { "widget": "number", "order": 2 }
+                     }
+                   },
+                   "additionalProperties": false
+                 },
+                "balance_score_thresholds": {
+                  "type": "object",
+                  "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_description",
+                  "ui": { "widget": "nested", "order": 8 },
+                  "properties": {
+                    "legendary": {
+                      "type": "number",
+                      "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_legendary_description",
+                      "minimum": 0.0,
+                      "maximum": 1.0,
+                      "default": 0.98,
+                      "ui": { "widget": "number", "order": 1 }
+                    },
+                    "excellent": {
+                      "type": "number",
+                      "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_excellent_description",
+                      "minimum": 0.0,
+                      "maximum": 1.0,
+                      "default": 0.95,
+                      "ui": { "widget": "number", "order": 2 }
+                    },
+                    "very_good": {
+                      "type": "number",
+                      "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_very_good_description",
+                      "minimum": 0.0,
+                      "maximum": 1.0,
+                      "default": 0.9,
+                      "ui": { "widget": "number", "order": 3 }
+                    },
+                    "good": {
+                      "type": "number",
+                      "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_good_description",
+                      "minimum": 0.0,
+                      "maximum": 1.0,
+                      "default": 0.85,
+                      "ui": { "widget": "number", "order": 4 }
+                    },
+                    "balanced": {
+                      "type": "number",
+                      "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_balanced_description",
+                      "minimum": 0.0,
+                      "maximum": 1.0,
+                      "default": 0.8,
+                      "ui": { "widget": "number", "order": 5 }
+                    },
+                    "slightly_unbalanced": {
+                      "type": "number",
+                      "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_slightly_unbalanced_description",
+                      "minimum": 0.0,
+                      "maximum": 1.0,
+                      "default": 0.7,
+                      "ui": { "widget": "number", "order": 6 }
+                    },
+                    "fair": {
+                      "type": "number",
+                      "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_fair_description",
+                      "minimum": 0.0,
+                      "maximum": 1.0,
+                      "default": 0.6,
+                      "ui": { "widget": "number", "order": 7 }
+                    },
+                    "poor": {
+                      "type": "number",
+                      "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_poor_description",
+                      "minimum": 0.0,
+                      "maximum": 1.0,
+                      "default": 0.45,
+                      "ui": { "widget": "number", "order": 8 }
+                    },
+                    "very_poor": {
+                      "type": "number",
+                      "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_very_poor_description",
+                      "minimum": 0.0,
+                      "maximum": 1.0,
+                      "default": 0.35,
+                      "ui": { "widget": "number", "order": 9 }
+                    },
+                    "critical": {
+                      "type": "number",
+                      "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_critical_description",
+                      "minimum": 0.0,
+                      "maximum": 1.0,
+                      "default": 0.25,
+                      "ui": { "widget": "number", "order": 10 }
+                    }
+                  },
+                  "additionalProperties": false
+                }
+               },
+               "additionalProperties": false
+             }
+           },
+           "additionalProperties": false
          }
        },
        "additionalProperties": false
@@ -769,6 +1217,7 @@
     "optimizers": {
        "type": "object",
        "description": "schema.optimizers_description",
+       "ui": { "group": "optimizers", "order": 30, "visible": false },
        "properties": {
          "defaults": {
            "type": "object",
@@ -905,7 +1354,7 @@
                       "type": "string",
                       "enum": ["strong_wolfe"],
                       "enum_descriptor": {
-                        "strong_wolfe": "Strong Wolfe Line Search - Advanced line search algorithm for L-BFGS optimization that ensures both sufficient decrease (Armijo condition) and curvature conditions (strong Wolfe conditions). Affects optimization convergence quality by guaranteeing appropriate step sizes that satisfy mathematical optimality criteria. Controls step length selection through rigorous mathematical conditions that ensure convergence properties while maintaining computational efficiency. Essential for L-BFGS theoretical guarantees and provides robust step size selection for quasi-Newton optimization methods."
+                        "strong_wolfe": "schema.optimizers_defaults_lbfgs_line_search_fn_enum_descriptor.strong_wolfe"
                       }
                     }
                   ]
@@ -928,6 +1377,7 @@
           "regularization": {
             "type": "object",
             "description": "schema.regularization_description",
+            "ui": { "group": "regularization", "order": 35, "visible": false },
             "properties": {
               "defaults": {
                 "type": "object",
@@ -962,6 +1412,7 @@
     "normalization": {
       "type": "object",
       "description": "schema.normalization_description",
+      "ui": { "group": "normalization", "order": 36, "visible": false },
       "properties": {
         "defaults": {
           "type": "object",
@@ -980,6 +1431,7 @@
     "pooling": {
       "type": "object",
       "description": "schema.pooling_description",
+      "ui": { "group": "pooling", "order": 37, "visible": false },
       "properties": {
         "defaults": {
           "type": "object",
@@ -998,6 +1450,7 @@
     "schedulers": {
        "type": "object",
        "description": "schema.schedulers_description",
+       "ui": { "group": "schedulers", "order": 31, "visible": false },
        "properties": {
          "defaults": {
            "type": "object",
@@ -1184,6 +1637,7 @@
     "losses": {
        "type": "object",
        "description": "schema.losses_description",
+       "ui": { "group": "losses", "order": 32, "visible": false },
        "properties": {
          "defaults": {
            "type": "object",
@@ -1411,6 +1865,7 @@
     "models": {
        "type": "object",
        "description": "schema.models_description",
+       "ui": { "group": "models", "order": 40, "visible": false },
        "properties": {
          "resnet": {
            "type": "object",
@@ -1423,45 +1878,45 @@
                 "resnet18": {
                   "type": "object",
                   "properties": {
-                    "params": { "type": "integer", "minimum": 0, "default": 11689512 },
-                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 64 },
-                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                    "params": { "type": "integer", "minimum": 0, "default": 11689512, "ui": { "widget": "readonly" } },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 64, "ui": { "widget": "readonly" } },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224, "ui": { "widget": "readonly" } }
                   },
                   "additionalProperties": false
                 },
                 "resnet34": {
                   "type": "object",
                   "properties": {
-                    "params": { "type": "integer", "minimum": 0, "default": 21822304 },
-                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 32 },
-                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                    "params": { "type": "integer", "minimum": 0, "default": 21822304, "ui": { "widget": "readonly" } },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 32, "ui": { "widget": "readonly" } },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224, "ui": { "widget": "readonly" } }
                   },
                   "additionalProperties": false
                 },
                 "resnet50": {
                   "type": "object",
                   "properties": {
-                    "params": { "type": "integer", "minimum": 0, "default": 25557032 },
-                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 32 },
-                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                    "params": { "type": "integer", "minimum": 0, "default": 25557032, "ui": { "widget": "readonly" } },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 32, "ui": { "widget": "readonly" } },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224, "ui": { "widget": "readonly" } }
                   },
                   "additionalProperties": false
                 },
                 "resnet101": {
                   "type": "object",
                   "properties": {
-                    "params": { "type": "integer", "minimum": 0, "default": 44549160 },
-                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 16 },
-                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                    "params": { "type": "integer", "minimum": 0, "default": 44549160, "ui": { "widget": "readonly" } },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 16, "ui": { "widget": "readonly" } },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224, "ui": { "widget": "readonly" } }
                   },
                   "additionalProperties": false
                 },
                 "resnet152": {
                   "type": "object",
                   "properties": {
-                    "params": { "type": "integer", "minimum": 0, "default": 60192808 },
-                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 8 },
-                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                    "params": { "type": "integer", "minimum": 0, "default": 60192808, "ui": { "widget": "readonly" } },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 8, "ui": { "widget": "readonly" } },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224, "ui": { "widget": "readonly" } }
                   },
                   "additionalProperties": false
                 }
@@ -1879,7 +2334,7 @@
           "description": "schema.models_supported_types_description",
           "items": { "type": "string", "enum": ["resnet", "resnext", "mobilenet", "shufflenet", "squeezenet", "efficientnet"] },
           "default": ["resnet", "resnext", "mobilenet", "shufflenet", "squeezenet", "efficientnet"],
-          "visible": false
+          "ui": { "widget": "array", "visible": false }
         }
       },
       "additionalProperties": false

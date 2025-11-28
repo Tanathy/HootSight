@@ -11,7 +11,7 @@ from io import BytesIO
 from typing import Any, Dict, Optional, List, NoReturn
 from pathlib import Path
 
-from fastapi import FastAPI, Body, Query, HTTPException
+from fastapi import FastAPI, Body, Query, HTTPException, File, UploadFile
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 
@@ -21,9 +21,16 @@ from torchvision import transforms as tv_transforms
 
 from system.log import info, success, error, warning
 from system.coordinator_settings import SETTINGS
-from system.dataset_discovery import discover_projects, get_project_info, get_image_files
+from system.dataset_discovery import discover_projects, get_project_info, get_image_files, compute_project_stats
+from system.characteristics_db import (
+    get_cached_stats,
+    save_stats,
+    save_label_index,
+    stats_exist,
+    clear_stats,
+)
 from system.training import start_training, stop_training, get_training_status, get_training_status_all
-from system.heatmap import generate_project_heatmap, evaluate_with_heatmap
+from system.heatmap import generate_heatmap, evaluate_with_heatmap
 from system.coordinator_settings import (
     load_language_data,
     switch_language,
@@ -47,11 +54,17 @@ from system.dataset_editor_models import (
     DeleteItemsRequest,
     DeleteItemsResponse,
     DiscoveryStatus,
+    DuplicateScanResponse,
+    FolderCreateRequest,
+    FolderDeleteRequest,
     FolderNode,
+    FolderOperationResponse,
+    FolderRenameRequest,
     ImageItem,
     PaginatedItems,
     ProjectSummary,
     StatsSummary,
+    UploadResponse,
 )
 from system.dataset_editor_project_service import (
     repository as dataset_repository,
@@ -403,9 +416,41 @@ def create_app() -> FastAPI:
 
     @app.get("/projects")
     def list_projects() -> Dict[str, Any]:
+        """
+        List all projects with basic info.
+        Statistics are NOT computed here - only cached stats from DB are included.
+        Use /projects/{name}/stats to compute and cache statistics.
+        """
         try:
-            projects = discover_projects()
-            project_dicts = [project.to_dict() for project in projects]
+            # Lightweight discovery - no stats computation
+            projects = discover_projects(compute_stats=False)
+            project_dicts = []
+            for project in projects:
+                data = {
+                    "name": project.name,
+                    "path": project.path,
+                    "dataset_path": project.dataset_path,
+                    "model_path": project.model_path,
+                    "dataset_type": project.dataset_type,
+                    "image_count": project.image_count,
+                    "has_dataset": project.has_dataset,
+                    "has_model_dir": project.has_model_dir,
+                }
+                
+                # Include cached stats if available (from DB)
+                cached = get_cached_stats(project.name)
+                if cached:
+                    data["balance_score"] = cached.get("balance_score", 0.0)
+                    data["balance_status"] = cached.get("balance_status", "")
+                    data["num_labels"] = cached.get("num_labels", 0)
+                    data["stats_computed_at"] = cached.get("computed_at")
+                    # Include lightweight balance_analysis (without heavy lists)
+                    if "balance_analysis" in cached:
+                        data["balance_analysis"] = cached["balance_analysis"]
+                else:
+                    data["stats_computed_at"] = None
+                
+                project_dicts.append(data)
             return {"projects": project_dicts}
         except Exception as ex:
             error(f"Project discovery failed: {ex}")
@@ -478,9 +523,16 @@ def create_app() -> FastAPI:
 
         project_details = None
         try:
-            for project in discover_projects():
+            for project in discover_projects(compute_stats=False):
                 if project.name == name_value:
-                    project_details = project.to_dict()
+                    project_details = {
+                        "name": project.name,
+                        "path": project.path,
+                        "dataset_path": project.dataset_path,
+                        "model_path": project.model_path,
+                        "has_dataset": project.has_dataset,
+                        "has_model_dir": project.has_model_dir,
+                    }
                     break
         except Exception as ex:  # noqa: BLE001 - project list retrieval should not fail the request
             warning(f"Post-create project discovery failed for {name_value}: {ex}")
@@ -496,14 +548,137 @@ def create_app() -> FastAPI:
 
         return response
 
+    @app.delete("/projects/{project_name}")
+    def delete_project(project_name: str) -> Dict[str, Any]:
+        """
+        Delete a project and all its contents.
+        This is a destructive operation - cannot be undone.
+        """
+        try:
+            paths_cfg = SETTINGS['paths']
+        except Exception:
+            raise ValueError("Missing required 'paths' section in config/config.json")
+        projects_dir = paths_cfg.get("projects_dir")
+        if projects_dir is None:
+            raise ValueError("paths.projects_dir must be defined in config/config.json")
+        root_path = Path(__file__).resolve().parents[1]
+        projects_root = (root_path / projects_dir).resolve()
+
+        # Validate project name
+        if not project_name or not project_name.strip():
+            return {"status": "error", "message": lang("projects.api.delete_invalid")}
+
+        project_path = (projects_root / project_name).resolve()
+        
+        # Security check: ensure path is within projects directory
+        try:
+            project_path.relative_to(projects_root)
+        except ValueError:
+            return {"status": "error", "message": lang("projects.api.delete_invalid")}
+
+        if not project_path.exists():
+            return {"status": "error", "message": lang("projects.api.delete_not_found", name=project_name)}
+
+        if not project_path.is_dir():
+            return {"status": "error", "message": lang("projects.api.delete_not_found", name=project_name)}
+
+        try:
+            # Remove the entire project directory
+            shutil.rmtree(project_path)
+            success(lang("projects.api.delete_success", name=project_name))
+            return {
+                "status": "success",
+                "message": lang("projects.api.delete_success", name=project_name)
+            }
+        except Exception as ex:
+            error(f"Project deletion failed for {project_name}: {ex}")
+            return {"status": "error", "message": lang("projects.api.delete_error", error=str(ex))}
+
     @app.get("/projects/{project_name}")
     def project_details(project_name: str) -> Dict[str, Any]:
+        """
+        Get project details without computing statistics.
+        Cached stats from DB are included if available.
+        Use /projects/{name}/stats to compute fresh statistics.
+        """
         try:
-            info_obj = get_project_info(project_name)
-            return {"project": info_obj.to_dict() if info_obj else None}
+            # Lightweight - no stats computation
+            info_obj = get_project_info(project_name, compute_stats=False)
+            if info_obj is None:
+                return {"project": None}
+            
+            data = {
+                "name": info_obj.name,
+                "path": info_obj.path,
+                "dataset_path": info_obj.dataset_path,
+                "model_path": info_obj.model_path,
+                "dataset_type": info_obj.dataset_type,
+                "image_count": info_obj.image_count,
+                "has_dataset": info_obj.has_dataset,
+                "has_model_dir": info_obj.has_model_dir,
+            }
+            
+            # Include cached stats if available
+            cached = get_cached_stats(project_name)
+            if cached:
+                data["balance_score"] = cached.get("balance_score", 0.0)
+                data["balance_status"] = cached.get("balance_status", "")
+                data["num_labels"] = cached.get("num_labels", 0)
+                data["stats_computed_at"] = cached.get("computed_at")
+                if "balance_analysis" in cached:
+                    data["balance_analysis"] = cached["balance_analysis"]
+            else:
+                data["stats_computed_at"] = None
+            
+            return {"project": data}
         except Exception as ex:
             error(f"Project info failed for {project_name}: {ex}")
             return {"error": str(ex)}
+
+    @app.post("/projects/{project_name}/stats")
+    def compute_project_statistics(project_name: str) -> Dict[str, Any]:
+        """
+        Compute and cache full statistics for a project.
+        This is the expensive operation - use sparingly.
+        Results are saved to characteristics.db for future quick access.
+        """
+        try:
+            # Full stats computation
+            stats = compute_project_stats(project_name)
+            if stats is None:
+                return {"status": "error", "message": f"Project '{project_name}' not found"}
+            
+            # Save to database
+            save_stats(project_name, stats)
+            
+            # Save label index separately
+            if "label_distribution" in stats:
+                save_label_index(project_name, stats["label_distribution"])
+            
+            # Get balance_analysis which contains total_images, num_labels, min_images, max_images
+            balance_analysis = stats.get("balance_analysis", {})
+            
+            # Return stats - pull values from balance_analysis (already computed there)
+            result = {
+                "status": "success",
+                "project": project_name,
+                "computed_at": stats.get("computed_at"),
+                "dataset_type": stats.get("dataset_type"),
+                "total_images": balance_analysis.get("total_images", stats.get("image_count", 0)),
+                "num_labels": balance_analysis.get("num_labels", len(stats.get("labels", []))),
+                "min_images": balance_analysis.get("min_images", 0),
+                "max_images": balance_analysis.get("max_images", 0),
+                "balance_score": stats.get("balance_score", 0.0),
+                "balance_status": stats.get("balance_status", ""),
+                "has_dataset": stats.get("has_dataset", False),
+                "has_model_dir": stats.get("has_model_dir", False),
+            }
+            
+            info(f"Computed and cached statistics for project {project_name}")
+            return result
+        except Exception as ex:
+            error(f"Statistics computation failed for {project_name}: {ex}")
+            return {"status": "error", "message": str(ex)}
 
     @app.get("/dataset/editor/projects", response_model=list[ProjectSummary])
     def dataset_editor_list_projects() -> list[ProjectSummary]:
@@ -549,10 +724,65 @@ def create_app() -> FastAPI:
         project = _get_dataset_editor_project(project_name)
         return project.stats()
 
+    @app.post("/dataset/editor/projects/{project_name}/stats/refresh")
+    def dataset_editor_refresh_stats(project_name: str) -> Dict[str, Any]:
+        """Recompute and save project statistics to characteristics.db"""
+        project = _get_dataset_editor_project(project_name)
+        success = project.save_computed_stats()
+        return {"status": "success" if success else "error", "project": project_name}
+
     @app.get("/dataset/editor/projects/{project_name}/folders", response_model=FolderNode)
     def dataset_editor_project_folders(project_name: str) -> FolderNode:
         project = _get_dataset_editor_project(project_name)
         return project.folder_tree()
+
+    @app.post("/dataset/editor/projects/{project_name}/folders", response_model=FolderOperationResponse)
+    def dataset_editor_create_folder(project_name: str, payload: FolderCreateRequest = Body(...)) -> FolderOperationResponse:
+        project = _get_dataset_editor_project(project_name)
+        try:
+            created_path = project.create_folder(payload.path)
+            relative = str(created_path.relative_to(project.data_source_dir)).replace("\\", "/")
+            return FolderOperationResponse(success=True, path=relative, message="Folder created")
+        except ValueError as e:
+            return FolderOperationResponse(success=False, path=payload.path, message=str(e))
+
+    @app.post("/dataset/editor/projects/{project_name}/folders/rename", response_model=FolderOperationResponse)
+    def dataset_editor_rename_folder(project_name: str, payload: FolderRenameRequest = Body(...)) -> FolderOperationResponse:
+        project = _get_dataset_editor_project(project_name)
+        try:
+            new_path = project.rename_folder(payload.old_path, payload.new_name)
+            relative = str(new_path.relative_to(project.data_source_dir)).replace("\\", "/")
+            return FolderOperationResponse(success=True, path=relative, message="Folder renamed")
+        except ValueError as e:
+            return FolderOperationResponse(success=False, path=payload.old_path, message=str(e))
+
+    @app.post("/dataset/editor/projects/{project_name}/folders/delete", response_model=FolderOperationResponse)
+    def dataset_editor_delete_folder(project_name: str, payload: FolderDeleteRequest = Body(...)) -> FolderOperationResponse:
+        project = _get_dataset_editor_project(project_name)
+        try:
+            deleted_count = project.delete_folder(payload.path, payload.recursive)
+            return FolderOperationResponse(success=True, path=payload.path, message=f"Folder deleted ({deleted_count} images removed)")
+        except ValueError as e:
+            return FolderOperationResponse(success=False, path=payload.path, message=str(e))
+
+    @app.post("/dataset/editor/projects/{project_name}/upload", response_model=UploadResponse)
+    async def dataset_editor_upload_images(
+        project_name: str,
+        folder: str = "",
+        files: List[UploadFile] = File(...),
+    ) -> UploadResponse:
+        project = _get_dataset_editor_project(project_name)
+        file_data = []
+        for upload_file in files:
+            content = await upload_file.read()
+            file_data.append((upload_file.filename, content))
+        result = project.upload_images(file_data, folder)
+        return UploadResponse(
+            uploaded=result["uploaded"],
+            failed=result["failed"],
+            files=result["files"],
+            errors=result["errors"],
+        )
 
     @app.post("/dataset/editor/projects/{project_name}/refresh", response_model=DiscoveryStatus)
     def dataset_editor_refresh(project_name: str) -> DiscoveryStatus:
@@ -597,6 +827,11 @@ def create_app() -> FastAPI:
     def dataset_editor_bulk_tags(project_name: str, payload: BulkTagRequest = Body(...)) -> BulkTagResponse:
         project = _get_dataset_editor_project(project_name)
         return project.bulk_tags(payload)
+
+    @app.post("/dataset/editor/projects/{project_name}/duplicates", response_model=DuplicateScanResponse)
+    def dataset_editor_scan_duplicates(project_name: str) -> DuplicateScanResponse:
+        project = _get_dataset_editor_project(project_name)
+        return project.scan_duplicates()
 
     @app.get("/dataset/editor/projects/{project_name}/image")
     def dataset_editor_image(project_name: str, path: str = Query(..., min_length=1)) -> FileResponse:
@@ -680,7 +915,7 @@ def create_app() -> FastAPI:
         alpha: float = Query(0.5)
     ):
         try:
-            data, meta = generate_project_heatmap(project_name, image_path=image_path, target_class=class_index, alpha=alpha)
+            data, meta = generate_heatmap(project_name, image_path=image_path, target_class=class_index, alpha=alpha)
             return Response(content=data, media_type="image/png")
         except Exception as ex:
             error(f"Heatmap generation failed for {project_name}: {ex}")

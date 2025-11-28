@@ -18,7 +18,8 @@
         "config_dir": "config",
         "localizations_dir": "config/localizations",
         "packages_file": "config/packages.jsonc",
-        "cache_dir": "cache"
+        "cache_dir": "cache",
+        "docs_dir": "docs"
     },
     "system": {
         "max_threads": "auto",
@@ -31,7 +32,20 @@
     "memory": {
         "target_memory_usage": 0.8,
         "safety_margin": 0.9,
-        "augmentation_threads": "auto"
+        "augmentation_threads": "auto",
+        "reserved_memory_ratio": 0.1,
+        "memory_per_sample_multiplier": 2.5,
+        "min_batch_size": 1,
+        "max_batch_size": 128,
+        "memory_thresholds": {
+            "high_usage": 0.9,
+            "moderate_usage": 0.7,
+            "low_usage": 0.5
+        },
+        "batch_size_limits": {
+            "small_batch_warning": 4,
+            "large_batch_warning": 64
+        }
     },
     "training": {
         "model_type": "resnet",
@@ -160,6 +174,22 @@
                 "mode": "fan_in",
                 "nonlinearity": "leaky_relu"
             },
+            "defaults": {
+                "xavier_uniform": {"gain": 1.0},
+                "xavier_normal": {"gain": 1.0},
+                "kaiming_uniform": {"a": 0, "mode": "fan_in", "nonlinearity": "leaky_relu"},
+                "kaiming_normal": {"a": 0, "mode": "fan_in", "nonlinearity": "leaky_relu"},
+                "uniform": {"a": 0.0, "b": 1.0},
+                "normal": {"mean": 0.0, "std": 1.0},
+                "trunc_normal": {"mean": 0.0, "std": 1.0, "a": -2.0, "b": 2.0},
+                "constant": {"val": 0.0},
+                "zeros": {},
+                "ones": {},
+                "orthogonal": {"gain": 1.0},
+                "sparse": {"sparsity": 0.1, "std": 0.01},
+                "eye": {},
+                "dirac": {"groups": 1}
+            },
             "properties": {
                 "xavier_uniform": {"distribution": "uniform", "scale": "xavier", "bias_init": "zeros"},
                 "xavier_normal": {"distribution": "normal", "scale": "xavier", "bias_init": "zeros"},
@@ -212,7 +242,38 @@
             ".gif",
             ".tiff",
             ".webp"
-        ]
+        ],
+        "discovery": {
+            "annotation_formats": {
+                "txt_annotations": {
+                    "min_coverage_percent": 60
+                }
+            },
+            "balance_analysis": {
+                "min_images_per_class": 5,
+                "critical_shortage_threshold": 3,
+                "over_representation_ratio": 1.8,
+                "under_representation_ratio": 0.6,
+                "severe_over_representation_ratio": 3.0,
+                "hierarchical_balance_threshold": 0.65,
+                "dataset_size_warnings": {
+                    "tiny_dataset": 100,
+                    "small_dataset": 500
+                },
+                "balance_score_thresholds": {
+                    "legendary": 0.98,
+                    "excellent": 0.95,
+                    "very_good": 0.9,
+                    "good": 0.85,
+                    "balanced": 0.8,
+                    "slightly_unbalanced": 0.7,
+                    "fair": 0.6,
+                    "poor": 0.45,
+                    "very_poor": 0.35,
+                    "critical": 0.25
+                }
+            }
+        }
     },
     "activations": {
         "defaults": {

@@ -15,6 +15,7 @@
         "uvicorn",
         "websockets",
         "numpy",
+        "python-multipart",
         "pillow",
         "pyyaml",
         "matplotlib",

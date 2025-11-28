@@ -1,0 +1,309 @@
+/**
+ * HootSight - Page Elements
+ * card_section, card, heading, list, table
+ */
+
+/* ============================================================================
+   Card Section - Horizontal card container (4 cards per row)
+   ============================================================================ */
+
+.card-section {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+@media (max-width: 1400px) {
+    .card-section {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 1000px) {
+    .card-section {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .card-section {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================================================
+   Card - Container for widgets
+   ============================================================================ */
+
+.card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.card-active {
+    border-color: var(--accent-success);
+    box-shadow: 0 0 0 1px var(--accent-success);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.card-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.card-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xxs, 0.125rem);
+}
+
+.card-subtitle {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.card-actions {
+    display: inline-flex;
+    gap: var(--spacing-xs);
+}
+
+.card-actions .btn {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.75rem;
+}
+
+.card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.card-footer {
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--border-light);
+}
+
+/* ============================================================================
+   Heading - Title + Description pair
+   ============================================================================ */
+
+.heading {
+    margin-bottom: var(--spacing-lg);
+}
+
+.heading-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.heading-description {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.heading:empty {
+    display: none;
+}
+
+.heading-title:empty,
+.heading-description:empty {
+    display: none;
+}
+
+/* ============================================================================
+   List - UL list for JSON display
+   ============================================================================ */
+
+.list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.list-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 0.875rem;
+}
+
+.list-item:last-child {
+    border-bottom: none;
+}
+
+.list-key {
+    color: var(--text-muted);
+    min-width: 100px;
+    flex-shrink: 0;
+}
+
+.list-value {
+    color: var(--text-primary);
+    word-break: break-word;
+}
+
+/* Nested list */
+.list .list {
+    margin-left: var(--spacing-md);
+    margin-top: var(--spacing-xs);
+}
+
+/* ============================================================================
+   Table - Key:Value table
+   ============================================================================ */
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.table-row {
+    border-bottom: 1px solid var(--border-light);
+}
+
+.table-row:last-child {
+    border-bottom: none;
+}
+
+.table-key {
+    padding: var(--spacing-sm);
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-align: left;
+    vertical-align: top;
+    width: 40%;
+    background: var(--bg-tertiary);
+}
+
+.table-value {
+    padding: var(--spacing-sm);
+    color: var(--text-primary);
+    text-align: left;
+    vertical-align: top;
+}
+
+/* Alternating row colors */
+.table-row:nth-child(even) .table-key {
+    background: var(--bg-hover);
+}
+
+/* ============================================================================
+   Section divider
+   ============================================================================ */
+
+.divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: var(--spacing-lg) 0;
+}
+
+/* ============================================================================
+   Training Page
+   ============================================================================ */
+
+.training-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-md) 0;
+    margin-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.training-project-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.project-label {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.project-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+}
+
+.training-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.btn-save {
+    min-width: 100px;
+    transition: all 0.2s;
+}
+
+.btn-save.btn-success {
+    background: var(--accent-success);
+    border-color: var(--accent-success);
+}
+
+.btn-save.btn-error {
+    background: var(--accent-error);
+    border-color: var(--accent-error);
+}
+
+/* No project selected message */
+.no-project-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: var(--spacing-xxl) var(--spacing-lg);
+    min-height: 400px;
+}
+
+.no-project-icon {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent-warning);
+    background: var(--bg-tertiary);
+    border: 2px solid var(--accent-warning);
+    border-radius: 50%;
+    margin-bottom: var(--spacing-lg);
+}
+
+.no-project-message h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.no-project-message p {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-lg);
+    max-width: 400px;
+}

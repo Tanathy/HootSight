@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SharePoint Chatbot - Dual View</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <h1>📚 SharePoint Chatbot</h1>
+        </header>
+
+        <!-- Main Split View -->
+        <main class="split-container">
+            <!-- LEFT CHAT PANEL -->
+            <section class="chat-panel" id="panel-left" data-panel="left">
+                <div class="panel-header">
+                    <span class="panel-title">Chat A</span>
+                    <div class="panel-controls">
+                        <select class="model-select" id="model-left">
+                            <option value="">Loading models...</option>
+                        </select>
+                        <select class="profile-select" id="profile-left">
+                            <option value="">Loading profiles...</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="chat-messages" id="messages-left">
+                    <div class="welcome-message">
+                        <div class="welcome-icon">💬</div>
+                        <h3>Chat A Ready</h3>
+                        <p>Select a model and profile, then start chatting!</p>
+                    </div>
+                </div>
+                
+                <div class="chat-input-area">
+                    <div class="extra-inputs">
+                        <div class="input-group">
+                            <label for="knowledge-left">Knowledge History</label>
+                            <textarea id="knowledge-left" placeholder="Previous context or conversation summary..."></textarea>
+                        </div>
+                        <div class="input-group">
+                            <label for="additional-left">Additional Information</label>
+                            <textarea id="additional-left" placeholder="Extra context for this query..."></textarea>
+                        </div>
+                    </div>
+                    <div class="main-input">
+                        <textarea id="input-left" placeholder="Type your message..." rows="2"></textarea>
+                    </div>
+                    <div class="button-row">
+                        <button class="btn btn-secondary" onclick="newThread('left')">🔄 New Thread</button>
+                        <button class="btn btn-primary" onclick="sendMessage('left')">📤 Send</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DIVIDER -->
+            <div class="panel-divider"></div>
+
+            <!-- RIGHT CHAT PANEL -->
+            <section class="chat-panel" id="panel-right" data-panel="right">
+                <div class="panel-header">
+                    <span class="panel-title">Chat B</span>
+                    <div class="panel-controls">
+                        <select class="model-select" id="model-right">
+                            <option value="">Loading models...</option>
+                        </select>
+                        <select class="profile-select" id="profile-right">
+                            <option value="">Loading profiles...</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="chat-messages" id="messages-right">
+                    <div class="welcome-message">
+                        <div class="welcome-icon">💬</div>
+                        <h3>Chat B Ready</h3>
+                        <p>Select a model and profile, then start chatting!</p>
+                    </div>
+                </div>
+                
+                <div class="chat-input-area">
+                    <div class="extra-inputs">
+                        <div class="input-group">
+                            <label for="knowledge-right">Knowledge History</label>
+                            <textarea id="knowledge-right" placeholder="Previous context or conversation summary..."></textarea>
+                        </div>
+                        <div class="input-group">
+                            <label for="additional-right">Additional Information</label>
+                            <textarea id="additional-right" placeholder="Extra context for this query..."></textarea>
+                        </div>
+                    </div>
+                    <div class="main-input">
+                        <textarea id="input-right" placeholder="Type your message..." rows="2"></textarea>
+                    </div>
+                    <div class="button-row">
+                        <button class="btn btn-secondary" onclick="newThread('right')">🔄 New Thread</button>
+                        <button class="btn btn-primary" onclick="sendMessage('right')">📤 Send</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Document Viewer Modal -->
+    <div class="modal-overlay" id="doc-modal" onclick="closeDocModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2 id="doc-modal-title">Document Viewer</h2>
+                <button class="modal-close" onclick="closeDocModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="doc-modal-body">
+                <!-- Document content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

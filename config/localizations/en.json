@@ -1,16 +1,20 @@
 {
   "language_name": "English",
-
-
-
-
-
-
-
-
-
-
-
+  "context_menu": {
+    "view_image": "View Image",
+    "select": "Select",
+    "deselect": "Deselect",
+    "select_all": "Select All",
+    "clear_selection": "Clear Selection",
+    "copy_filename": "Copy Filename",
+    "copy_path": "Copy Path",
+    "delete": "Delete",
+    "delete_selected": "Delete Selected ({count})",
+    "open_folder": "Open Folder",
+    "new_subfolder": "New Subfolder",
+    "rename": "Rename",
+    "move_to": "Move To..."
+  },
   "app": {
     "brand": "Hootsight"
   },
@@ -19,7 +23,7 @@
     "projects": "Projects",
     "dataset": "Dataset",
     "dataset_editor": "Dataset Editor",
-    "training_setup": "Training Setup",
+    "training_setup": "Training",
     "augmentation": "Augmentation",
     "status_group": "Status",
     "status": "Status",
@@ -27,7 +31,119 @@
     "system_group": "System",
     "updates": "Updates",
     "docs": "Docs",
-    "about": "About"
+    "about": "About",
+    "inference": "Inference",
+    "settings": "Settings"
+  },
+  "training_page": {
+    "tabs": {
+      "model": "Model",
+      "hyperparameters": "Hyperparameters",
+      "dataloader": "Data Loader",
+      "augmentation": "Augmentation",
+      "optimizer": "Optimizer",
+      "scheduler": "Scheduler",
+      "loss": "Loss",
+      "checkpoint": "Checkpoint",
+      "early_stopping": "Early Stopping",
+      "gradient": "Gradient",
+      "runtime": "Runtime"
+    },
+    "no_settings": "No settings available for this section",
+    "project_label": "Project:",
+    "save_button": "Save",
+    "saving": "Saving...",
+    "saved": "Saved!",
+    "save_error": "Save failed",
+    "load_defaults_button": "Load Defaults",
+    "load_project_button": "Project Defaults",
+    "defaults_loaded": "Defaults loaded",
+    "project_loaded": "Project loaded",
+    "load_error": "Load failed",
+    "no_project": {
+      "title": "No Project Selected",
+      "description": "Please select a project from the Projects page to configure training settings.",
+      "button": "Go to Projects"
+    }
+  },
+  "dataset_page": {
+    "project_label": "Project:",
+    "type_label": "Type:",
+    "search_filename": "Filename",
+    "search_annotation": "Annotation",
+    "search_placeholder": "Search images...",
+    "show_duplicates": "Show/Hide Duplicates",
+    "sync_button": "Sync",
+    "build_button": "Build Dataset",
+    "progress_discovery": "Discovery",
+    "progress_starting": "Starting...",
+    "progress_complete": "Complete",
+    "folders": "Folders",
+    "root_folder": "All Images",
+    "new_folder": "New folder",
+    "enter_folder_name": "Enter folder name:",
+    "enter_new_name": "Enter new name:",
+    "rename_folder": "Rename",
+    "delete_folder": "Delete",
+    "delete_folder_confirm": "Are you sure you want to delete this folder?",
+    "delete_folder_confirm_with_images": "This folder contains {count} images. Are you sure you want to delete it?",
+    "folder_create_error": "Failed to create folder",
+    "folder_rename_error": "Failed to rename folder",
+    "folder_delete_error": "Failed to delete folder",
+    "uploading": "Uploading...",
+    "upload_error": "Failed to upload",
+    "type_auto": "Auto",
+    "types": {
+      "multi_label": "Multi Label",
+      "folder_classification": "Folder Classification",
+      "annotation": "Annotation",
+      "mixed": "Mixed"
+    },
+    "drop_images": "Drop images here to upload",
+    "delete_image": "Delete image",
+    "annotation_placeholder": "Enter annotation...",
+    "tag_placeholder": "+ add tag",
+    "confirm_delete": "Are you sure you want to delete this image?",
+    "syncing": "Syncing...",
+    "building": "Building...",
+    "build_complete": "Dataset build complete!",
+    "build_error": "Build failed",
+    "status_count": "{count} images",
+    "per_page": "Per page:",
+    "selected_count": "{count} selected",
+    "clear_selection": "Clear",
+    "select_all": "Select All",
+    "bulk_add_tags_placeholder": "Tags to add...",
+    "bulk_remove_tags_placeholder": "Tags to remove...",
+    "bulk_add": "Add",
+    "bulk_remove": "Remove",
+    "bulk_delete": "Delete",
+    "bulk_delete_confirm": "Are you sure you want to delete {count} images?",
+    "bulk_error": "Bulk operation failed",
+    "duplicate_count": "{count} duplicates found",
+    "duplicates_button": "Find Duplicates",
+    "duplicates_scanning": "Scanning...",
+    "duplicates_none": "No duplicate images found.",
+    "duplicates_error": "Failed to scan for duplicates",
+    "duplicates_title": "Duplicate Images",
+    "duplicates_stats": "Found {groups} duplicate groups with {total} total images (scanned {scanned} images in {duration}s)",
+    "duplicates_group": "Group {num}",
+    "duplicates_images": "images",
+    "duplicates_keep": "Keep",
+    "duplicates_select_all": "Select All Duplicates",
+    "duplicates_delete": "Delete Selected ({count})",
+    "duplicates_delete_confirm": "Are you sure you want to delete {count} duplicate images?",
+    "duplicates_delete_error": "Failed to delete duplicate images",
+    "duplicates_close": "Close",
+    "no_project": {
+      "title": "No Project Selected",
+      "description": "Please select a project from the Projects page to manage the dataset.",
+      "button": "Go to Projects"
+    },
+    "empty_dataset": {
+      "title": "No Images Found",
+      "description": "This dataset is empty. Sync to discover images from data_source folder."
+    }
   },
   "page": {
     "projects": "Projects",
@@ -40,6 +156,55 @@
     "updates": "Updates",
     "docs": "Docs",
     "about": "About"
+  },
+  "projects_page": {
+    "title": "Projects",
+    "description": "Manage your image recognition projects",
+    "dataset_types": {
+      "multi_label": "Multi Label",
+      "mixed": "Mixed",
+      "clean": "Clean",
+      "folder_classification": "Folder Classification",
+      "annotation": "Annotation",
+      "unknown": "Unknown"
+    },
+    "card": {
+      "unknown_type": "Unknown type",
+      "no_stats": "No statistics available - click Refresh",
+      "loading": "Loading...",
+      "error": "Error"
+    },
+    "stats": {
+      "total_images": "Total Images",
+      "labels": "Labels",
+      "min_images": "Min Images",
+      "max_images": "Max Images"
+    },
+    "buttons": {
+      "refresh": "Refresh",
+      "load": "Load",
+      "loaded": "Loaded",
+      "new_project": "New Project",
+      "delete_project": "Delete Project"
+    },
+    "new_project": {
+      "title": "New Project",
+      "prompt": "Enter project name:",
+      "error": "Failed to create project"
+    },
+    "delete_project": {
+      "title": "Delete Project",
+      "confirm": "Are you sure you want to delete project '{name}'? This action cannot be undone.",
+      "no_selection": "No project is currently loaded. Load a project first to delete it.",
+      "error": "Failed to delete project"
+    },
+    "empty": {
+      "title": "No Projects Found",
+      "description": "Create a project folder in the projects directory"
+    },
+    "error": {
+      "title": "Error Loading Projects"
+    }
   },
   "dataset_editor": {
     "api": {
@@ -562,7 +727,11 @@
       "create_invalid": "Project name must start with a letter or number and may contain letters, numbers, hyphens, and underscores.",
       "create_exists": "Project {name} already exists.",
       "create_success": "Project {name} created successfully.",
-      "create_error": "Failed to create project: {error}"
+      "create_error": "Failed to create project: {error}",
+      "delete_invalid": "Invalid project name.",
+      "delete_not_found": "Project {name} does not exist.",
+      "delete_success": "Project {name} deleted successfully.",
+      "delete_error": "Failed to delete project: {error}"
     }
   },
   "docs": {
@@ -662,7 +831,8 @@
     "training_scheduler_params_description": "Scheduler parameters",
     "training_loss_type_description": "Loss function type",
     "training_loss_params_description": "Loss function parameters",
-    "training_weight_init_description": "Weight initialization configuration",
+    "training_weight_init_description": "Weight initialization configuration for neural network layers. Proper initialization is crucial for training stability and convergence speed.",
+    "training_weight_init_params_description": "Type-specific parameters for the selected weight initialization method. Parameters vary based on the initialization algorithm chosen.",
     "training_checkpoint_description": "Checkpoint configuration",
     "training_early_stopping_description": "Early stopping configuration",
     "training_gradient_description": "Gradient configuration",
@@ -673,6 +843,31 @@
     "training_runtime_cudnn_benchmark_description": "Enable cuDNN benchmark for optimized convolution algorithms",
     "dataset_description": "Dataset configuration",
     "dataset_image_extensions_description": "Supported image file extensions",
+    "dataset_discovery_description": "Dataset discovery heuristics and coverage validation settings",
+    "dataset_discovery_annotation_formats_description": "Annotation format specific thresholds used to classify dataset structure",
+    "dataset_discovery_txt_annotations_description": "Plain-text label file expectations (YOLO-style .txt alongside images)",
+    "dataset_discovery_txt_annotations_min_coverage_percent_description": "Minimum percentage of images that must include .txt annotations before treating the project as text-annotated",
+    "dataset_discovery_balance_analysis_description": "Balance analysis thresholds controlling recommendations and warnings",
+    "dataset_discovery_balance_analysis_min_images_per_class_description": "Required samples per class before it is considered valid during training",
+    "dataset_discovery_balance_analysis_critical_shortage_threshold_description": "Counts below this value are reported as critical shortages",
+    "dataset_discovery_balance_analysis_over_representation_ratio_description": "Ratio above ideal distribution that marks classes as over-represented",
+    "dataset_discovery_balance_analysis_under_representation_ratio_description": "Ratio below ideal distribution that marks classes as under-represented",
+    "dataset_discovery_balance_analysis_severe_over_representation_ratio_description": "Multiplier where over-represented labels become severe warnings",
+    "dataset_discovery_balance_analysis_hierarchical_balance_threshold_description": "Minimum balance score expected for hierarchical folder structures",
+    "dataset_discovery_balance_analysis_dataset_size_warnings_description": "Dataset size thresholds that trigger small or tiny dataset recommendations",
+    "dataset_discovery_balance_analysis_dataset_size_warnings_tiny_dataset_description": "Total image count considered critically small",
+    "dataset_discovery_balance_analysis_dataset_size_warnings_small_dataset_description": "Total image count considered small but usable with caution",
+  "dataset_discovery_balance_analysis_balance_score_thresholds_description": "Score cutoffs that categorize balance health",
+  "dataset_discovery_balance_analysis_balance_score_thresholds_legendary_description": "Balance score required to be labeled legendary",
+  "dataset_discovery_balance_analysis_balance_score_thresholds_excellent_description": "Balance score required to be labeled excellent",
+  "dataset_discovery_balance_analysis_balance_score_thresholds_very_good_description": "Balance score required to be labeled very good",
+  "dataset_discovery_balance_analysis_balance_score_thresholds_good_description": "Balance score required to be labeled good",
+  "dataset_discovery_balance_analysis_balance_score_thresholds_balanced_description": "Minimum score still considered balanced",
+  "dataset_discovery_balance_analysis_balance_score_thresholds_slightly_unbalanced_description": "Score where minor imbalance warnings begin",
+  "dataset_discovery_balance_analysis_balance_score_thresholds_fair_description": "Balance score required to be labeled fair",
+  "dataset_discovery_balance_analysis_balance_score_thresholds_poor_description": "Balance score below which balance is marked poor",
+  "dataset_discovery_balance_analysis_balance_score_thresholds_very_poor_description": "Balance score below which datasets are extremely unbalanced",
+  "dataset_discovery_balance_analysis_balance_score_thresholds_critical_description": "Balance score below which action is critical",
   "dataset_editor_description": "Dataset editor configuration",
   "dataset_editor_page_sizes_description": "Allowed page sizes for the dataset grid pagination.",
   "dataset_editor_default_page_size_description": "Initial page size applied when the dataset editor loads.",
@@ -792,6 +987,22 @@
     "training_early_stopping_monitor_enum_descriptor": {
       "val_loss": "Validation Loss Monitoring - Early stopping mechanism that tracks validation loss values to determine when training should halt due to lack of improvement. Affects overfitting prevention, training duration optimization, model generalization quality, and computational resource usage. Controls training termination based on loss plateauing, which typically indicates the model has learned the generalizable patterns and further training may lead to overfitting. Particularly effective for regression tasks and situations where loss minimization directly correlates with model quality.",
       "val_accuracy": "Validation Accuracy Monitoring - Early stopping mechanism that tracks validation accuracy metrics to determine optimal training termination point. Affects model performance optimization, overfitting detection, training efficiency, and final model quality. Controls training halt based on accuracy plateaus, focusing on classification performance rather than loss minimization. Most suitable for balanced classification tasks where accuracy is the primary success metric and correlates well with model generalization capability."
+    },
+    "weight_init_type_enum_descriptor": {
+      "kaiming_normal": "Kaiming Normal (He Normal) - Initializes weights from a normal distribution with variance scaled by 2/fan_in. Designed for layers with ReLU activation, accounting for the fact that ReLU zeros out half the neurons. Best for deep networks using ReLU/LeakyReLU activations.",
+      "kaiming_uniform": "Kaiming Uniform (He Uniform) - Initializes weights from a uniform distribution with bounds scaled by sqrt(6/fan_in). Variant of Kaiming initialization using uniform sampling. Good for ReLU-based networks when uniform distribution is preferred.",
+      "xavier_normal": "Xavier Normal (Glorot Normal) - Initializes weights from a normal distribution with variance scaled by 2/(fan_in + fan_out). Designed for symmetric activations like tanh and sigmoid. Maintains variance across layers for proper gradient flow.",
+      "xavier_uniform": "Xavier Uniform (Glorot Uniform) - Initializes weights from a uniform distribution with bounds calculated from fan_in and fan_out. Classic initialization for networks with symmetric activations. Widely used default for many architectures.",
+      "normal": "Normal Distribution - Initializes weights from a standard normal distribution with specified mean and standard deviation. Simple initialization allowing direct control over weight statistics. Useful for custom initialization schemes.",
+      "uniform": "Uniform Distribution - Initializes weights from a uniform distribution within specified bounds [a, b]. Basic initialization with direct control over weight range. Suitable when specific weight bounds are required.",
+      "trunc_normal": "Truncated Normal - Initializes weights from a truncated normal distribution, clipping values beyond specified bounds. Prevents extreme weight values while maintaining normal-like distribution. Used in Vision Transformer (ViT) architectures.",
+      "orthogonal": "Orthogonal Initialization - Initializes weight matrices to be orthogonal, preserving gradient norms during backpropagation. Excellent for RNNs and deep networks where gradient preservation is critical. Helps prevent vanishing/exploding gradients.",
+      "sparse": "Sparse Initialization - Initializes weight matrices with a specified fraction of zero elements. Creates sparse connectivity patterns, reducing initial parameter influence. Useful for networks where sparsity is desired.",
+      "constant": "Constant Value - Initializes all weights to a single constant value. Typically used for biases or specific layer requirements. Not recommended for weight matrices due to symmetry breaking issues.",
+      "zeros": "Zero Initialization - Initializes all weights to zero. Generally only appropriate for bias terms. Not suitable for weight matrices as it prevents learning due to symmetry.",
+      "ones": "Ones Initialization - Initializes all weights to one. Specialized use cases only, such as certain normalization layers. Not appropriate for general weight initialization.",
+      "eye": "Identity (Eye) Matrix - Initializes weight matrices as identity matrices. Useful for skip connections or residual-style architectures. Preserves input dimensions through the layer initially.",
+      "dirac": "Dirac Delta Initialization - Initializes convolutional kernels as Dirac delta functions (identity-like for convolutions). Creates initial identity mapping for convolutional layers. Useful in residual network designs."
     },
     "optimizers_defaults_lbfgs_line_search_fn_oneOf[1]_enum_descriptor": {
       "strong_wolfe": "Strong Wolfe Line Search - Advanced line search algorithm for L-BFGS optimization that ensures both sufficient decrease (Armijo condition) and curvature conditions (strong Wolfe conditions). Affects optimization convergence quality by guaranteeing appropriate step sizes that satisfy mathematical optimality criteria. Controls step length selection through rigorous mathematical conditions that ensure convergence properties while maintaining computational efficiency. Essential for L-BFGS theoretical guarantees and provides robust step size selection for quasi-Newton optimization methods."
