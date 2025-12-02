@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field
 
 class BoundsModel(BaseModel):
-    zoom: float = Field(default=1.0, ge=1.0, le=20.0)
+    zoom: float = Field(default=1.0, ge=0.1, le=20.0)
     center_x: float = Field(default=0.5, ge=0.0, le=1.0)
     center_y: float = Field(default=0.5, ge=0.0, le=1.0)
 
@@ -31,7 +31,6 @@ class ImageItem(BaseModel):
     image_url: str
     bounds: BoundsModel
     has_custom_bounds: bool
-    updated_at: Optional[datetime]
 
 class PaginatedItems(BaseModel):
     items: List[ImageItem]
@@ -93,11 +92,9 @@ class DiscoveryResponse(BaseModel):
     total_candidates: int
     processed_items: int
     added_items: int
-    updated_items: int
     removed_items: int
     skipped_items: int
     duration_seconds: float
-    updated_at: datetime
 
 class DiscoveryStatus(BaseModel):
     project_name: str
@@ -105,7 +102,6 @@ class DiscoveryStatus(BaseModel):
     total_items: int
     processed_items: int
     added_items: int
-    updated_items: int
     removed_items: int
     skipped_items: int
     eta_seconds: Optional[float]
@@ -138,7 +134,6 @@ class BulkTagResponse(BaseModel):
     skipped: int
     added_tags: List[str]
     removed_tags: List[str]
-    updated_at: datetime
 
 class BuildRequest(BaseModel):
     size: Optional[int] = Field(default=None, ge=32, le=8192)

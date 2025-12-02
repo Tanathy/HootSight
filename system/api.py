@@ -25,9 +25,16 @@ from system.dataset_discovery import discover_projects, get_project_info, get_im
 from system.characteristics_db import (
     get_cached_stats,
     save_stats,
-    save_label_index,
     stats_exist,
     clear_stats,
+    set_metadata,
+    get_metadata,
+    set_project_config_value,
+    delete_project_config_value,
+    delete_metadata,
+    get_project_config_overrides,
+    flat_to_nested,
+    nested_to_flat,
 )
 from system.training import start_training, stop_training, get_training_status, get_training_status_all
 from system.heatmap import generate_heatmap, evaluate_with_heatmap
@@ -149,6 +156,9 @@ def _localize_schema(obj: Any) -> Any:
         return obj
 
 
+_augmentation_preview_cache: Dict[str, Image.Image] = {}
+
+
 def _encode_image_to_base64(image: Image.Image) -> str:
     buffer = BytesIO()
     image.save(buffer, format="PNG")
@@ -156,24 +166,31 @@ def _encode_image_to_base64(image: Image.Image) -> str:
 
 
 def _candidate_dataset_dirs(project_name: str, phase: str) -> List[str]:
-    dataset_root = os.path.join("projects", project_name, "dataset")
-    if not os.path.isdir(dataset_root):
-        return []
-
-    phase_dirs: List[str] = []
-    normalized_phase = (phase or "").lower()
-    if normalized_phase == "train":
-        phase_dirs.extend(["train", "training"])
-    elif normalized_phase == "val":
-        phase_dirs.extend(["val", "validation", "eval"])
-
+    """Get candidate directories for preview images, including data_source fallback."""
     resolved = []
-    for suffix in phase_dirs:
-        candidate = os.path.join(dataset_root, suffix)
-        if os.path.isdir(candidate):
-            resolved.append(candidate)
+    
+    # First try dataset folder
+    dataset_root = os.path.join("projects", project_name, "dataset")
+    if os.path.isdir(dataset_root):
+        phase_dirs: List[str] = []
+        normalized_phase = (phase or "").lower()
+        if normalized_phase == "train":
+            phase_dirs.extend(["train", "training"])
+        elif normalized_phase == "val":
+            phase_dirs.extend(["val", "validation", "eval"])
 
-    resolved.append(dataset_root)
+        for suffix in phase_dirs:
+            candidate = os.path.join(dataset_root, suffix)
+            if os.path.isdir(candidate):
+                resolved.append(candidate)
+
+        resolved.append(dataset_root)
+    
+    # Fallback to data_source folder if no images found in dataset
+    data_source_root = os.path.join("projects", project_name, "data_source")
+    if os.path.isdir(data_source_root):
+        resolved.append(data_source_root)
+    
     return resolved
 
 
@@ -303,6 +320,12 @@ def create_app() -> FastAPI:
     def health_check() -> Dict[str, Any]:
         return {"status": "healthy"}
 
+    @app.get("/system/stats")
+    def get_system_stats_endpoint() -> Dict[str, Any]:
+        """Get current system resource usage for monitoring."""
+        from system.sensors import get_system_stats
+        return get_system_stats()
+
     @app.get("/config")
     def get_config() -> Dict[str, Any]:
         return {"config": SETTINGS}
@@ -375,43 +398,76 @@ def create_app() -> FastAPI:
         title = _derive_doc_title(target)
         return {"status": "success", "path": rel_path, "title": title, "content": content}
 
-    @app.post("/config")
-    def update_config(config: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
-        try:
-            cfg_path = os.path.join("config", "config.json")
-            with open(cfg_path, "w", encoding="utf-8") as f:
-                json.dump(config, f, indent=4, ensure_ascii=False)
-            success("System configuration updated")
-            return {"status": "success"}
-        except Exception as ex:
-            error(f"Config update failed: {ex}")
-            return {"status": "error", "message": str(ex)}
-
     @app.get("/projects/{project_name}/config")
     def get_project_config(project_name: str) -> Dict[str, Any]:
+        """
+        Get project-specific config overrides (nested structure).
+        Returns ONLY the overrides stored in metadata, not merged with defaults.
+        UI does its own deep merge with system defaults.
+        """
         try:
-            cfg_path = os.path.join("projects", project_name, "config.json")
-            if os.path.exists(cfg_path):
-                with open(cfg_path, "r", encoding="utf-8") as f:
-                    config = json.load(f)
-                return {"config": config}
-            else:
-                return {"error": "Project config not found"}
+            overrides_flat = get_project_config_overrides(project_name)
+            overrides_nested = flat_to_nested(overrides_flat)
+            return {"config": overrides_nested}
         except Exception as ex:
             error(f"Project config load failed: {ex}")
             return {"error": str(ex)}
 
     @app.post("/projects/{project_name}/config")
-    def update_project_config(project_name: str, config: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+    def update_project_config(project_name: str, data: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+        """
+        Save project config overrides.
+        Accepts nested config, compares with defaults, flattens and saves only differences.
+        """
         try:
-            cfg_path = os.path.join("projects", project_name, "config.json")
-            os.makedirs(os.path.dirname(cfg_path), exist_ok=True)
-            with open(cfg_path, "w", encoding="utf-8") as f:
-                json.dump(config, f, indent=4, ensure_ascii=False)
-            success(f"Project {project_name} configuration updated")
-            return {"status": "success"}
+            # Flatten incoming nested config
+            incoming_flat = nested_to_flat(data)
+            
+            # Flatten default config for comparison
+            default_flat = nested_to_flat(SETTINGS)
+            
+            # Get current overrides to know what to delete
+            current_overrides = get_project_config_overrides(project_name)
+            
+            saved_count = 0
+            deleted_count = 0
+            
+            # Find values that differ from defaults and save them
+            for key, value in incoming_flat.items():
+                default_value = default_flat.get(key)
+                
+                if value != default_value:
+                    # Value differs from default - save it
+                    set_project_config_value(project_name, key, value)
+                    saved_count += 1
+                elif key in current_overrides:
+                    # Value equals default but was previously overridden - delete it
+                    delete_metadata(project_name, key)
+                    deleted_count += 1
+            
+            success(f"Project {project_name} config updated: {saved_count} saved, {deleted_count} reset to default")
+            return {"status": "success", "saved": saved_count, "deleted": deleted_count}
         except Exception as ex:
             error(f"Project config update failed: {ex}")
+            return {"status": "error", "message": str(ex)}
+
+    @app.post("/projects/{project_name}/config/set")
+    def set_single_config_value(project_name: str, data: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+        """
+        Set a single project config value override.
+        """
+        try:
+            key = data.get('key')
+            value = data.get('value')
+            
+            if not key:
+                return {"status": "error", "message": "Missing 'key' parameter"}
+            
+            set_project_config_value(project_name, key, value)
+            info(f"Project {project_name} config set: {key} = {value}")
+            return {"status": "success", "key": key, "value": value}
+        except Exception as ex:
+            error(f"Failed to set project config value: {ex}")
             return {"status": "error", "message": str(ex)}
 
     @app.get("/projects")
@@ -426,12 +482,15 @@ def create_app() -> FastAPI:
             projects = discover_projects(compute_stats=False)
             project_dicts = []
             for project in projects:
+                # Get user-set dataset_type from DB (not auto-detected)
+                user_dataset_type = get_metadata(project.name, "dataset_type", "unknown")
+                
                 data = {
                     "name": project.name,
                     "path": project.path,
                     "dataset_path": project.dataset_path,
                     "model_path": project.model_path,
-                    "dataset_type": project.dataset_type,
+                    "dataset_type": user_dataset_type,
                     "image_count": project.image_count,
                     "has_dataset": project.has_dataset,
                     "has_model_dir": project.has_model_dir,
@@ -506,14 +565,6 @@ def create_app() -> FastAPI:
             project_path.mkdir(parents=False, exist_ok=False)
             for subdir in ("dataset", "data_source", "model", "heatmaps", "validation"):
                 (project_path / subdir).mkdir(parents=True, exist_ok=True)
-
-            config_src = root_path / "config" / "config.json"
-            config_dst = project_path / "config.json"
-            if config_src.is_file():
-                shutil.copy2(config_src, config_dst)
-            else:
-                with config_dst.open("w", encoding="utf-8") as cfg_file:
-                    json.dump({}, cfg_file, indent=4, ensure_ascii=False)
 
             success(lang("projects.api.create_success", name=name_value))
         except Exception as ex:  # noqa: BLE001 - ensure structured error response
@@ -594,6 +645,70 @@ def create_app() -> FastAPI:
             error(f"Project deletion failed for {project_name}: {ex}")
             return {"status": "error", "message": lang("projects.api.delete_error", error=str(ex))}
 
+    @app.post("/projects/{project_name}/rename")
+    def rename_project(project_name: str, payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
+        """Rename a project directory."""
+        min_length = 3
+        max_length = 64
+        try:
+            paths_cfg = SETTINGS['paths']
+        except Exception:
+            raise ValueError("Missing required 'paths' section in config/config.json")
+        projects_dir = paths_cfg.get("projects_dir")
+        if projects_dir is None:
+            raise ValueError("paths.projects_dir must be defined in config/config.json")
+        root_path = Path(__file__).resolve().parents[1]
+        projects_root = (root_path / projects_dir).resolve()
+
+        # Validate current project exists
+        old_path = (projects_root / project_name).resolve()
+        try:
+            old_path.relative_to(projects_root)
+        except ValueError:
+            return {"status": "error", "message": lang("projects.api.rename_invalid")}
+
+        if not old_path.exists() or not old_path.is_dir():
+            return {"status": "error", "message": lang("projects.api.rename_not_found", name=project_name)}
+
+        # Get and validate new name
+        new_name = ""
+        if isinstance(payload, dict):
+            name_candidate = payload.get("new_name")
+            if isinstance(name_candidate, str):
+                new_name = name_candidate.strip()
+            elif name_candidate is not None:
+                new_name = str(name_candidate).strip()
+
+        if not new_name:
+            return {"status": "error", "message": lang("projects.api.rename_missing")}
+
+        if len(new_name) < min_length or len(new_name) > max_length:
+            return {"status": "error", "message": lang("projects.api.create_length", min=min_length, max=max_length)}
+
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", new_name):
+            return {"status": "error", "message": lang("projects.api.create_invalid")}
+
+        new_path = (projects_root / new_name).resolve()
+        try:
+            new_path.relative_to(projects_root)
+        except ValueError:
+            return {"status": "error", "message": lang("projects.api.rename_invalid")}
+
+        if new_path.exists():
+            return {"status": "error", "message": lang("projects.api.create_exists", name=new_name)}
+
+        try:
+            old_path.rename(new_path)
+            success(lang("projects.api.rename_success", old=project_name, new=new_name))
+            return {
+                "status": "success",
+                "message": lang("projects.api.rename_success", old=project_name, new=new_name),
+                "new_name": new_name
+            }
+        except Exception as ex:
+            error(f"Project rename failed for {project_name}: {ex}")
+            return {"status": "error", "message": lang("projects.api.rename_error", error=str(ex))}
+
     @app.get("/projects/{project_name}")
     def project_details(project_name: str) -> Dict[str, Any]:
         """
@@ -607,12 +722,15 @@ def create_app() -> FastAPI:
             if info_obj is None:
                 return {"project": None}
             
+            # Get user-set dataset_type from DB
+            user_dataset_type = get_metadata(project_name, "dataset_type", "unknown")
+            
             data = {
                 "name": info_obj.name,
                 "path": info_obj.path,
                 "dataset_path": info_obj.dataset_path,
                 "model_path": info_obj.model_path,
-                "dataset_type": info_obj.dataset_type,
+                "dataset_type": user_dataset_type,
                 "image_count": info_obj.image_count,
                 "has_dataset": info_obj.has_dataset,
                 "has_model_dir": info_obj.has_model_dir,
@@ -651,9 +769,8 @@ def create_app() -> FastAPI:
             # Save to database
             save_stats(project_name, stats)
             
-            # Save label index separately
-            if "label_distribution" in stats:
-                save_label_index(project_name, stats["label_distribution"])
+            # Get user-set dataset_type from DB
+            user_dataset_type = get_metadata(project_name, "dataset_type", "unknown")
             
             # Get balance_analysis which contains total_images, num_labels, min_images, max_images
             balance_analysis = stats.get("balance_analysis", {})
@@ -663,7 +780,7 @@ def create_app() -> FastAPI:
                 "status": "success",
                 "project": project_name,
                 "computed_at": stats.get("computed_at"),
-                "dataset_type": stats.get("dataset_type"),
+                "dataset_type": user_dataset_type,
                 "total_images": balance_analysis.get("total_images", stats.get("image_count", 0)),
                 "num_labels": balance_analysis.get("num_labels", len(stats.get("labels", []))),
                 "min_images": balance_analysis.get("min_images", 0),
@@ -726,10 +843,35 @@ def create_app() -> FastAPI:
 
     @app.post("/dataset/editor/projects/{project_name}/stats/refresh")
     def dataset_editor_refresh_stats(project_name: str) -> Dict[str, Any]:
-        """Recompute and save project statistics to characteristics.db"""
+        """Recompute and save project statistics to characteristics.db, return updated stats"""
         project = _get_dataset_editor_project(project_name)
         success = project.save_computed_stats()
-        return {"status": "success" if success else "error", "project": project_name}
+        
+        # Return updated stats for immediate frontend display
+        result: Dict[str, Any] = {"status": "success" if success else "error", "project": project_name}
+        if success:
+            cached = get_cached_stats(project_name)
+            if cached:
+                result["image_count"] = cached.get("total_images", 0)
+                result["balance_score"] = cached.get("balance_score", 0.0)
+                result["balance_status"] = cached.get("balance_status", "")
+        return result
+
+    @app.post("/dataset/editor/projects/{project_name}/dataset-type")
+    def dataset_editor_set_dataset_type(project_name: str, payload: Dict[str, str] = Body(...)) -> Dict[str, Any]:
+        """Save user-selected dataset type to characteristics.db"""
+        dataset_type = payload.get("type", "unknown")
+        # Don't save "auto" - that's not a real type
+        if dataset_type == "auto":
+            dataset_type = "unknown"
+        success = set_metadata(project_name, "dataset_type", dataset_type)
+        return {"status": "success" if success else "error", "type": dataset_type}
+
+    @app.get("/dataset/editor/projects/{project_name}/dataset-type")
+    def dataset_editor_get_dataset_type(project_name: str) -> Dict[str, Any]:
+        """Get user-selected dataset type from characteristics.db"""
+        dataset_type = get_metadata(project_name, "dataset_type", "unknown")
+        return {"type": dataset_type}
 
     @app.get("/dataset/editor/projects/{project_name}/folders", response_model=FolderNode)
     def dataset_editor_project_folders(project_name: str) -> FolderNode:
@@ -853,11 +995,12 @@ def create_app() -> FastAPI:
     @app.post("/training/start")
     def training_start(
         project_name: str = Body(..., embed=True),
+        model_type: str = Body("resnet", embed=True),
         model_name: str = Body("resnet50", embed=True),
         epochs: Optional[int] = Body(None, embed=True)
     ) -> Dict[str, Any]:
         try:
-            return start_training(project_name=project_name, model_type="resnet", model_name=model_name, epochs=epochs)
+            return start_training(project_name=project_name, model_type=model_type, model_name=model_name, epochs=epochs)
         except Exception as ex:
             error(f"Training start failed: {ex}")
             return {"started": False, "error": str(ex)}
@@ -873,7 +1016,11 @@ def create_app() -> FastAPI:
     @app.get("/training/status")
     def training_status(training_id: Optional[str] = Query(None)) -> Dict[str, Any]:
         try:
-            return get_training_status(training_id)
+            from system.sensors import get_system_stats
+            status = get_training_status(training_id)
+            # Include system stats in the response
+            status['system_stats'] = get_system_stats()
+            return status
         except Exception as ex:
             error(f"Training status failed: {ex}")
             return {"error": str(ex)}
@@ -934,6 +1081,48 @@ def create_app() -> FastAPI:
             error(f"Evaluation failed for {project_name}: {ex}")
             return {"error": str(ex)}
 
+    @app.post("/projects/{project_name}/evaluate/upload")
+    async def project_evaluate_upload(
+        project_name: str,
+        file: UploadFile = File(...)
+    ):
+        """Evaluate an uploaded image with heatmap generation."""
+        try:
+            # Get project paths
+            proj = get_project_info(project_name)
+            if not proj:
+                raise HTTPException(status_code=404, detail=f"Project {project_name} not found")
+            
+            # Save uploaded file temporarily to validation folder
+            validation_dir = os.path.join(proj.path, 'validation')
+            os.makedirs(validation_dir, exist_ok=True)
+            
+            # Generate unique filename
+            import uuid
+            ext = os.path.splitext(file.filename or 'image.png')[1] or '.png'
+            temp_filename = f"upload_{uuid.uuid4().hex[:8]}{ext}"
+            temp_path = os.path.join(validation_dir, temp_filename)
+            
+            # Save the file
+            contents = await file.read()
+            with open(temp_path, 'wb') as f:
+                f.write(contents)
+            
+            info(f"Saved uploaded image to {temp_path}")
+            
+            # Run evaluation
+            result = evaluate_with_heatmap(project_name, image_path=temp_path)
+            
+            # Optionally clean up temp file (or keep for reference)
+            # os.remove(temp_path)
+            
+            return result
+        except HTTPException:
+            raise
+        except Exception as ex:
+            error(f"Upload evaluation failed for {project_name}: {ex}")
+            return {"error": str(ex)}
+
     @app.post("/projects/{project_name}/augmentation/preview")
     def augmentation_preview(
         project_name: str,
@@ -949,19 +1138,54 @@ def create_app() -> FastAPI:
         if not isinstance(transforms_cfg, list):
             transforms_cfg = []
 
-        image_path = _select_preview_image(project_name, phase)
+        force_new_image = payload.get("new_image", False)
+        if force_new_image:
+            _augmentation_preview_cache.clear()
+
+        provided_path = payload.get("image_path")
+        if provided_path:
+            image_path = os.path.join("projects", project_name, provided_path)
+            if not os.path.isfile(image_path):
+                image_path = None
+        else:
+            image_path = None
+        
+        if not image_path:
+            image_path = _select_preview_image(project_name, phase)
+        
         if not image_path:
             message = lang("augmentation.preview_no_images", project=project_name)
             warning(f"No preview images available for project {project_name}")
             return {"status": "error", "message": message}
 
         try:
-            with Image.open(image_path) as src:
-                original_image = src.convert("RGB")
-                original_base64 = _encode_image_to_base64(original_image)
-                augmented_image = _apply_augmentation_preview(original_image, transforms_cfg)
-                augmented_base64 = _encode_image_to_base64(augmented_image)
-        except Exception as exc:  # noqa: BLE001 - surface error to caller
+            cache_key = image_path
+            
+            if cache_key in _augmentation_preview_cache:
+                original_image = _augmentation_preview_cache[cache_key]
+            else:
+                _augmentation_preview_cache.clear()
+                
+                with Image.open(image_path) as src:
+                    loaded_image = src.convert("RGB")
+                    
+                    w, h = loaded_image.size
+                    min_dim = min(w, h)
+                    left = (w - min_dim) // 2
+                    top = (h - min_dim) // 2
+                    cropped_image = loaded_image.crop((left, top, left + min_dim, top + min_dim))
+                    
+                    preview_size = 512
+                    if min_dim > preview_size:
+                        cropped_image = cropped_image.resize((preview_size, preview_size), Image.Resampling.LANCZOS)
+                    
+                    _augmentation_preview_cache[cache_key] = cropped_image
+                    original_image = cropped_image
+            
+            original_base64 = _encode_image_to_base64(original_image)
+            augmented_image = _apply_augmentation_preview(original_image, transforms_cfg)
+            augmented_base64 = _encode_image_to_base64(augmented_image)
+        except Exception as exc:
             error(f"Augmentation preview failed for {project_name}: {exc}")
             message = lang("augmentation.preview_failed", error=str(exc))
             return {"status": "error", "message": message}

@@ -134,6 +134,7 @@ const Config = {
                 // No project config is fine - just use global
                 console.log(`No project config for ${projectName}, using global`);
                 this._activeProject = projectName;
+                this._updateHeaderProjectInfo(projectName);
                 return true;
             }
 
@@ -142,15 +143,18 @@ const Config = {
                 // Deep merge project config onto fresh global config
                 this._data = this._deepMerge(this._data, data.config);
                 this._activeProject = projectName;
+                this._updateHeaderProjectInfo(projectName);
                 console.log(`Project config loaded and merged: ${projectName}`);
                 return true;
             }
             
             this._activeProject = projectName;
+            this._updateHeaderProjectInfo(projectName);
             return true;
         } catch (err) {
             console.error(`Failed to load project config for ${projectName}:`, err);
             this._activeProject = projectName;
+            this._updateHeaderProjectInfo(projectName);
             return false;
         }
     },
@@ -255,6 +259,7 @@ const Config = {
      */
     clearActiveProject: function() {
         this._activeProject = null;
+        this._updateHeaderProjectInfo(null);
     },
 
     /**
@@ -272,7 +277,43 @@ const Config = {
      */
     resetToGlobal: async function() {
         this._activeProject = null;
+        this._updateHeaderProjectInfo(null);
         return await this.load();
+    },
+
+    /**
+     * Update header-info with current project name
+     * @param {string|null} projectName
+     */
+    _updateHeaderProjectInfo: function(projectName) {
+        const headerInfo = document.querySelector('.header-info');
+        if (!headerInfo) return;
+
+        // Remove existing project info
+        const existingInfo = headerInfo.querySelector('.header-project-info');
+        if (existingInfo) {
+            existingInfo.remove();
+        }
+
+        // Add new project info if we have a project
+        if (projectName) {
+            const projectInfo = document.createElement('div');
+            projectInfo.className = 'header-project-info';
+            
+            const label = document.createElement('span');
+            label.className = 'project-label';
+            label.textContent = typeof lang === 'function' ? lang('common.project_label') : 'Project:';
+            
+            const name = document.createElement('span');
+            name.className = 'project-name';
+            name.textContent = projectName;
+            
+            projectInfo.appendChild(label);
+            projectInfo.appendChild(name);
+            
+            // Insert at beginning of header-info
+            headerInfo.insertBefore(projectInfo, headerInfo.firstChild);
+        }
     }
 };
 

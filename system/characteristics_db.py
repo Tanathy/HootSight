@@ -1,11 +1,11 @@
 """
-Characteristics database for project metadata, statistics, and indexes.
+Characteristics database for project metadata, statistics, and build cache.
 
 This module provides a SQLite-based storage layer for:
 - Project statistics (balance scores, analysis results)
 - Dataset editor snapshots (image metadata with hash-based IDs)
-- Dataset build status tracking
-- Any computed characteristics that are expensive to calculate
+- Build cache for incremental dataset builds
+- Generic key-value metadata storage
 
 Statistics are only computed on explicit request and cached for quick retrieval.
 The database file is stored as 'characteristics.db' in each project folder.
@@ -16,7 +16,7 @@ import json
 import sqlite3
 import hashlib
 import threading
-from typing import Any, Dict, List, Optional, Iterable, Sequence
+from typing import Any, Dict, List, Optional, Iterable
 from pathlib import Path
 from datetime import datetime
 
@@ -79,14 +79,6 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
             extra_json TEXT
         );
         
-        -- Label/tag index - for quick lookups without full scan
-        CREATE TABLE IF NOT EXISTS label_index (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            label TEXT NOT NULL UNIQUE,
-            count INTEGER DEFAULT 0,
-            updated_at TEXT NOT NULL
-        );
-        
         -- Image snapshots for dataset editor (hash-based ID)
         CREATE TABLE IF NOT EXISTS snapshots (
             hash TEXT PRIMARY KEY,
@@ -99,16 +91,7 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
             height INTEGER DEFAULT 0,
             min_dimension INTEGER DEFAULT 0,
             tags_json TEXT,
-            crop_json TEXT,
-            fingerprint_json TEXT,
-            updated_at TEXT
-        );
-        
-        -- Dataset build status tracking
-        CREATE TABLE IF NOT EXISTS dataset_status (
-            hash TEXT PRIMARY KEY,
-            in_dataset INTEGER NOT NULL DEFAULT 0,
-            needs_update INTEGER NOT NULL DEFAULT 0
+            crop_json TEXT
         );
         
         -- Build cache for incremental builds
@@ -124,13 +107,25 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
             updated_at TEXT NOT NULL
         );
         
-        CREATE INDEX IF NOT EXISTS idx_label_index_label ON label_index(label);
+        -- Training history - one record per epoch
+        CREATE TABLE IF NOT EXISTS training_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            training_id TEXT NOT NULL,
+            epoch INTEGER NOT NULL,
+            timestamp TEXT NOT NULL,
+            train_loss REAL,
+            val_loss REAL,
+            train_accuracy REAL,
+            val_accuracy REAL,
+            learning_rate REAL,
+            UNIQUE(training_id, epoch)
+        );
+        
         CREATE INDEX IF NOT EXISTS idx_snapshots_relative_path ON snapshots(relative_path);
         CREATE INDEX IF NOT EXISTS idx_snapshots_category ON snapshots(category);
-        CREATE INDEX IF NOT EXISTS idx_dataset_pending ON dataset_status(in_dataset, needs_update);
+        CREATE INDEX IF NOT EXISTS idx_training_history_training_id ON training_history(training_id);
     """)
     conn.commit()
-
 
 def compute_image_hash(relative_path: str) -> str:
     """
@@ -244,68 +239,12 @@ def save_stats(project_name: str, stats: Dict[str, Any]) -> bool:
         return False
 
 
-def save_label_index(project_name: str, label_distribution: Dict[str, int]) -> bool:
-    """Save label index to database for quick lookups."""
-    try:
-        conn = _get_connection(project_name)
-        cursor = conn.cursor()
-        
-        updated_at = datetime.utcnow().isoformat()
-        
-        cursor.execute("DELETE FROM label_index")
-        
-        for label, count in label_distribution.items():
-            cursor.execute("""
-                INSERT INTO label_index (label, count, updated_at)
-                VALUES (?, ?, ?)
-            """, (label, count, updated_at))
-        
-        conn.commit()
-        return True
-    except Exception as ex:
-        error(f"Failed to save label index for {project_name}: {ex}")
-        return False
-
-
-def get_label_count(project_name: str) -> int:
-    """Get the number of unique labels from the index."""
-    db_path = _get_db_path(project_name)
-    if not db_path.exists():
-        return 0
-    
-    try:
-        conn = _get_connection(project_name)
-        cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM label_index")
-        row = cursor.fetchone()
-        return row[0] if row else 0
-    except Exception:
-        return 0
-
-
-def get_label_distribution(project_name: str) -> Dict[str, int]:
-    """Get label distribution from the index."""
-    db_path = _get_db_path(project_name)
-    if not db_path.exists():
-        return {}
-    
-    try:
-        conn = _get_connection(project_name)
-        cursor = conn.cursor()
-        cursor.execute("SELECT label, count FROM label_index ORDER BY count DESC")
-        return {row['label']: row['count'] for row in cursor.fetchall()}
-    except Exception as ex:
-        warning(f"Failed to read label distribution for {project_name}: {ex}")
-        return {}
-
-
 def clear_stats(project_name: str) -> bool:
     """Clear all cached statistics for a project."""
     try:
         conn = _get_connection(project_name)
         cursor = conn.cursor()
         cursor.execute("DELETE FROM project_stats")
-        cursor.execute("DELETE FROM label_index")
         conn.commit()
         info(f"Cleared statistics cache for project {project_name}")
         return True
@@ -348,7 +287,6 @@ def snapshot_upsert(project_name: str, records: Dict[str, dict]) -> None:
     
     conn = _get_connection(project_name)
     cursor = conn.cursor()
-    updated_at = datetime.utcnow().isoformat()
     
     rows = []
     for relative_path, data in records.items():
@@ -365,15 +303,13 @@ def snapshot_upsert(project_name: str, records: Dict[str, dict]) -> None:
             data.get('min_dimension', 0),
             _dump_json(data.get('tags', [])),
             _dump_json(data.get('crop', {})),
-            _dump_json(data.get('fingerprint', {})),
-            data.get('updated_at', updated_at),
         ))
     
     cursor.executemany("""
         INSERT INTO snapshots (hash, relative_path, relative_dir, filename, extension,
                                category, width, height, min_dimension, tags_json,
-                               crop_json, fingerprint_json, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                               crop_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(hash) DO UPDATE SET
             relative_path=excluded.relative_path,
             relative_dir=excluded.relative_dir,
@@ -384,9 +320,7 @@ def snapshot_upsert(project_name: str, records: Dict[str, dict]) -> None:
             height=excluded.height,
             min_dimension=excluded.min_dimension,
             tags_json=excluded.tags_json,
-            crop_json=excluded.crop_json,
-            fingerprint_json=excluded.fingerprint_json,
-            updated_at=excluded.updated_at
+            crop_json=excluded.crop_json
     """, rows)
     conn.commit()
 
@@ -403,7 +337,7 @@ def snapshot_load_all(project_name: str) -> Dict[str, dict]:
         cursor.execute("""
             SELECT hash, relative_path, relative_dir, filename, extension,
                    category, width, height, min_dimension, tags_json,
-                   crop_json, fingerprint_json, updated_at
+                   crop_json
             FROM snapshots
         """)
         
@@ -411,17 +345,12 @@ def snapshot_load_all(project_name: str) -> Dict[str, dict]:
         for row in cursor.fetchall():
             tags = []
             crop = {}
-            fingerprint = {}
             try:
                 tags = json.loads(row['tags_json']) if row['tags_json'] else []
             except json.JSONDecodeError:
                 pass
             try:
                 crop = json.loads(row['crop_json']) if row['crop_json'] else {}
-            except json.JSONDecodeError:
-                pass
-            try:
-                fingerprint = json.loads(row['fingerprint_json']) if row['fingerprint_json'] else {}
             except json.JSONDecodeError:
                 pass
             
@@ -437,8 +366,6 @@ def snapshot_load_all(project_name: str) -> Dict[str, dict]:
                 'min_dimension': row['min_dimension'],
                 'tags': tags,
                 'crop': crop,
-                'fingerprint': fingerprint,
-                'updated_at': row['updated_at'],
             }
         return result
     except Exception as ex:
@@ -459,7 +386,7 @@ def snapshot_get(project_name: str, relative_path: str) -> Optional[dict]:
         cursor.execute("""
             SELECT hash, relative_path, relative_dir, filename, extension,
                    category, width, height, min_dimension, tags_json,
-                   crop_json, fingerprint_json, updated_at
+                   crop_json
             FROM snapshots WHERE hash = ?
         """, (hash_id,))
         row = cursor.fetchone()
@@ -468,17 +395,12 @@ def snapshot_get(project_name: str, relative_path: str) -> Optional[dict]:
         
         tags = []
         crop = {}
-        fingerprint = {}
         try:
             tags = json.loads(row['tags_json']) if row['tags_json'] else []
         except json.JSONDecodeError:
             pass
         try:
             crop = json.loads(row['crop_json']) if row['crop_json'] else {}
-        except json.JSONDecodeError:
-            pass
-        try:
-            fingerprint = json.loads(row['fingerprint_json']) if row['fingerprint_json'] else {}
         except json.JSONDecodeError:
             pass
         
@@ -494,12 +416,31 @@ def snapshot_get(project_name: str, relative_path: str) -> Optional[dict]:
             'min_dimension': row['min_dimension'],
             'tags': tags,
             'crop': crop,
-            'fingerprint': fingerprint,
-            'updated_at': row['updated_at'],
         }
     except Exception as ex:
         warning(f"Failed to get snapshot for {relative_path}: {ex}")
         return None
+
+
+def snapshot_update_crop(project_name: str, relative_path: str, crop: dict) -> bool:
+    """Update only the crop data for an existing snapshot. Returns True if updated."""
+    hash_id = compute_image_hash(relative_path)
+    db_path = _get_db_path(project_name)
+    if not db_path.exists():
+        return False
+    
+    try:
+        conn = _get_connection(project_name)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE snapshots SET crop_json = ? WHERE hash = ?",
+            (_dump_json(crop), hash_id)
+        )
+        conn.commit()
+        return cursor.rowcount > 0
+    except Exception as ex:
+        warning(f"Failed to update crop for {relative_path}: {ex}")
+        return False
 
 
 def snapshot_remove(project_name: str, relative_paths: Iterable[str]) -> None:
@@ -514,7 +455,6 @@ def snapshot_remove(project_name: str, relative_paths: Iterable[str]) -> None:
         conn = _get_connection(project_name)
         cursor = conn.cursor()
         cursor.executemany("DELETE FROM snapshots WHERE hash = ?", hashes)
-        cursor.executemany("DELETE FROM dataset_status WHERE hash = ?", hashes)
         cursor.executemany("DELETE FROM build_cache WHERE hash = ?", hashes)
         conn.commit()
     except Exception as ex:
@@ -546,7 +486,6 @@ def snapshot_prune(project_name: str, valid_paths: Iterable[str]) -> None:
             conn = _get_connection(project_name)
             cursor = conn.cursor()
             cursor.execute("DELETE FROM snapshots")
-            cursor.execute("DELETE FROM dataset_status")
             cursor.execute("DELETE FROM build_cache")
             conn.commit()
         except Exception as ex:
@@ -567,110 +506,10 @@ def snapshot_prune(project_name: str, valid_paths: Iterable[str]) -> None:
         to_remove = all_hashes - valid_hashes
         if to_remove:
             cursor.executemany("DELETE FROM snapshots WHERE hash = ?", [(h,) for h in to_remove])
-            cursor.executemany("DELETE FROM dataset_status WHERE hash = ?", [(h,) for h in to_remove])
             cursor.executemany("DELETE FROM build_cache WHERE hash = ?", [(h,) for h in to_remove])
             conn.commit()
     except Exception as ex:
         warning(f"Failed to prune snapshots: {ex}")
-
-
-def snapshot_should_update(project_name: str, relative_path: str, fingerprint: dict) -> bool:
-    """Check if a snapshot needs to be updated based on fingerprint."""
-    existing = snapshot_get(project_name, relative_path)
-    if not existing:
-        return True
-    return existing.get('fingerprint') != fingerprint
-
-
-# =============================================================================
-# DATASET BUILD STATUS (used by dataset editor builder)
-# =============================================================================
-
-def status_ensure_rows(project_name: str, relative_paths: Sequence[str]) -> None:
-    """Ensure status rows exist for given paths."""
-    if not relative_paths:
-        return
-    
-    rows = [(compute_image_hash(p),) for p in relative_paths]
-    
-    try:
-        conn = _get_connection(project_name)
-        cursor = conn.cursor()
-        cursor.executemany("""
-            INSERT INTO dataset_status (hash, in_dataset, needs_update)
-            VALUES (?, 0, 0)
-            ON CONFLICT(hash) DO NOTHING
-        """, rows)
-        conn.commit()
-    except Exception as ex:
-        warning(f"Failed to ensure status rows: {ex}")
-
-
-def status_get_pending(project_name: str) -> List[str]:
-    """Get relative_paths of items pending build."""
-    db_path = _get_db_path(project_name)
-    if not db_path.exists():
-        return []
-    
-    try:
-        conn = _get_connection(project_name)
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT s.relative_path
-            FROM dataset_status ds
-            JOIN snapshots s ON ds.hash = s.hash
-            WHERE ds.in_dataset = 0 OR ds.needs_update = 1
-        """)
-        return [row[0] for row in cursor.fetchall()]
-    except Exception as ex:
-        warning(f"Failed to get pending status: {ex}")
-        return []
-
-
-def status_mark_built(project_name: str, relative_path: str) -> None:
-    """Mark an item as built in dataset."""
-    hash_id = compute_image_hash(relative_path)
-    try:
-        conn = _get_connection(project_name)
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE dataset_status SET in_dataset = 1, needs_update = 0
-            WHERE hash = ?
-        """, (hash_id,))
-        conn.commit()
-    except Exception as ex:
-        warning(f"Failed to mark built: {ex}")
-
-
-def status_mark_needs_update(project_name: str, relative_path: str) -> None:
-    """Mark an item as needing update."""
-    hash_id = compute_image_hash(relative_path)
-    try:
-        conn = _get_connection(project_name)
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE dataset_status SET needs_update = 1
-            WHERE hash = ? AND in_dataset = 1
-        """, (hash_id,))
-        conn.commit()
-    except Exception as ex:
-        warning(f"Failed to mark needs update: {ex}")
-
-
-def status_mark_not_built(project_name: str, relative_path: str) -> None:
-    """Mark an item as not in dataset."""
-    hash_id = compute_image_hash(relative_path)
-    try:
-        conn = _get_connection(project_name)
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO dataset_status (hash, in_dataset, needs_update)
-            VALUES (?, 0, 0)
-            ON CONFLICT(hash) DO UPDATE SET in_dataset = 0
-        """, (hash_id,))
-        conn.commit()
-    except Exception as ex:
-        warning(f"Failed to mark not built: {ex}")
 
 
 # =============================================================================
@@ -765,6 +604,151 @@ def get_metadata(project_name: str, key: str, default: Any = None) -> Any:
         return default
 
 
+def delete_metadata(project_name: str, key: str) -> bool:
+    """Delete a metadata key (reset to default). Returns True if key was deleted."""
+    db_path = _get_db_path(project_name)
+    if not db_path.exists():
+        return False
+    
+    try:
+        conn = _get_connection(project_name)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM metadata WHERE key = ?", (key,))
+        conn.commit()
+        return cursor.rowcount > 0
+    except Exception as ex:
+        error(f"Failed to delete metadata {key} for {project_name}: {ex}")
+        return False
+
+
+def list_metadata(project_name: str, prefix: Optional[str] = None) -> Dict[str, Any]:
+    """
+    List all metadata keys for a project.
+    If prefix is provided, only return keys starting with that prefix.
+    Example: list_metadata(project, "training.") returns all training overrides.
+    """
+    db_path = _get_db_path(project_name)
+    if not db_path.exists():
+        return {}
+    
+    try:
+        conn = _get_connection(project_name)
+        cursor = conn.cursor()
+        
+        if prefix:
+            cursor.execute(
+                "SELECT key, value_json FROM metadata WHERE key LIKE ?",
+                (prefix + "%",)
+            )
+        else:
+            cursor.execute("SELECT key, value_json FROM metadata")
+        
+        result = {}
+        for row in cursor.fetchall():
+            try:
+                result[row['key']] = json.loads(row['value_json'])
+            except json.JSONDecodeError:
+                pass
+        
+        return result
+    except Exception:
+        return {}
+
+
+def flat_to_nested(flat_dict: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Convert flat dot-notation keys to nested dict structure.
+    Example: {"training.epochs": 150, "training.optimizer.lr": 0.001}
+    Returns: {"training": {"epochs": 150, "optimizer": {"lr": 0.001}}}
+    """
+    result: Dict[str, Any] = {}
+    
+    for flat_key, value in flat_dict.items():
+        parts = flat_key.split('.')
+        current = result
+        
+        for i, part in enumerate(parts[:-1]):
+            if part not in current:
+                current[part] = {}
+            elif not isinstance(current[part], dict):
+                # Key collision - existing value is not a dict
+                current[part] = {}
+            current = current[part]
+        
+        # Set the final value
+        current[parts[-1]] = value
+    
+    return result
+
+
+def nested_to_flat(nested_dict: Dict[str, Any], prefix: str = "") -> Dict[str, Any]:
+    """
+    Convert nested dict to flat dot-notation keys.
+    Example: {"training": {"epochs": 150, "optimizer": {"lr": 0.001}}}
+    Returns: {"training.epochs": 150, "training.optimizer.lr": 0.001}
+    """
+    result: Dict[str, Any] = {}
+    
+    for key, value in nested_dict.items():
+        flat_key = f"{prefix}.{key}" if prefix else key
+        
+        if isinstance(value, dict):
+            result.update(nested_to_flat(value, flat_key))
+        else:
+            result[flat_key] = value
+    
+    return result
+
+
+def get_project_config(project_name: str) -> Dict[str, Any]:
+    """
+    Get the full config for a project.
+    Loads default config, then applies ALL project-specific overrides from metadata.
+    Returns merged config ready for use.
+    """
+    from system.coordinator_settings import SETTINGS
+    from copy import deepcopy
+    
+    # Start with default config
+    config = deepcopy(SETTINGS)
+    
+    # Get ALL project overrides from metadata (no filtering!)
+    overrides_flat = list_metadata(project_name, prefix=None)
+    
+    if not overrides_flat:
+        return config
+    
+    # Convert flat overrides to nested structure
+    overrides_nested = flat_to_nested(overrides_flat)
+    
+    # Deep merge overrides onto default config
+    from system.common.deep_merge import _deep_merge_two
+    return _deep_merge_two(config, overrides_nested, replace_lists=True)
+
+
+def set_project_config_value(project_name: str, key: str, value: Any) -> bool:
+    """
+    Set a single project config override.
+    Key should be in dot-notation: "training.epochs", "training.optimizer.lr"
+    """
+    return set_metadata(project_name, key, value)
+
+
+def delete_project_config_value(project_name: str, key: str) -> bool:
+    """
+    Delete a project config override (reset to default).
+    """
+    return delete_metadata(project_name, key)
+
+
+def get_project_config_overrides(project_name: str) -> Dict[str, Any]:
+    """
+    Get only the project-specific overrides (not merged with defaults).
+    Returns flat dict of ALL overrides.
+    """
+    return list_metadata(project_name, prefix=None)
+
+
 # =============================================================================
 # DATABASE UTILITIES
 # =============================================================================
@@ -802,3 +786,136 @@ def migrate_from_dataset_index(project_name: str) -> bool:
     except OSError as ex:
         warning(f"Failed to migrate database for {project_name}: {ex}")
         return False
+
+
+# =============================================================================
+# TRAINING HISTORY
+# =============================================================================
+
+def training_history_record(
+    project_name: str,
+    training_id: str,
+    epoch: int,
+    train_loss: Optional[float] = None,
+    val_loss: Optional[float] = None,
+    train_accuracy: Optional[float] = None,
+    val_accuracy: Optional[float] = None,
+    learning_rate: Optional[float] = None
+) -> None:
+    """Record training metrics for an epoch."""
+    try:
+        conn = _get_connection(project_name)
+        cursor = conn.cursor()
+        timestamp = datetime.utcnow().isoformat()
+        
+        cursor.execute("""
+            INSERT INTO training_history 
+                (training_id, epoch, timestamp, train_loss, val_loss, train_accuracy, val_accuracy, learning_rate)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(training_id, epoch) DO UPDATE SET
+                timestamp = excluded.timestamp,
+                train_loss = excluded.train_loss,
+                val_loss = excluded.val_loss,
+                train_accuracy = excluded.train_accuracy,
+                val_accuracy = excluded.val_accuracy,
+                learning_rate = excluded.learning_rate
+        """, (training_id, epoch, timestamp, train_loss, val_loss, train_accuracy, val_accuracy, learning_rate))
+        conn.commit()
+    except Exception as ex:
+        warning(f"Failed to record training history: {ex}")
+
+
+def training_history_get(project_name: str, training_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Get training history records. If training_id is None, returns all records."""
+    db_path = _get_db_path(project_name)
+    if not db_path.exists():
+        return []
+    
+    try:
+        conn = _get_connection(project_name)
+        cursor = conn.cursor()
+        
+        if training_id:
+            cursor.execute("""
+                SELECT training_id, epoch, timestamp, train_loss, val_loss, 
+                       train_accuracy, val_accuracy, learning_rate
+                FROM training_history
+                WHERE training_id = ?
+                ORDER BY epoch ASC
+            """, (training_id,))
+        else:
+            cursor.execute("""
+                SELECT training_id, epoch, timestamp, train_loss, val_loss, 
+                       train_accuracy, val_accuracy, learning_rate
+                FROM training_history
+                ORDER BY training_id, epoch ASC
+            """)
+        
+        rows = cursor.fetchall()
+        return [
+            {
+                "training_id": row[0],
+                "epoch": row[1],
+                "timestamp": row[2],
+                "train_loss": row[3],
+                "val_loss": row[4],
+                "train_accuracy": row[5],
+                "val_accuracy": row[6],
+                "learning_rate": row[7]
+            }
+            for row in rows
+        ]
+    except Exception as ex:
+        warning(f"Failed to get training history: {ex}")
+        return []
+
+
+def training_history_get_latest(project_name: str) -> Optional[Dict[str, Any]]:
+    """Get the most recent training history record."""
+    db_path = _get_db_path(project_name)
+    if not db_path.exists():
+        return None
+    
+    try:
+        conn = _get_connection(project_name)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT training_id, epoch, timestamp, train_loss, val_loss, 
+                   train_accuracy, val_accuracy, learning_rate
+            FROM training_history
+            ORDER BY timestamp DESC
+            LIMIT 1
+        """)
+        row = cursor.fetchone()
+        if not row:
+            return None
+        
+        return {
+            "training_id": row[0],
+            "epoch": row[1],
+            "timestamp": row[2],
+            "train_loss": row[3],
+            "val_loss": row[4],
+            "train_accuracy": row[5],
+            "val_accuracy": row[6],
+            "learning_rate": row[7]
+        }
+    except Exception as ex:
+        warning(f"Failed to get latest training history: {ex}")
+        return None
+
+
+def training_history_clear(project_name: str, training_id: Optional[str] = None) -> None:
+    """Clear training history. If training_id is None, clears all."""
+    try:
+        conn = _get_connection(project_name)
+        cursor = conn.cursor()
+        
+        if training_id:
+            cursor.execute("DELETE FROM training_history WHERE training_id = ?", (training_id,))
+        else:
+            cursor.execute("DELETE FROM training_history")
+        
+        conn.commit()
+    except Exception as ex:
+        warning(f"Failed to clear training history: {ex}")

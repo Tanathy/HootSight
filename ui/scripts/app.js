@@ -29,6 +29,12 @@
         const container = document.getElementById('page-content');
         if (!container) return;
 
+        // Cleanup previous page if it has a cleanup method
+        const previousPage = Pages.get(currentPage);
+        if (previousPage && typeof previousPage.cleanup === 'function') {
+            previousPage.cleanup();
+        }
+
         // Clear header actions before switching
         clearHeaderActions();
 
@@ -96,6 +102,10 @@
 
         // Initialize navigation click handlers
         initNavigation();
+
+        // Initialize training controller and check for existing training
+        // This MUST complete before page navigation so TrainingMonitor is ready
+        await TrainingController.init();
 
         // Load initial page
         const defaultPage = Navigation.getDefaultPage();

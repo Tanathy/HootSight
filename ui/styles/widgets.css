@@ -35,6 +35,7 @@
     padding: var(--spacing-sm) var(--spacing-md);
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
+    height:100%;
     border-radius: var(--radius-sm);
     color: var(--text-primary);
     font-size: 0.875rem;
@@ -635,41 +636,20 @@
     color: var(--text-primary);
 }
 
-/* Mini switch for auto toggle */
-.mini-switch-track {
+/* Mini switch for auto toggle - uses standard switch styling scaled down */
+.auto-switch-container .switch-track {
     width: 36px;
     height: 20px;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
     border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
 }
 
-.mini-switch-track:hover {
-    border-color: var(--accent-primary);
-}
-
-.mini-switch-thumb {
-    position: absolute;
-    top: 2px;
-    left: 2px;
+.auto-switch-container .switch-thumb {
     width: 14px;
     height: 14px;
-    background: var(--text-muted);
-    border-radius: 50%;
-    transition: all 0.2s;
 }
 
-.mini-switch-track.active {
-    background: var(--accent-primary);
-    border-color: var(--accent-primary);
-}
-
-.mini-switch-track.active .mini-switch-thumb {
+.auto-switch-container .switch-track.active .switch-thumb {
     left: 18px;
-    background: white;
 }
 
 /* Number section */
@@ -720,6 +700,7 @@
 
 .number-input {
     width: 80px;
+    height:100%;
     padding: var(--spacing-sm);
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
@@ -796,6 +777,70 @@
 }
 
 /* ============================================================================
+   Nested Section Widget (for activation/augmentation defaults)
+   ============================================================================ */
+
+.widget-nested-section {
+    margin-bottom: var(--spacing-sm);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--bg-secondary);
+}
+
+.nested-section-header {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-tertiary);
+    font-size: 0.8125rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    user-select: none;
+    transition: background-color 0.15s ease;
+}
+
+.nested-section-header:hover {
+    background: var(--bg-hover);
+}
+
+.nested-section-toggle {
+    font-family: monospace;
+    font-weight: bold;
+    font-size: 0.875rem;
+    width: 1rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.nested-section-title {
+    font-weight: 500;
+}
+
+.nested-section-desc {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-left: auto;
+    max-width: 60%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nested-section-content {
+    padding: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    border-top: 1px solid var(--border-color);
+}
+
+.nested-section-content.collapsed {
+    display: none;
+}
+
+/* ============================================================================
    Tab Content Wrapper
    ============================================================================ */
 
@@ -804,10 +849,13 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .tab-content-wrapper .widget {
-    margin-bottom: var(--spacing-sm);
+    flex-shrink: 0;
 }
 
 /* ============================================================================
@@ -1155,5 +1203,309 @@
     padding: var(--spacing-md) var(--spacing-lg);
     border-top: 1px solid var(--border-color);
     background: var(--bg-secondary);
+}
+
+
+/* ============================================================================
+   Augmentation Builder Widget
+   ============================================================================ */
+
+.widget-augmentation-builder {
+    gap: var(--spacing-md);
+}
+
+.augmentation-builder-label {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.augmentation-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+/* Augmentation Item */
+.augmentation-item {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.augmentation-item.enabled {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 1px var(--accent-primary-dim);
+}
+
+.augmentation-item-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.augmentation-item-header:hover {
+    background: var(--bg-hover);
+}
+
+.augmentation-item-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.augmentation-item.enabled .augmentation-item-title {
+    color: var(--accent-primary);
+}
+
+/* Use existing switch styles - just position adjustment */
+.augmentation-item-header .switch-container {
+    flex-shrink: 0;
+}
+
+/* Parameters container */
+.augmentation-item-params {
+    padding: var(--spacing-sm) var(--spacing-md);
+    padding-top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    border-top: 1px solid var(--border-subtle);
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+}
+
+.augmentation-no-params {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Compact widgets inside augmentation params */
+.augmentation-item-params .widget {
+    gap: var(--spacing-xs);
+}
+
+.augmentation-item-params .widget-label {
+    font-size: 0.75rem;
+    min-width: 100px;
+}
+
+.augmentation-item-params .widget-switch {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.augmentation-item-params .switch-row {
+    width: 100%;
+}
+
+.augmentation-item-params .widget-number {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.augmentation-item-params .number-widget-controls {
+    flex-shrink: 0;
+}
+
+.augmentation-item-params .widget-dropdown {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+}
+
+.augmentation-item-params .dropdown-container {
+    min-width: 120px;
+}
+
+.augmentation-item-params .widget-text {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+}
+
+.augmentation-item-params .widget-text .widget-input {
+    min-width: 100px;
+    max-width: 150px;
+}
+
+/* Array inline widget */
+.widget-array-inline {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+}
+
+.widget-array-inline .widget-label {
+    font-size: 0.75rem;
+    min-width: 100px;
+    flex-shrink: 0;
+}
+
+.array-inputs-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.array-inputs-row .widget-number {
+    flex-direction: row;
+}
+
+.array-inputs-row .widget-number.array-item {
+    gap: 0;
+}
+
+.array-inputs-row .widget-number.array-item .number-widget-controls {
+    max-width: 100px;
+}
+
+.array-inputs-row .widget-number.array-item .number-input {
+    width: 50px;
+    text-align: center;
+}
+
+/* Augmentation Tab Sections */
+.augmentation-tab {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+/* Augmentation Split View Layout */
+.augmentation-tab-split {
+    display: flex;
+    flex-direction: row !important;
+    gap: var(--spacing-lg);
+    height: 100%;
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Left Panel - Settings */
+.augmentation-settings-panel {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: var(--spacing-sm);
+}
+
+/* Custom scrollbar for settings panel */
+.augmentation-settings-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.augmentation-settings-panel::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 3px;
+}
+
+.augmentation-settings-panel::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.augmentation-settings-panel::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* Right Panel - Preview */
+.augmentation-preview-panel {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-md);
+    height: 100%;
+}
+
+/* Preview Box - 1:1 Aspect Ratio based on height */
+.augmentation-preview-box {
+    height: calc(100% - 50px); /* Leave space for buttons */
+    max-height: 400px;
+    aspect-ratio: 1 / 1;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.augmentation-preview-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+}
+
+.augmentation-preview-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+}
+
+.augmentation-preview-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    text-align: center;
+    padding: var(--spacing-md);
+}
+
+.augmentation-preview-placeholder span {
+    opacity: 0.6;
+}
+
+/* Preview Buttons */
+.augmentation-preview-buttons {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.augmentation-preview-buttons .btn {
+    flex: 1;
+    padding: var(--spacing-sm) var(--spacing-xs);
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.augmentation-section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    padding-bottom: var(--spacing-xs);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.augmentation-section-spacer {
+    height: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-subtle);
 }
 

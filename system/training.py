@@ -7,6 +7,7 @@ import copy
 from system.log import info, success, error
 from system.coordinator import create_coordinator
 from system.coordinator_settings import SETTINGS
+from system import characteristics_db
 
 
 class TrainingManager:
@@ -292,6 +293,8 @@ class TrainingManager:
                     train_info_parts.append(f"Train loss: {train_metrics['train_loss']:.4f}")
                 if 'train_accuracy' in train_metrics and train_metrics['train_accuracy'] is not None:
                     train_info_parts.append(f"acc: {train_metrics['train_accuracy']:.2f}%")
+                if 'learning_rate' in train_metrics and train_metrics['learning_rate'] is not None:
+                    train_info_parts.append(f"lr: {train_metrics['learning_rate']:.2e}")
                 info(', '.join(train_info_parts) if train_info_parts else "Train phase complete")
 
                 train_summary: Dict[str, Any] = {}
@@ -301,6 +304,8 @@ class TrainingManager:
                 if 'train_accuracy' in train_metrics and train_metrics['train_accuracy'] is not None:
                     train_summary['epoch_accuracy'] = train_metrics['train_accuracy']
                     train_summary['train_accuracy'] = train_metrics['train_accuracy']
+                if 'learning_rate' in train_metrics and train_metrics['learning_rate'] is not None:
+                    train_summary['learning_rate'] = train_metrics['learning_rate']
                 if train_summary:
                     self._record_epoch_summary(
                         training_id,
@@ -358,7 +363,21 @@ class TrainingManager:
                     epoch_metrics['train_accuracy'] = train_metrics['train_accuracy']
                 if 'val_accuracy' in val_metrics and val_metrics['val_accuracy'] is not None:
                     epoch_metrics['val_accuracy'] = val_metrics['val_accuracy']
+                if 'learning_rate' in train_metrics and train_metrics['learning_rate'] is not None:
+                    epoch_metrics['learning_rate'] = train_metrics['learning_rate']
                 training_history.append(epoch_metrics)
+
+                # Save to characteristics.db training_history table
+                characteristics_db.training_history_record(
+                    project_name=project_name,
+                    training_id=training_id,
+                    epoch=epoch + 1,
+                    train_loss=epoch_metrics.get('train_loss'),
+                    val_loss=epoch_metrics.get('val_loss'),
+                    train_accuracy=epoch_metrics.get('train_accuracy'),
+                    val_accuracy=epoch_metrics.get('val_accuracy'),
+                    learning_rate=epoch_metrics.get('learning_rate')
+                )
 
                 if training_id in self.active_trainings:
                     self.active_trainings[training_id]['current_epoch'] = epoch + 1

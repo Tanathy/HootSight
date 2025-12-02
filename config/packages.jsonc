@@ -17,6 +17,7 @@
         "numpy",
         "python-multipart",
         "pillow",
+        "pynvml",
         "pyyaml",
         "matplotlib",
         "scikit-learn",

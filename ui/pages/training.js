@@ -62,9 +62,6 @@ const TrainingPage = {
         // Ensure project config is loaded
         await Config.loadProject(activeProject);
 
-        // Page header with save button
-        this._buildHeader(container, activeProject);
-
         // Create tabs container
         this._tabs = new Tabs('training-tabs');
 
@@ -82,7 +79,15 @@ const TrainingPage = {
 
         // Build each tab
         this._tabGroups.forEach(tabDef => {
-            const tabContent = this._buildTabContent(tabDef.group, trainingSchema);
+            let tabContent;
+            
+            // Special handling for augmentation tab - use AugmentationBuilder
+            if (tabDef.id === 'augmentation') {
+                tabContent = this._buildAugmentationTab();
+            } else {
+                tabContent = this._buildTabContent(tabDef.group, trainingSchema, 'training');
+            }
+            
             this._tabs.addTab(tabDef.id, lang(tabDef.langKey), tabContent);
         });
 
@@ -154,30 +159,7 @@ const TrainingPage = {
     },
 
     /**
-     * Build page header with project name
-     * @param {HTMLElement} container
-     * @param {string} projectName
-     */
-    _buildHeader: function(container, projectName) {
-        const header = Q('<div>', { class: 'training-header' }).get(0);
-        
-        // Project info
-        const projectInfo = Q('<div>', { class: 'training-project-info' }).get(0);
-        const projectLabel = Q('<span>', { 
-            class: 'project-label',
-            text: lang('training_page.project_label')
-        }).get(0);
-        const projectNameEl = Q('<span>', { 
-            class: 'project-name',
-            text: projectName
-        }).get(0);
-        projectInfo.appendChild(projectLabel);
-        projectInfo.appendChild(projectNameEl);
-        
-        header.appendChild(projectInfo);
-        container.appendChild(header);
-    },
-
+     * Build page header with project name (uses global header-info)
     /**
      * Load system defaults (global config without project overrides)
      */
@@ -237,7 +219,6 @@ const TrainingPage = {
         const originalClass = btn.className;
         
         btn.textContent = lang(langKey);
-        btn.classList.add(isError ? 'btn-error' : 'btn-success');
         
         setTimeout(() => {
             btn.textContent = originalText;
@@ -260,20 +241,20 @@ const TrainingPage = {
         this._saveBtn.textContent = lang('training_page.saving');
 
         try {
-            // Get only training section from current config
-            const trainingConfig = Config.get('training');
+            // Get training section from current config
+            const configToSave = {
+                training: Config.get('training')
+            };
             
             // Save to project
-            const result = await API.projects.saveConfig(projectName, { training: trainingConfig });
+            const result = await API.projects.saveConfig(projectName, configToSave);
             
             if (result.status === 'success') {
                 // Show success feedback
                 this._saveBtn.textContent = lang('training_page.saved');
-                this._saveBtn.classList.add('btn-success');
                 
                 setTimeout(() => {
                     this._saveBtn.textContent = lang('training_page.save_button');
-                    this._saveBtn.classList.remove('btn-success');
                     this._saveBtn.disabled = false;
                 }, 2000);
             } else {
@@ -282,11 +263,9 @@ const TrainingPage = {
         } catch (err) {
             console.error('Failed to save project config:', err);
             this._saveBtn.textContent = lang('training_page.save_error');
-            this._saveBtn.classList.add('btn-error');
             
             setTimeout(() => {
                 this._saveBtn.textContent = lang('training_page.save_button');
-                this._saveBtn.classList.remove('btn-error');
                 this._saveBtn.disabled = false;
             }, 3000);
         }
@@ -295,15 +274,16 @@ const TrainingPage = {
     /**
      * Build content for a tab based on group
      * @param {string} groupName - Group name like "training.model"
-     * @param {Object} trainingSchema - Training section schema
+     * @param {Object} schema - Schema for this section
+     * @param {string} basePath - Base path for config keys (default: "training")
      * @returns {HTMLElement}
      */
-    _buildTabContent: function(groupName, trainingSchema) {
+    _buildTabContent: function(groupName, schema, basePath = 'training') {
         const content = document.createElement('div');
         content.className = 'tab-content-wrapper';
 
         // Collect fields belonging to this group
-        const fields = this._getFieldsForGroup(groupName, trainingSchema);
+        const fields = this._getFieldsForGroup(groupName, schema, basePath);
 
         if (fields.length === 0) {
             const emptyMsg = document.createElement('p');
@@ -320,7 +300,11 @@ const TrainingPage = {
         fields.forEach(field => {
             const widget = this._buildWidget(field);
             if (widget) {
-                content.appendChild(widget);
+                // Handle both HTMLElement and widget objects with getElement()
+                const el = widget.getElement?.() || widget;
+                if (el instanceof HTMLElement) {
+                    content.appendChild(el);
+                }
             }
         });
 
@@ -331,9 +315,10 @@ const TrainingPage = {
      * Get fields belonging to a specific group
      * @param {string} groupName - Group name
      * @param {Object} schema - Schema object
+     * @param {string} basePath - Base path for config keys
      * @returns {Array}
      */
-    _getFieldsForGroup: function(groupName, schema) {
+    _getFieldsForGroup: function(groupName, schema, basePath = 'training') {
         const fields = [];
 
         if (!schema?.properties) return fields;
@@ -345,7 +330,7 @@ const TrainingPage = {
             if (fieldGroup === groupName) {
                 fields.push({
                     key: key,
-                    path: `training.${key}`,
+                    path: `${basePath}.${key}`,
                     ...fieldSchema
                 });
             }
@@ -355,7 +340,7 @@ const TrainingPage = {
                 if (fieldGroup === groupName) {
                     fields.push({
                         key: key,
-                        path: `training.${key}`,
+                        path: `${basePath}.${key}`,
                         ...fieldSchema
                     });
                 }
@@ -926,8 +911,212 @@ const TrainingPage = {
             }
         }
         return values;
+    },
+
+    /**
+     * Build the Augmentation tab with split view: settings left, preview right
+     * @returns {HTMLElement}
+     */
+    _buildAugmentationTab: function() {
+        const content = document.createElement('div');
+        content.className = 'tab-content-wrapper augmentation-tab-split';
+
+        // Get augmentation defaults from config
+        const augDefaults = Config.get('augmentations.defaults', {});
+        
+        // Filter out non-configurable augmentations
+        const configurableDefaults = {};
+        for (const [augName, defaults] of Object.entries(augDefaults)) {
+            if (augName !== 'to_tensor' && augName !== 'normalize' && augName !== 'compose') {
+                configurableDefaults[augName] = defaults;
+            }
+        }
+
+        // === LEFT PANEL: Settings ===
+        const leftPanel = Q('<div>', { class: 'augmentation-settings-panel' }).get(0);
+        
+        // Train augmentation builder
+        const trainLabel = Q('<h3>', { 
+            class: 'augmentation-section-title', 
+            text: lang('training_page.augmentation.train_title') 
+        }).get(0);
+        leftPanel.appendChild(trainLabel);
+
+        const trainPipeline = Config.get('training.augmentation.train', []);
+        const trainBuilder = new AugmentationBuilder('augmentation-train', {
+            phase: 'train',
+            label: '',
+            description: lang('training_page.augmentation.train_description'),
+            augmentationDefaults: configurableDefaults,
+            currentPipeline: trainPipeline
+        });
+        
+        trainBuilder.onChange(pipeline => {
+            Config.set('training.augmentation.train', pipeline);
+        });
+        
+        this._widgets['training.augmentation.train'] = trainBuilder;
+        leftPanel.appendChild(trainBuilder.getElement());
+
+        // Spacer
+        const spacer = Q('<div>', { class: 'augmentation-section-spacer' }).get(0);
+        leftPanel.appendChild(spacer);
+
+        // Validation augmentation builder
+        const valLabel = Q('<h3>', { 
+            class: 'augmentation-section-title', 
+            text: lang('training_page.augmentation.val_title') 
+        }).get(0);
+        leftPanel.appendChild(valLabel);
+
+        const valPipeline = Config.get('training.augmentation.val', []);
+        const valBuilder = new AugmentationBuilder('augmentation-val', {
+            phase: 'val',
+            label: '',
+            description: lang('training_page.augmentation.val_description'),
+            augmentationDefaults: configurableDefaults,
+            currentPipeline: valPipeline
+        });
+        
+        valBuilder.onChange(pipeline => {
+            Config.set('training.augmentation.val', pipeline);
+        });
+        
+        this._widgets['training.augmentation.val'] = valBuilder;
+        leftPanel.appendChild(valBuilder.getElement());
+
+        content.appendChild(leftPanel);
+
+        // === RIGHT PANEL: Preview ===
+        const rightPanel = Q('<div>', { class: 'augmentation-preview-panel' }).get(0);
+        
+        // Preview box (1:1 aspect ratio)
+        const previewBox = Q('<div>', { class: 'augmentation-preview-box' }).get(0);
+        const previewImage = Q('<img>', { class: 'augmentation-preview-image', alt: 'Preview' }).get(0);
+        previewImage.src = ''; // Empty initially
+        const previewPlaceholder = Q('<div>', { class: 'augmentation-preview-placeholder' }).get(0);
+        previewPlaceholder.innerHTML = '<span>' + lang('training_page.augmentation.preview_placeholder') + '</span>';
+        previewBox.appendChild(previewImage);
+        previewBox.appendChild(previewPlaceholder);
+        rightPanel.appendChild(previewBox);
+        
+        // Store references for preview functionality
+        this._previewImage = previewImage;
+        this._previewPlaceholder = previewPlaceholder;
+        this._currentImagePath = null; // Store the current image path for augmentation
+        this._originalImageBase64 = null; // Store original for reset
+        
+        // Buttons using ActionButton widget
+        const buttonGroup = Q('<div>', { class: 'augmentation-preview-buttons' }).get(0);
+        
+        const randomBtn = new ActionButton('aug-random', {
+            label: lang('training_page.augmentation.btn_random'),
+            className: 'btn btn-secondary',
+            onClick: () => this._loadRandomPreviewImage()
+        });
+        
+        const trainBtn = new ActionButton('aug-train', {
+            label: lang('training_page.augmentation.btn_train'),
+            className: 'btn btn-primary',
+            onClick: () => this._applyAugmentationPreview('train')
+        });
+        
+        const valBtn = new ActionButton('aug-val', {
+            label: lang('training_page.augmentation.btn_val'),
+            className: 'btn btn-secondary',
+            onClick: () => this._applyAugmentationPreview('val')
+        });
+        
+        buttonGroup.appendChild(randomBtn.getElement());
+        buttonGroup.appendChild(trainBtn.getElement());
+        buttonGroup.appendChild(valBtn.getElement());
+        rightPanel.appendChild(buttonGroup);
+
+        content.appendChild(rightPanel);
+
+        return content;
+    },
+
+    /**
+     * Load a random image for preview (original, no augmentation)
+     */
+    _loadRandomPreviewImage: async function() {
+        const projectName = Config.getActiveProject();
+        if (!projectName) return;
+
+        try {
+            // Request a random preview image with no transforms
+            const response = await fetch(`/projects/${projectName}/augmentation/preview`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    phase: 'train', 
+                    transforms: [] // Empty transforms = just get original image
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success' && data.original_image) {
+                this._previewImage.src = 'data:image/jpeg;base64,' + data.original_image;
+                this._previewPlaceholder.style.display = 'none';
+                this._previewImage.style.display = 'block';
+                // Store the image path and original for later use
+                this._currentImagePath = data.image_path;
+                this._originalImageBase64 = data.original_image;
+            } else {
+                console.error('Failed to load preview image:', data.message);
+            }
+        } catch (err) {
+            console.error('Error loading preview image:', err);
+        }
+    },
+
+    /**
+     * Apply augmentation to the current preview image
+     * @param {string} phase - 'train' or 'val'
+     */
+    _applyAugmentationPreview: async function(phase) {
+        const projectName = Config.getActiveProject();
+        if (!projectName) return;
+
+        // If no image loaded yet, load one first
+        if (!this._currentImagePath) {
+            await this._loadRandomPreviewImage();
+            if (!this._currentImagePath) return; // Still no image
+        }
+
+        // Get the appropriate transforms
+        const transforms = phase === 'train' 
+            ? Config.get('training.augmentation.train', [])
+            : Config.get('training.augmentation.val', []);
+
+        try {
+            const response = await fetch(`/projects/${projectName}/augmentation/preview`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    phase: phase, 
+                    transforms: transforms,
+                    image_path: this._currentImagePath // Use the same image!
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.status === 'success' && data.augmented_image) {
+                this._previewImage.src = 'data:image/jpeg;base64,' + data.augmented_image;
+                this._previewPlaceholder.style.display = 'none';
+                this._previewImage.style.display = 'block';
+            } else {
+                console.error('Augmentation preview failed:', data.message);
+            }
+        } catch (err) {
+            console.error('Error applying augmentation:', err);
+        }
     }
 };
 
 // Register page
 Pages.register('training', TrainingPage);
+

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import shelve
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -17,10 +16,11 @@ from system.log import warning
 
 SETTINGS = get_dataset_editor_settings()
 
+# PIL version compatibility: newer versions use Image.Resampling.LANCZOS
 if hasattr(Image, "Resampling"):
     RESAMPLE_LANCZOS = Image.Resampling.LANCZOS
 else:
-    RESAMPLE_LANCZOS = Image.LANCZOS
+    RESAMPLE_LANCZOS = Image.LANCZOS  # type: ignore[attr-defined]
 
 def compute_crop_box(width: int, height: int, bounds: BoundsModel) -> Tuple[int, int, int, int]:
     zoom = max(bounds.zoom, 1.0)
@@ -42,28 +42,19 @@ def compute_crop_box(width: int, height: int, bounds: BoundsModel) -> Tuple[int,
     return left, top, right, bottom
 
 class BuildCache:
-    def __init__(self, project: ProjectIndex):
-        self._path = project.root / ".build_cache"
-        self._lock = RLock()
+    """Build cache using characteristics.db (SQLite) instead of shelve files."""
+    def __init__(self, project: "ProjectIndex"):
+        self._project_name = project.root.name
 
     def snapshot(self) -> Dict[str, dict]:
-        with self._lock:
-            if not self._path.parent.exists():
-                self._path.parent.mkdir(parents=True, exist_ok=True)
-            with shelve.open(str(self._path)) as db:
-                return {key: db[key] for key in db}
+        from system import characteristics_db as cdb
+        return cdb.build_cache_load(self._project_name)
 
     def commit(self, updates: Dict[str, dict], deletions: Iterable[str]) -> None:
-        delete_keys = list(deletions)
-        if not updates and not delete_keys:
+        if not updates and not deletions:
             return
-        with self._lock:
-            with shelve.open(str(self._path)) as db:
-                for key in delete_keys:
-                    if key in db:
-                        del db[key]
-                for key, value in updates.items():
-                    db[key] = value
+        from system import characteristics_db as cdb
+        cdb.build_cache_update(self._project_name, updates, list(deletions))
 
 class BuildJob:
     def __init__(self, project_name: str, target_size: int):
@@ -363,14 +354,14 @@ class IncrementalDatasetBuilder:
     def _capture_metadata(self, record: ImageRecord) -> dict:
         image_stat = record.image_path.stat()
         annotation_stat = record.annotation_path.stat() if record.annotation_path.exists() else None
-        bounds_stat = record.bounds_path.stat() if record.bounds_path.exists() else None
+        # Bounds are stored in DB, not files - include bounds data directly for change detection
+        bounds_data = record.bounds.model_dump() if record.bounds else {}
         return {
             "image_mtime": image_stat.st_mtime,
             "image_size": image_stat.st_size,
             "annotation_mtime": annotation_stat.st_mtime if annotation_stat else 0.0,
             "annotation_size": annotation_stat.st_size if annotation_stat else 0,
-            "bounds_mtime": bounds_stat.st_mtime if bounds_stat else 0.0,
-            "bounds_size": bounds_stat.st_size if bounds_stat else 0,
+            "bounds_data": bounds_data,  # Direct bounds data instead of file stat
             "output_rel_path": record.relative_path,
             "target_size": self.target_size,
         }
@@ -391,8 +382,7 @@ class IncrementalDatasetBuilder:
             "image_size",
             "annotation_mtime",
             "annotation_size",
-            "bounds_mtime",
-            "bounds_size",
+            "bounds_data",
             "target_size",
         ]
         return any(cached.get(key) != meta.get(key) for key in keys)

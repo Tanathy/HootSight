@@ -15,7 +15,8 @@ from pathlib import Path
 
 from system.log import info, success, warning, error
 from system.coordinator_settings import SETTINGS
-
+from system.device import get_device, get_device_type, create_grad_scaler, autocast_context
+from system.common.training_metrics import build_step_metrics, build_epoch_result
 
 class ResNetModel:
     """ResNet model wrapper with training and evaluation capabilities."""
@@ -33,7 +34,8 @@ class ResNetModel:
         self.num_classes = num_classes
         self.pretrained = pretrained
         self.task = task
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = get_device()
+        self._device_type = get_device_type()
 
         # Runtime performance settings - require presence in config
         try:
@@ -42,7 +44,7 @@ class ResNetModel:
             raise ValueError("Missing required 'training.runtime' configuration in config/config.json")
         self.use_amp = bool(runtime_cfg['mixed_precision'])
         self.channels_last = bool(runtime_cfg['channels_last'])
-        self._scaler = torch.cuda.amp.GradScaler() if self.use_amp and self.device.type == 'cuda' else None
+        self._scaler = create_grad_scaler(self.use_amp and self._device_type == 'cuda')
 
         # Initialize model
         self.model = self._create_model()
@@ -52,6 +54,15 @@ class ResNetModel:
 
     def _create_model(self) -> nn.Module:
         """Create ResNet model based on model_name and task."""
+        # Map model names to their weight classes for the new torchvision API
+        weights_map = {
+            'resnet18': models.ResNet18_Weights.DEFAULT,
+            'resnet34': models.ResNet34_Weights.DEFAULT,
+            'resnet50': models.ResNet50_Weights.DEFAULT,
+            'resnet101': models.ResNet101_Weights.DEFAULT,
+            'resnet152': models.ResNet152_Weights.DEFAULT
+        }
+        
         if self.task == 'classification':
             model_map = {
                 'resnet18': models.resnet18,
@@ -64,7 +75,8 @@ class ResNetModel:
             if self.model_name not in model_map:
                 raise ValueError(f"Unsupported ResNet variant: {self.model_name}")
 
-            model = model_map[self.model_name](pretrained=self.pretrained)
+            weights = weights_map.get(self.model_name) if self.pretrained else None
+            model = model_map[self.model_name](weights=weights)
 
             # Modify final layer for custom number of classes
             if self.num_classes != 1000:  # Default ImageNet classes
@@ -108,7 +120,8 @@ class ResNetModel:
             if self.model_name not in model_map:
                 raise ValueError(f"Unsupported ResNet variant for multi-label: {self.model_name}")
 
-            model = model_map[self.model_name](pretrained=self.pretrained)
+            weights = weights_map.get(self.model_name) if self.pretrained else None
+            model = model_map[self.model_name](weights=weights)
             # For multi-label, ensure classifier outputs num_classes logits
             if hasattr(model, 'fc') and isinstance(model.fc, nn.Linear):
                 in_features = model.fc.in_features
@@ -198,14 +211,13 @@ class ResNetModel:
                 targets = targets.to(self.device, non_blocking=True)
 
                 optimizer.zero_grad()
-                if self.use_amp and self.device.type == 'cuda':
-                    with torch.cuda.amp.autocast():
+                if self.use_amp and self._scaler is not None:
+                    with autocast_context(True):
                         outputs = self.model(inputs)
                         if criterion is not None:
                             loss = criterion(outputs, targets)
                         else:
                             raise ValueError("Criterion required for classification")
-                    assert self._scaler is not None
                     self._scaler.scale(loss).backward()
                     self._scaler.step(optimizer)
                     self._scaler.update()
@@ -227,14 +239,13 @@ class ResNetModel:
                     try:
                         running_loss = total_loss / step_idx
                         running_acc = 100.0 * correct / total
-                        metrics_payload: Dict[str, Any] = {
-                            'loss': loss_value,
-                            'step_loss': loss_value,
-                            'epoch_loss': running_loss,
-                            'train_loss': running_loss,
-                            'epoch_accuracy': running_acc,
-                            'train_accuracy': running_acc
-                        }
+                        metrics_payload = build_step_metrics(
+                            loss=loss_value,
+                            running_loss=running_loss,
+                            phase='train',
+                            optimizer=optimizer,
+                            accuracy=running_acc
+                        )
                         progress('train', epoch_index or 0, step_idx, steps_total, metrics_payload)
                     except Exception:
                         pass
@@ -256,12 +267,12 @@ class ResNetModel:
                 if progress:
                     try:
                         running_loss = total_loss / step_idx
-                        metrics_payload = {
-                            'loss': loss_value,
-                            'step_loss': loss_value,
-                            'epoch_loss': running_loss,
-                            'train_loss': running_loss
-                        }
+                        metrics_payload = build_step_metrics(
+                            loss=loss_value,
+                            running_loss=running_loss,
+                            phase='train',
+                            optimizer=optimizer
+                        )
                         progress('train', epoch_index or 0, step_idx, steps_total, metrics_payload)
                     except Exception:
                         pass
@@ -277,14 +288,13 @@ class ResNetModel:
                 targets = targets.to(self.device, non_blocking=True)
 
                 optimizer.zero_grad()
-                if self.use_amp and self.device.type == 'cuda':
-                    with torch.cuda.amp.autocast():
+                if self.use_amp and self._scaler is not None:
+                    with autocast_context(True):
                         outputs = self.model(inputs)['out']
                         if criterion is not None:
                             loss = criterion(outputs, targets)
                         else:
                             raise ValueError("Criterion required for segmentation")
-                    assert self._scaler is not None
                     self._scaler.scale(loss).backward()
                     self._scaler.step(optimizer)
                     self._scaler.update()
@@ -302,12 +312,12 @@ class ResNetModel:
                 if progress:
                     try:
                         running_loss = total_loss / step_idx
-                        metrics_payload = {
-                            'loss': loss_value,
-                            'step_loss': loss_value,
-                            'epoch_loss': running_loss,
-                            'train_loss': running_loss
-                        }
+                        metrics_payload = build_step_metrics(
+                            loss=loss_value,
+                            running_loss=running_loss,
+                            phase='train',
+                            optimizer=optimizer
+                        )
                         progress('train', epoch_index or 0, step_idx, steps_total, metrics_payload)
                     except Exception:
                         pass
@@ -323,14 +333,13 @@ class ResNetModel:
                 targets = targets.to(self.device, non_blocking=True)
 
                 optimizer.zero_grad()
-                if self.use_amp and self.device.type == 'cuda':
-                    with torch.cuda.amp.autocast():
+                if self.use_amp and self._scaler is not None:
+                    with autocast_context(True):
                         outputs = self.model(inputs)
                         if criterion is not None:
                             loss = criterion(outputs, targets.float())  # BCEWithLogitsLoss expects float targets
                         else:
                             raise ValueError("Criterion required for multi-label")
-                    assert self._scaler is not None
                     self._scaler.scale(loss).backward()
                     self._scaler.step(optimizer)
                     self._scaler.update()
@@ -350,12 +359,12 @@ class ResNetModel:
                 if progress:
                     try:
                         running_loss = total_loss / step_idx
-                        metrics_payload = {
-                            'loss': loss_value,
-                            'step_loss': loss_value,
-                            'epoch_loss': running_loss,
-                            'train_loss': running_loss
-                        }
+                        metrics_payload = build_step_metrics(
+                            loss=loss_value,
+                            running_loss=running_loss,
+                            phase='train',
+                            optimizer=optimizer
+                        )
                         progress('train', epoch_index or 0, step_idx, steps_total, metrics_payload)
                     except Exception:
                         pass
@@ -371,19 +380,9 @@ class ResNetModel:
 
         if self.task == 'classification':
             accuracy = 100. * correct / total if total else 0.0
-            return {
-                'train_loss': avg_loss,
-                'train_accuracy': accuracy
-            }
-        elif self.task == 'multi_label':
-            # Multi-label accuracy is calculated differently, return only loss
-            return {
-                'train_loss': avg_loss
-            }
+            return build_epoch_result(avg_loss, 'train', optimizer, accuracy)
         else:
-            return {
-                'train_loss': avg_loss
-            }
+            return build_epoch_result(avg_loss, 'train', optimizer)
 
     def validate(self, val_loader: DataLoader, criterion: Optional[nn.Module],
                  progress: Optional[Callable[[str, int, int, int, Dict[str, Any]], None]] = None,
@@ -418,8 +417,8 @@ class ResNetModel:
                             pass
                     targets = targets.to(self.device, non_blocking=True)
 
-                    if self.use_amp and self.device.type == 'cuda':
-                        with torch.cuda.amp.autocast():
+                    if self.use_amp and self._scaler is not None:
+                        with autocast_context(True):
                             outputs = self.model(inputs)
                             loss = criterion(outputs, targets) if criterion is not None else None
                     else:
@@ -437,14 +436,12 @@ class ResNetModel:
                         try:
                             running_loss = total_loss / step_idx
                             running_acc = 100.0 * correct / total
-                            metrics_payload: Dict[str, Any] = {
-                                'loss': loss_value,
-                                'step_loss': loss_value,
-                                'epoch_loss': running_loss,
-                                'val_loss': running_loss,
-                                'epoch_accuracy': running_acc,
-                                'val_accuracy': running_acc
-                            }
+                            metrics_payload = build_step_metrics(
+                                loss=loss_value,
+                                running_loss=running_loss,
+                                phase='val',
+                                accuracy=running_acc
+                            )
                             progress('val', epoch_index or 0, step_idx, steps_total, metrics_payload)
                         except Exception:
                             pass
@@ -462,12 +459,11 @@ class ResNetModel:
                     if progress:
                         try:
                             running_loss = total_loss / step_idx
-                            metrics_payload = {
-                                'loss': loss_value,
-                                'step_loss': loss_value,
-                                'epoch_loss': running_loss,
-                                'val_loss': running_loss
-                            }
+                            metrics_payload = build_step_metrics(
+                                loss=loss_value,
+                                running_loss=running_loss,
+                                phase='val'
+                            )
                             progress('val', epoch_index or 0, step_idx, steps_total, metrics_payload)
                         except Exception:
                             pass
@@ -482,8 +478,8 @@ class ResNetModel:
                             pass
                     targets = targets.to(self.device, non_blocking=True)
 
-                    if self.use_amp and self.device.type == 'cuda':
-                        with torch.cuda.amp.autocast():
+                    if self.use_amp and self._scaler is not None:
+                        with autocast_context(True):
                             outputs = self.model(inputs)['out']
                             loss = criterion(outputs, targets) if criterion is not None else None
                     else:
@@ -497,12 +493,11 @@ class ResNetModel:
                     if progress:
                         try:
                             running_loss = total_loss / step_idx
-                            metrics_payload = {
-                                'loss': loss_value,
-                                'step_loss': loss_value,
-                                'epoch_loss': running_loss,
-                                'val_loss': running_loss
-                            }
+                            metrics_payload = build_step_metrics(
+                                loss=loss_value,
+                                running_loss=running_loss,
+                                phase='val'
+                            )
                             progress('val', epoch_index or 0, step_idx, steps_total, metrics_payload)
                         except Exception:
                             pass
@@ -517,8 +512,8 @@ class ResNetModel:
                             pass
                     targets = targets.to(self.device, non_blocking=True)
 
-                    if self.use_amp and self.device.type == 'cuda':
-                        with torch.cuda.amp.autocast():
+                    if self.use_amp and self._scaler is not None:
+                        with autocast_context(True):
                             outputs = self.model(inputs)
                             loss = criterion(outputs, targets.float()) if criterion is not None else None
                     else:
@@ -533,12 +528,11 @@ class ResNetModel:
                     if progress:
                         try:
                             running_loss = total_loss / step_idx
-                            metrics_payload = {
-                                'loss': loss_value,
-                                'step_loss': loss_value,
-                                'epoch_loss': running_loss,
-                                'val_loss': running_loss
-                            }
+                            metrics_payload = build_step_metrics(
+                                loss=loss_value,
+                                running_loss=running_loss,
+                                phase='val'
+                            )
                             progress('val', epoch_index or 0, step_idx, steps_total, metrics_payload)
                         except Exception:
                             pass
@@ -551,19 +545,9 @@ class ResNetModel:
 
         if self.task == 'classification':
             accuracy = 100. * correct / total if total else 0.0
-            return {
-                'val_loss': avg_loss,
-                'val_accuracy': accuracy
-            }
-        elif self.task == 'multi_label':
-            # For multi-label, return loss only (could add more metrics)
-            return {
-                'val_loss': avg_loss
-            }
+            return build_epoch_result(avg_loss=avg_loss, phase='val', accuracy=accuracy)
         else:
-            return {
-                'val_loss': avg_loss
-            }
+            return build_epoch_result(avg_loss=avg_loss, phase='val')
 
     def save_checkpoint(self, path: str, epoch: int, optimizer: optim.Optimizer,
                        scheduler: Optional[optim.lr_scheduler._LRScheduler] = None,

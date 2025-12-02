@@ -219,39 +219,29 @@
 }
 
 /* ============================================================================
-   Training Page
+   Header Project Info (global)
    ============================================================================ */
 
-.training-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--spacing-md) 0;
-    margin-bottom: var(--spacing-md);
-    border-bottom: 1px solid var(--border-color);
-}
-
-.training-project-info {
+.header-project-info {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
 }
 
-.project-label {
+.header-project-info .project-label {
     font-size: 0.875rem;
     color: var(--text-muted);
 }
 
-.project-name {
+.header-project-info .project-name {
     font-size: 1rem;
     font-weight: 600;
     color: var(--accent-primary);
 }
 
-.training-actions {
-    display: flex;
-    gap: var(--spacing-sm);
-}
+/* ============================================================================
+   Training Page
+   ============================================================================ */
 
 .btn-save {
     min-width: 100px;

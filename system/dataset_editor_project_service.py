@@ -8,14 +8,13 @@ import urllib.parse
 from collections import Counter, defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 from threading import RLock
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from PIL import Image
 
-from system.dataset_editor_metadata_store import EditorStore, FINGERPRINT_FIELD
+from system.dataset_editor_metadata_store import EditorStore
 from system.dataset_editor_models import (
     BoundsModel,
     BulkTagRequest,
@@ -55,20 +54,19 @@ def parse_tags(annotation: str) -> List[str]:
     tokens = [token.strip().lower() for token in TAG_SPLIT_PATTERN.split(annotation)]
     return [token for token in tokens if token]
 
-def _build_record_payload_task(args: tuple[str, str]) -> tuple[str, ImageRecord, dict, dict]:
+def _build_record_payload_task(args: tuple[str, str]) -> tuple[str, ImageRecord, dict]:
     data_source_dir, relative_path_str = args
     data_source = Path(data_source_dir)
     relative_path = Path(relative_path_str)
     image_path = data_source / relative_path
-    record, fingerprint, payload = ProjectIndex._build_record_entry(image_path, relative_path)
-    return record.id, record, fingerprint, payload
+    record, payload = ProjectIndex._build_record_entry(image_path, relative_path)
+    return record.id, record, payload
 
 @dataclass
 class ImageRecord:
     id: str
     image_path: Path
     annotation_path: Path
-    bounds_path: Path
     relative_dir: str
     relative_path: str
     filename: str
@@ -81,7 +79,6 @@ class ImageRecord:
     tags: List[str]
     bounds: BoundsModel
     has_custom_bounds: bool
-    updated_at: Optional[datetime]
 
     def to_model(self, project_name: str) -> ImageItem:
         encoded_path = urllib.parse.quote(self.relative_path)
@@ -101,7 +98,6 @@ class ImageRecord:
             image_url=image_url,
             bounds=self.bounds,
             has_custom_bounds=self.has_custom_bounds,
-            updated_at=self.updated_at,
         )
 
 class ProjectIndex:
@@ -161,67 +157,74 @@ class ProjectIndex:
         removed_ids = set(previous_ids)
         records: Dict[str, ImageRecord] = {}
         new_record_ids: set[str] = set()
-        modified_record_ids: set[str] = set()
         editor_updates: Dict[str, dict] = {}
 
         files = self._collect_image_paths()
         total_candidates = len(files)
+        
+        # Collect files to process - new files only (not in previous_ids)
+        # Existing files are reused from memory/cache
+        files_to_process = []
+        unchanged_count = 0
+        
+        for image_path in files:
+            relative_path = image_path.relative_to(self.data_source_dir)
+            record_id = str(relative_path).replace("\\", "/")
+            removed_ids.discard(record_id)
+            
+            if record_id in previous_ids and record_id in self.items:
+                # Unchanged - reuse existing record from memory
+                unchanged_count += 1
+                records[record_id] = self.items[record_id]
+            else:
+                # New file - needs processing
+                files_to_process.append((image_path, relative_path, record_id))
+        
         processed = 0
         added = 0
-        updated = 0
         skipped = 0
-
+        
         if job:
-            job.set_total(total_candidates)
+            job.set_total(len(files_to_process))
 
-        worker_count = min(total_candidates or 1, self._discovery_workers)
+        worker_count = min(len(files_to_process) or 1, self._discovery_workers)
 
         def handle_result(
             record_id: str,
             record: ImageRecord,
-            fingerprint: dict,
             payload: dict,
         ) -> None:
-            nonlocal added, updated
+            nonlocal added
             records[record_id] = record
-            removed_ids.discard(record_id)
-            is_new = record_id not in previous_ids
-            needs_update = self.editor_store.should_update(record_id, fingerprint)
-            if is_new:
-                added += 1
-                new_record_ids.add(record_id)
-            elif needs_update:
-                updated += 1
-                modified_record_ids.add(record_id)
-            if is_new or needs_update:
-                editor_updates[record_id] = payload
+            added += 1
+            new_record_ids.add(record_id)
+            editor_updates[record_id] = payload
             if job:
                 job.set_current(record_id)
-                job.advance(added=is_new, updated=(not is_new and needs_update))
+                job.advance(added=True)
 
-        if worker_count <= 1:
-            for image_path in files:
+        if worker_count <= 1 or len(files_to_process) <= 1:
+            for image_path, relative_path, record_id in files_to_process:
                 processed += 1
                 try:
-                    relative_path = image_path.relative_to(self.data_source_dir)
-                    record, fingerprint, payload = self._build_record_entry(image_path, relative_path)
-                    record_id = record.id
+                    record, payload = self._build_record_entry(image_path, relative_path)
                 except Exception as exc:
                     warning(f"Dataset editor metadata read failed for {image_path}: {exc}")
                     skipped += 1
                     if job:
                         job.advance(skipped=True)
                     continue
-                handle_result(record_id, record, fingerprint, payload)
+                handle_result(record_id, record, payload)
         else:
             data_source_str = str(self.data_source_dir)
-            tasks = [(data_source_str, str(path.relative_to(self.data_source_dir))) for path in files]
+            tasks = [(data_source_str, str(rp)) for _, rp, _ in files_to_process]
+            
             with ProcessPoolExecutor(max_workers=worker_count, mp_context=None) as executor:
                 futures = {executor.submit(_build_record_payload_task, args): args for args in tasks}
                 for future in as_completed(futures):
                     processed += 1
                     try:
-                        record_id, record, fingerprint, payload = future.result()
+                        record_id, record, payload = future.result()
                     except Exception as exc:
                         image_path = futures[future][1]
                         warning(f"Dataset editor metadata read failed for {image_path}: {exc}")
@@ -229,14 +232,10 @@ class ProjectIndex:
                         if job:
                             job.advance(skipped=True)
                         continue
-                    handle_result(record_id, record, fingerprint, payload)
+                    handle_result(record_id, record, payload)
 
         if editor_updates:
             self.editor_store.bulk_upsert(editor_updates)
-            for record_id in new_record_ids:
-                self.editor_store.mark_dataset_not_built(record_id)
-            for record_id in modified_record_ids:
-                self.editor_store.mark_dataset_needs_update(record_id)
 
         if removed_ids:
             self.editor_store.remove(removed_ids)
@@ -256,11 +255,9 @@ class ProjectIndex:
             total_candidates=total_candidates,
             processed_items=processed,
             added_items=added,
-            updated_items=updated,
             removed_items=removed_count,
             skipped_items=skipped,
             duration_seconds=duration,
-            updated_at=datetime.now(timezone.utc),
         )
 
         # Save computed stats to characteristics.db after discovery
@@ -272,16 +269,6 @@ class ProjectIndex:
             job.mark_success(result)
 
         return result
-
-    @staticmethod
-    def _load_bounds(bounds_path: Path) -> tuple[BoundsModel, bool]:
-        if not bounds_path.exists():
-            return BoundsModel(), False
-        try:
-            data = json.loads(bounds_path.read_text(encoding="utf-8"))
-            return BoundsModel(**data), True
-        except Exception:
-            return BoundsModel(), False
 
     def _previous_ids_snapshot(self) -> set[str]:
         with self._lock:
@@ -302,7 +289,8 @@ class ProjectIndex:
         return sorted(results)
 
     @classmethod
-    def _build_record_entry(cls, image_path: Path, relative_path: Path) -> tuple[ImageRecord, dict, dict]:
+    def _build_record_entry(cls, image_path: Path, relative_path: Path, bounds: Optional[BoundsModel] = None, has_custom_bounds: bool = False) -> tuple[ImageRecord, dict]:
+        # Image.open only reads header for size - fast
         with Image.open(image_path) as img:
             width, height = img.size
 
@@ -310,19 +298,19 @@ class ProjectIndex:
         annotation = annotation_path.read_text(encoding="utf-8") if annotation_path.exists() else ""
         tags = parse_tags(annotation)
 
-        bounds_path = image_path.with_name(f"{image_path.stem}-bounds.json")
-        bounds, has_custom = cls._load_bounds(bounds_path)
+        # Use provided bounds or create default
+        if bounds is None:
+            bounds = BoundsModel(center_x=0.5, center_y=0.5, zoom=1.0)
+            has_custom_bounds = False
 
         relative_dir = str(relative_path.parent).replace("\\", "/")
         category = relative_dir.split("/")[0] if relative_dir else "root"
         record_id = str(relative_path).replace("\\", "/")
-        updated_at = cls._annotation_timestamp(annotation_path)
 
         record = ImageRecord(
             id=record_id,
             image_path=image_path,
             annotation_path=annotation_path,
-            bounds_path=bounds_path,
             relative_dir=relative_dir,
             relative_path=record_id,
             filename=image_path.name,
@@ -334,37 +322,11 @@ class ProjectIndex:
             annotation=annotation,
             tags=tags,
             bounds=bounds,
-            has_custom_bounds=has_custom,
-            updated_at=updated_at,
+            has_custom_bounds=has_custom_bounds,
         )
 
-        fingerprint = cls._capture_fingerprint(image_path, annotation_path, bounds_path)
-        payload = cls._build_editor_payload(record, fingerprint)
-        return record, fingerprint, payload
-
-    @staticmethod
-    def _annotation_timestamp(annotation_path: Path) -> Optional[datetime]:
-        if not annotation_path.exists():
-            return None
-        return datetime.fromtimestamp(annotation_path.stat().st_mtime, tz=timezone.utc)
-
-    @staticmethod
-    def _capture_fingerprint(image_path: Path, annotation_path: Path, bounds_path: Path) -> dict:
-        image_stat = image_path.stat()
-        annotation_stat = annotation_path.stat() if annotation_path.exists() else None
-        bounds_stat = bounds_path.stat() if bounds_path.exists() else None
-        return {
-            "image_mtime": image_stat.st_mtime,
-            "image_size": image_stat.st_size,
-            "annotation_mtime": annotation_stat.st_mtime if annotation_stat else 0.0,
-            "annotation_size": annotation_stat.st_size if annotation_stat else 0,
-            "bounds_mtime": bounds_stat.st_mtime if bounds_stat else 0.0,
-            "bounds_size": bounds_stat.st_size if bounds_stat else 0,
-        }
-
-    @staticmethod
-    def _fingerprint_for_record(record: ImageRecord) -> dict:
-        return ProjectIndex._capture_fingerprint(record.image_path, record.annotation_path, record.bounds_path)
+        payload = cls._build_editor_payload(record)
+        return record, payload
 
     def _remove_dataset_outputs(self, record_id: str) -> None:
         if not record_id:
@@ -441,22 +403,17 @@ class ProjectIndex:
         record.annotation = content
         record.tags = parse_tags(content)
         record.annotation_path.write_text(content, encoding="utf-8")
-        record.updated_at = datetime.now(timezone.utc)
-        fingerprint = self._fingerprint_for_record(record)
-        self.editor_store.upsert(record.id, self._build_editor_payload(record, fingerprint))
+        self.editor_store.upsert(record.id, self._build_editor_payload(record))
         self.editor_store.update_snapshot_entry(record.id, self._record_to_cache(record))
-        self.editor_store.mark_dataset_needs_update(record.id)
         return record.to_model(self.name)
 
     def update_bounds(self, item_id: str, payload: BoundsModel) -> ImageItem:
         record = self.get_record(item_id)
         record.bounds = payload
         record.has_custom_bounds = True
-        record.bounds_path.write_text(payload.model_dump_json(indent=2), encoding="utf-8")
-        fingerprint = self._fingerprint_for_record(record)
-        self.editor_store.upsert(record.id, self._build_editor_payload(record, fingerprint))
+        # Save to database via editor_store (snapshot_upsert includes crop data)
+        self.editor_store.upsert(record.id, self._build_editor_payload(record))
         self.editor_store.update_snapshot_entry(record.id, self._record_to_cache(record))
-        self.editor_store.mark_dataset_needs_update(record.id)
         return record.to_model(self.name)
 
     def delete_items(self, item_ids: List[str]) -> DeleteItemsResponse:
@@ -485,7 +442,7 @@ class ProjectIndex:
         for record in deleted_records:
             record.image_path.unlink(missing_ok=True)
             record.annotation_path.unlink(missing_ok=True)
-            record.bounds_path.unlink(missing_ok=True)
+            # Bounds are stored in DB, not files - no file deletion needed
             self._remove_dataset_outputs(record.id)
 
         removed_ids = {record.id for record in deleted_records}
@@ -532,7 +489,6 @@ class ProjectIndex:
                 skipped=0,
                 added_tags=add_tags,
                 removed_tags=remove_tags,
-                updated_at=datetime.now(timezone.utc),
             )
 
         updated = 0
@@ -554,24 +510,20 @@ class ProjectIndex:
             record.tags = sorted(new_tags)
             record.annotation = self._rewrite_annotation(record.annotation, record.tags)
             record.annotation_path.write_text(record.annotation, encoding="utf-8")
-            record.updated_at = datetime.now(timezone.utc)
             updated += 1
-            fingerprint = self._fingerprint_for_record(record)
-            editor_updates[record.id] = self._build_editor_payload(record, fingerprint)
+            editor_updates[record.id] = self._build_editor_payload(record)
             snapshot_updates[record.id] = self._record_to_cache(record)
 
         if editor_updates:
             self.editor_store.bulk_upsert(editor_updates)
             for record_id, entry in snapshot_updates.items():
                 self.editor_store.update_snapshot_entry(record_id, entry)
-                self.editor_store.mark_dataset_needs_update(record_id)
 
         return BulkTagResponse(
             updated=updated,
             skipped=skipped,
             added_tags=add_tags,
             removed_tags=remove_tags,
-            updated_at=datetime.now(timezone.utc),
         )
 
     def scan_duplicates(self) -> DuplicateScanResponse:
@@ -634,16 +586,11 @@ class ProjectIndex:
         )
 
     @staticmethod
-    def _build_editor_payload(record: ImageRecord, fingerprint: Optional[dict] = None) -> dict:
+    def _build_editor_payload(record: ImageRecord) -> dict:
         bounds = record.bounds or BoundsModel()
         zoom = bounds.zoom or 1.0
         size = round(1.0 / zoom, 6) if zoom else 1.0
-        updated = record.updated_at or datetime.now(timezone.utc)
-        if updated.tzinfo is None:
-            updated = updated.replace(tzinfo=timezone.utc)
-        else:
-            updated = updated.astimezone(timezone.utc)
-        payload = {
+        return {
             "crop": {
                 "center_x": bounds.center_x,
                 "center_y": bounds.center_y,
@@ -652,10 +599,7 @@ class ProjectIndex:
             },
             "tags": list(record.tags),
             "dimensions": {"width": record.width, "height": record.height},
-            "updated_at": updated.isoformat(),
         }
-        payload[FINGERPRINT_FIELD] = fingerprint or ProjectIndex._fingerprint_for_record(record)
-        return payload
 
     @staticmethod
     def _annotation_separator(annotation: str | None) -> str:
@@ -748,7 +692,6 @@ class ProjectIndex:
             "id": record.id,
             "image_path": str(record.image_path),
             "annotation_path": str(record.annotation_path),
-            "bounds_path": str(record.bounds_path),
             "relative_dir": record.relative_dir,
             "relative_path": record.relative_path,
             "filename": record.filename,
@@ -761,19 +704,9 @@ class ProjectIndex:
             "tags": record.tags,
             "bounds": record.bounds.model_dump(),
             "has_custom_bounds": record.has_custom_bounds,
-            "updated_at": record.updated_at.isoformat() if record.updated_at else None,
         }
 
     def _record_from_cache(self, data: dict) -> ImageRecord:
-        updated_at = data.get("updated_at")
-        if updated_at:
-            try:
-                updated_at = datetime.fromisoformat(updated_at)
-            except Exception:
-                updated_at = None
-        else:
-            updated_at = None
-
         bounds_payload = data.get("bounds") or {}
         bounds = BoundsModel(**bounds_payload)
 
@@ -782,8 +715,6 @@ class ProjectIndex:
         image_path = Path(image_path_value) if image_path_value else (self.data_source_dir / relative_path)
         annotation_path_value = data.get("annotation_path")
         annotation_path = Path(annotation_path_value) if annotation_path_value else image_path.with_suffix(".txt")
-        bounds_path_value = data.get("bounds_path")
-        bounds_path = Path(bounds_path_value) if bounds_path_value else image_path.with_name(f"{image_path.stem}-bounds.json")
 
         width = int(data.get("width") or 0)
         height = int(data.get("height") or 0)
@@ -795,7 +726,6 @@ class ProjectIndex:
             id=data["id"],
             image_path=image_path,
             annotation_path=annotation_path,
-            bounds_path=bounds_path,
             relative_dir=data.get("relative_dir", ""),
             relative_path=relative_path,
             filename=data.get("filename", image_path.name),
@@ -808,7 +738,6 @@ class ProjectIndex:
             tags=list(data.get("tags", [])),
             bounds=bounds,
             has_custom_bounds=bool(data.get("has_custom_bounds", False)),
-            updated_at=updated_at,
         )
 
     def stats(self) -> StatsSummary:
@@ -997,7 +926,6 @@ class ProjectIndex:
             
             # Save to characteristics.db
             characteristics_db.save_stats(self.name, stats_dict)
-            characteristics_db.save_label_index(self.name, label_dist)
             
             info(f"Saved computed stats for project {self.name}: {stats_model.total_images} images, {len(label_dist)} labels")
             return True
@@ -1136,7 +1064,6 @@ class ProjectIndex:
                         id=new_record_id,
                         image_path=new_image_path,
                         annotation_path=new_image_path.with_suffix(".txt"),
-                        bounds_path=new_image_path.with_name(f"{new_image_path.stem}-bounds.json"),
                         relative_dir=new_relative_dir,
                         relative_path=new_relative_path,
                         filename=record.filename,
@@ -1149,7 +1076,6 @@ class ProjectIndex:
                         tags=record.tags,
                         bounds=record.bounds,
                         has_custom_bounds=record.has_custom_bounds,
-                        updated_at=record.updated_at,
                     )
                     updated_items[new_record_id] = updated_record
                     del self.items[record_id]

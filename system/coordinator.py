@@ -14,6 +14,8 @@ from system.optimizers import get_optimizer_for_model
 from system.schedulers import get_scheduler_for_training
 from system.losses import get_loss_for_task
 from system.weight_init import WeightInitFactory
+from system.characteristics_db import list_metadata, flat_to_nested
+from system.common.deep_merge import deep_merge_json
 
 
 class TrainingCoordinator:
@@ -186,24 +188,31 @@ class TrainingCoordinator:
             raise ValueError("Missing required 'paths' section in config/config.json")
         if 'projects_dir' not in paths_cfg:
             raise ValueError("Missing required 'paths.projects_dir' in config/config.json")
+        
+        # STEP 1: Load project-level config.json overrides (legacy method)
         project_config_path = os.path.join(paths_cfg['projects_dir'], project_name, 'config.json')
         if os.path.exists(project_config_path):
             try:
                 with open(project_config_path, 'r', encoding='utf-8') as f:
                     project_settings = json.load(f)
-                from system.common.deep_merge import deep_merge_json
                 self.settings = deep_merge_json(self.settings, project_settings)
                 info(f"Loaded project settings from {project_config_path}")
             except Exception as e:
                 warning(f"Failed to load project settings: {e}")
-        else:
-            try:
-                os.makedirs(os.path.dirname(project_config_path), exist_ok=True)
-                with open(project_config_path, 'w', encoding='utf-8') as f:
-                    json.dump(self.settings, f, indent=2, ensure_ascii=False)
-                info(f"Saved current settings to {project_config_path}")
-            except Exception as e:
-                warning(f"Failed to save project settings: {e}")
+        
+        # STEP 2: Load characteristics.db metadata overrides (priority!)
+        # These are set via the UI and override everything else
+        db_overrides = list_metadata(project_name)
+        if db_overrides:
+            # Convert flat keys like "training.task" to nested {"training": {"task": ...}}
+            nested_overrides = flat_to_nested(db_overrides)
+            self.settings = deep_merge_json(self.settings, nested_overrides)
+            info(f"Applied {len(db_overrides)} project overrides from characteristics.db")
+            
+            # Override model_type and model_name if specified in metadata
+            if 'training.model_name' in db_overrides:
+                self.model_name = db_overrides['training.model_name']
+                info(f"Using model from project settings: {self.model_name}")
 
         self.config = self._load_config()
         self.memory_config = self._get_memory_config()
@@ -211,7 +220,8 @@ class TrainingCoordinator:
 
         self._apply_runtime_settings()
 
-        project_info = get_project_info(project_name)
+        # compute_stats=True is REQUIRED to get labels for training
+        project_info = get_project_info(project_name, compute_stats=True)
         if not project_info:
             raise ValueError(f"Project not found: {project_name}")
 
@@ -220,6 +230,11 @@ class TrainingCoordinator:
         labels = base_labels if base_labels else project_info.labels
         self.config['labels'] = labels
         self.config['num_classes'] = len(labels)
+        
+        # Sanity check - training with 0 classes makes no sense
+        if self.config['num_classes'] == 0:
+            raise ValueError(f"No labels found for project '{project_name}'. Cannot train with 0 classes.")
+        
         ckpt_dir_name = 'model'
         self.config['output_dir'] = os.path.join(self.config['projects_base_dir'], project_name, ckpt_dir_name)
 
@@ -344,7 +359,9 @@ class TrainingCoordinator:
             if runtime['channels_last']:
                 try:
                     if hasattr(model, 'model'):
-                        model.model = model.model.to(self_device := (model.device if hasattr(model, 'device') else torch.device('cuda' if torch.cuda.is_available() else 'cpu')))
+                        from system.device import get_device
+                        self_device = model.device if hasattr(model, 'device') else get_device()
+                        model.model = model.model.to(self_device)
                         for p in model.model.parameters():
                             try:
                                 p.data = p.data.contiguous(memory_format=torch.channels_last)
@@ -368,13 +385,13 @@ class TrainingCoordinator:
 
         try:
             from system.models.resnet import ResNetModel  # type: ignore
+            from system.device import get_device_type, create_grad_scaler
             runtime = self.config['runtime']
             if isinstance(model, ResNetModel):
-                cuda_enabled = bool(getattr(model, 'device', None) and getattr(model, 'device').type == 'cuda')
+                device_type = get_device_type()
+                cuda_enabled = device_type == 'cuda'
                 model.use_amp = bool(runtime['mixed_precision'] and cuda_enabled)
-                if cuda_enabled:
-                    import torch
-                    model._scaler = torch.cuda.amp.GradScaler(enabled=bool(model.use_amp))
+                model._scaler = create_grad_scaler(model.use_amp)
                 model.channels_last = bool(runtime['channels_last'])
         except Exception:
             pass
@@ -388,6 +405,7 @@ class TrainingCoordinator:
         from PIL import Image
         import glob, os
         import torch
+        import copy
 
         image_size = int(self.config['input']['image_size'])
         mean = self.config['input']['normalize']['mean']
@@ -399,15 +417,33 @@ class TrainingCoordinator:
             raise ValueError("Missing required 'training' section in config/config.json")
         if 'augmentation' not in training_cfg or not isinstance(training_cfg['augmentation'], dict):
             raise ValueError("Missing required 'training.augmentation' in config/config.json")
-        train_aug_cfg = training_cfg['augmentation'].get('train')
-        val_aug_cfg = training_cfg['augmentation'].get('val')
+        
+        # Deep copy augmentation configs to avoid modifying original settings
+        train_aug_cfg = copy.deepcopy(training_cfg['augmentation'].get('train'))
+        val_aug_cfg = copy.deepcopy(training_cfg['augmentation'].get('val'))
+        
+        # Override size parameters in augmentation configs with project's input_size
+        def _override_sizes(aug_list, target_size):
+            if not isinstance(aug_list, list):
+                return
+            for aug in aug_list:
+                if not isinstance(aug, dict):
+                    continue
+                aug_type = (aug.get('type') or '').lower()
+                # These augmentation types have a 'size' parameter
+                if aug_type in ('random_resized_crop', 'center_crop', 'resize', 'random_crop'):
+                    if 'params' not in aug:
+                        aug['params'] = {}
+                    aug['params']['size'] = target_size
+        
+        _override_sizes(train_aug_cfg, image_size)
+        _override_sizes(val_aug_cfg, image_size)
 
         if isinstance(train_aug_cfg, list) and train_aug_cfg:
             train_transform = DataAugmentationFactory.create_composition(train_aug_cfg)
         else:
             train_transform = transforms.Compose([
-                transforms.RandomResizedCrop(image_size),
-                transforms.RandomHorizontalFlip(),
+                transforms.Resize(image_size),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=mean, std=std)
             ])
@@ -415,10 +451,8 @@ class TrainingCoordinator:
         if isinstance(val_aug_cfg, list) and val_aug_cfg:
             val_transform = DataAugmentationFactory.create_composition(val_aug_cfg)
         else:
-            resize_size = max(image_size + 32, image_size)
             val_transform = transforms.Compose([
-                transforms.Resize(resize_size),
-                transforms.CenterCrop(image_size),
+                transforms.Resize(image_size),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=mean, std=std)
             ])

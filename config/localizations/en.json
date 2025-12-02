@@ -1,5 +1,16 @@
 {
   "language_name": "English",
+  "common": {
+    "project_label": "Project:"
+  },
+  "training_controller": {
+    "stop": "Stop",
+    "clear": "Clear",
+    "completed": "Training Completed",
+    "stopped": "Training Stopped",
+    "error": "Training Error",
+    "already_running": "A training is already in progress"
+  },
   "context_menu": {
     "view_image": "View Image",
     "select": "Select",
@@ -25,6 +36,7 @@
     "dataset_editor": "Dataset Editor",
     "training_setup": "Training",
     "augmentation": "Augmentation",
+    "performance": "Performance",
     "status_group": "Status",
     "status": "Status",
     "heatmap": "Heatmap",
@@ -47,7 +59,20 @@
       "checkpoint": "Checkpoint",
       "early_stopping": "Early Stopping",
       "gradient": "Gradient",
-      "runtime": "Runtime"
+      "runtime": "Runtime",
+      "activation_defaults": "Activation Defaults",
+      "augmentation_defaults": "Augmentation Defaults"
+    },
+    "augmentation": {
+      "train_title": "Training Augmentations",
+      "train_description": "Select and configure augmentations applied during training. These help the model generalize better by introducing variations.",
+      "val_title": "Validation Augmentations",
+      "val_description": "Select augmentations for validation. Typically minimal - usually just center crop and normalization.",
+      "no_params": "No configurable parameters",
+      "preview_placeholder": "Click 'Random' to load an image",
+      "btn_random": "Random",
+      "btn_train": "Training",
+      "btn_val": "Validation"
     },
     "no_settings": "No settings available for this section",
     "project_label": "Project:",
@@ -69,6 +94,7 @@
   "dataset_page": {
     "project_label": "Project:",
     "type_label": "Type:",
+    "input_size_label": "Input Size:",
     "search_filename": "Filename",
     "search_annotation": "Annotation",
     "search_placeholder": "Search images...",
@@ -94,6 +120,7 @@
     "upload_error": "Failed to upload",
     "type_auto": "Auto",
     "types": {
+      "unknown": "Not Set",
       "multi_label": "Multi Label",
       "folder_classification": "Folder Classification",
       "annotation": "Annotation",
@@ -145,6 +172,76 @@
       "description": "This dataset is empty. Sync to discover images from data_source folder."
     }
   },
+  "heatmap_page": {
+    "random_button": "Random",
+    "refresh_button": "Refresh",
+    "alpha_label": "Heatmap Opacity:",
+    "checkpoint_label": "Checkpoint:",
+    "no_project": {
+      "title": "No Project Selected",
+      "description": "Please select a project from the Projects page to use heatmap visualization.",
+      "button": "Go to Projects"
+    },
+    "drop_zone": {
+      "text": "Drop image here or click to upload",
+      "hint": "Supports JPG, PNG, WEBP"
+    },
+    "results": {
+      "title": "Detection Results",
+      "placeholder": "Load an image to see predictions",
+      "no_predictions": "No predictions above confidence threshold"
+    }
+  },
+  "performance_page": {
+    "tabs": {
+      "training": "Training Performance",
+      "system": "System Usage"
+    },
+    "system": {
+      "title": "System Resource Monitor",
+      "cpu_usage": "CPU Usage",
+      "system_memory": "System Memory",
+      "gpu_usage": "GPU {index} Usage",
+      "gpu_memory": "GPU {index} Memory",
+      "no_gpu": "No GPU detected",
+      "monitoring_active": "Monitoring active",
+      "monitoring_paused": "Monitoring paused",
+      "speed": "Speed",
+      "temperature": "Temperature",
+      "max_memory": "Total Memory",
+      "available": "Available",
+      "dedicated_memory": "Dedicated Memory",
+      "used_memory": "Used Memory",
+      "cores_threads": "Cores / Threads",
+      "power": "Power",
+      "gpu_clock": "GPU Clock",
+      "mem_clock": "Mem Clock",
+      "fan": "Fan"
+    },
+    "training": {
+      "title": "Training Metrics",
+      "no_data": "No training data available",
+      "description": "Training metrics will appear here during active training sessions.",
+      "no_active": "No active training",
+      "running": "Training in progress",
+      "completed": "Training completed",
+      "stopped": "Training stopped",
+      "step_loss": "Step Loss",
+      "learning_rate": "Learning Rate",
+      "epoch_loss": "Epoch Loss",
+      "epoch_accuracy": "Epoch Accuracy",
+      "train": "Train",
+      "validation": "Validation",
+      "current_loss": "Current Loss",
+      "phase": "Phase",
+      "step": "Step",
+      "current_lr": "Current LR",
+      "train_loss": "Train Loss",
+      "val_loss": "Val Loss",
+      "train_accuracy": "Train Acc",
+      "val_accuracy": "Val Acc"
+    }
+  },
   "page": {
     "projects": "Projects",
     "dataset": "Dataset",
@@ -178,19 +275,35 @@
       "total_images": "Total Images",
       "labels": "Labels",
       "min_images": "Min Images",
-      "max_images": "Max Images"
+      "max_images": "Max Images",
+      "balance_score": "Balance Score",
+      "balance_status": "Balance Status"
     },
     "buttons": {
       "refresh": "Refresh",
       "load": "Load",
       "loaded": "Loaded",
       "new_project": "New Project",
-      "delete_project": "Delete Project"
+      "rename_project": "Rename Project",
+      "delete_project": "Delete Project",
+      "start_training": "Start Training",
+      "stop_training": "Stop Training"
+    },
+    "training": {
+      "no_project": "Please load a project first before starting training.",
+      "start_error": "Failed to start training",
+      "stop_error": "Failed to stop training"
     },
     "new_project": {
       "title": "New Project",
       "prompt": "Enter project name:",
       "error": "Failed to create project"
+    },
+    "rename_project": {
+      "title": "Rename Project",
+      "prompt": "Enter new project name:",
+      "no_selection": "No project is currently loaded. Load a project first to rename it.",
+      "error": "Failed to rename project"
     },
     "delete_project": {
       "title": "Delete Project",
@@ -731,7 +844,12 @@
       "delete_invalid": "Invalid project name.",
       "delete_not_found": "Project {name} does not exist.",
       "delete_success": "Project {name} deleted successfully.",
-      "delete_error": "Failed to delete project: {error}"
+      "delete_error": "Failed to delete project: {error}",
+      "rename_invalid": "Invalid project name.",
+      "rename_not_found": "Project {name} does not exist.",
+      "rename_missing": "New project name is required.",
+      "rename_success": "Project renamed from {old} to {new}.",
+      "rename_error": "Failed to rename project: {error}"
     }
   },
   "docs": {
@@ -883,6 +1001,96 @@
     "schedulers_defaults_multiplicative_lr_lr_lambda_description": "Lambda function as string, e.g., 'lambda epoch: 0.95'",
     "losses_description": "Loss defaults override",
     "losses_defaults_description": "Default parameters for losses",
+    "activations_description": "Activation function configuration",
+    "activations_defaults_description": "Default parameters for activation functions",
+    "activations_properties_description": "Activation function properties metadata",
+    "activations_defaults_leaky_relu_description": "Leaky ReLU activation parameters",
+    "activations_defaults_leaky_relu_negative_slope_description": "Slope of negative region (controls gradient for negative inputs)",
+    "activations_defaults_prelu_description": "Parametric ReLU activation parameters",
+    "activations_defaults_prelu_num_parameters_description": "Number of learnable slope parameters (1 for shared, channels for per-channel)",
+    "activations_defaults_prelu_init_description": "Initial value for the learnable slope parameter",
+    "activations_defaults_elu_description": "Exponential Linear Unit parameters",
+    "activations_defaults_elu_alpha_description": "Scale factor for negative region",
+    "activations_defaults_celu_description": "Continuously Differentiable ELU parameters",
+    "activations_defaults_celu_alpha_description": "Scale factor controlling the negative region curvature",
+    "activations_defaults_hardtanh_description": "Hard Tanh activation parameters",
+    "activations_defaults_hardtanh_min_val_description": "Minimum output value (clips below this)",
+    "activations_defaults_hardtanh_max_val_description": "Maximum output value (clips above this)",
+    "activations_defaults_hardshrink_description": "Hard Shrinkage activation parameters",
+    "activations_defaults_hardshrink_lambd_description": "Threshold value for shrinkage",
+    "activations_defaults_softshrink_description": "Soft Shrinkage activation parameters",
+    "activations_defaults_softshrink_lambd_description": "Threshold value for soft shrinkage",
+    "activations_defaults_threshold_description": "Threshold activation parameters",
+    "activations_defaults_threshold_threshold_description": "Threshold value below which input is replaced",
+    "activations_defaults_threshold_value_description": "Value to replace inputs below threshold",
+    "activations_defaults_softplus_description": "Softplus activation parameters",
+    "activations_defaults_softplus_beta_description": "Sharpness of the softplus approximation",
+    "activations_defaults_softplus_threshold_description": "Threshold above which function reverts to linear",
+    "augmentations_description": "Data augmentation configuration",
+    "augmentations_defaults_description": "Default parameters for augmentation transforms",
+    "augmentations_properties_description": "Augmentation transform properties metadata",
+    "augmentations_defaults_random_crop_description": "Random crop augmentation parameters",
+    "augmentations_defaults_random_crop_size_description": "Output crop size in pixels",
+    "augmentations_defaults_random_crop_padding_description": "Optional padding before cropping",
+    "augmentations_defaults_random_crop_pad_if_needed_description": "Pad image if smaller than crop size",
+    "augmentations_defaults_random_crop_fill_description": "Fill value for padding (0-255)",
+    "augmentations_defaults_random_crop_padding_mode_description": "Padding mode (constant, edge, reflect, symmetric)",
+    "augmentations_defaults_random_resized_crop_description": "Random resized crop parameters",
+    "augmentations_defaults_random_resized_crop_size_description": "Output size after crop and resize",
+    "augmentations_defaults_random_resized_crop_scale_description": "Scale range for random area selection [min, max]",
+    "augmentations_defaults_random_resized_crop_ratio_description": "Aspect ratio range [min, max]",
+    "augmentations_defaults_random_resized_crop_interpolation_description": "Interpolation method for resizing",
+    "augmentations_defaults_center_crop_description": "Center crop parameters",
+    "augmentations_defaults_center_crop_size_description": "Output crop size from center",
+    "augmentations_defaults_random_horizontal_flip_description": "Random horizontal flip parameters",
+    "augmentations_defaults_random_horizontal_flip_p_description": "Probability of applying the flip",
+    "augmentations_defaults_random_vertical_flip_description": "Random vertical flip parameters",
+    "augmentations_defaults_random_vertical_flip_p_description": "Probability of applying the flip",
+    "augmentations_defaults_random_rotation_description": "Random rotation parameters",
+    "augmentations_defaults_random_rotation_degrees_description": "Rotation angle range [min, max] in degrees",
+    "augmentations_defaults_random_rotation_interpolation_description": "Interpolation method for rotation",
+    "augmentations_defaults_random_rotation_expand_description": "Expand image to fit rotated content",
+    "augmentations_defaults_random_rotation_fill_description": "Fill value for areas outside the image",
+    "augmentations_defaults_color_jitter_description": "Color jitter parameters",
+    "augmentations_defaults_color_jitter_brightness_description": "Brightness variation factor (0 = no change)",
+    "augmentations_defaults_color_jitter_contrast_description": "Contrast variation factor (0 = no change)",
+    "augmentations_defaults_color_jitter_saturation_description": "Saturation variation factor (0 = no change)",
+    "augmentations_defaults_color_jitter_hue_description": "Hue shift factor (0 = no change, max 0.5)",
+    "augmentations_defaults_random_grayscale_description": "Random grayscale conversion parameters",
+    "augmentations_defaults_random_grayscale_p_description": "Probability of converting to grayscale",
+    "augmentations_defaults_random_erasing_description": "Random erasing parameters",
+    "augmentations_defaults_random_erasing_p_description": "Probability of applying random erasing",
+    "augmentations_defaults_random_erasing_scale_description": "Area scale range [min, max] of erased region",
+    "augmentations_defaults_random_erasing_ratio_description": "Aspect ratio range [min, max] of erased region",
+    "augmentations_defaults_random_erasing_value_description": "Fill value for erased region (0-255)",
+    "augmentations_defaults_random_erasing_inplace_description": "Apply erasing in-place to save memory",
+    "augmentations_defaults_normalize_description": "Normalization parameters",
+    "augmentations_defaults_normalize_mean_description": "Channel-wise mean values [R, G, B]",
+    "augmentations_defaults_normalize_std_description": "Channel-wise standard deviation [R, G, B]",
+    "augmentations_defaults_random_invert_description": "Random color inversion parameters",
+    "augmentations_defaults_random_invert_p_description": "Probability of inverting colors",
+    "augmentations_defaults_random_posterize_description": "Random posterization parameters",
+    "augmentations_defaults_random_posterize_bits_description": "Number of bits to keep (1-8)",
+    "augmentations_defaults_random_posterize_p_description": "Probability of applying posterization",
+    "augmentations_defaults_random_solarize_description": "Random solarization parameters",
+    "augmentations_defaults_random_solarize_threshold_description": "Threshold above which pixels are inverted (0-255)",
+    "augmentations_defaults_random_solarize_p_description": "Probability of applying solarization",
+    "augmentations_defaults_random_adjust_sharpness_description": "Random sharpness adjustment parameters",
+    "augmentations_defaults_random_adjust_sharpness_sharpness_factor_description": "Sharpness multiplier (0 = blur, 1 = original, 2+ = sharpen)",
+    "augmentations_defaults_random_adjust_sharpness_p_description": "Probability of adjusting sharpness",
+    "augmentations_defaults_random_autocontrast_description": "Random auto-contrast parameters",
+    "augmentations_defaults_random_autocontrast_p_description": "Probability of applying auto-contrast",
+    "augmentations_defaults_random_equalize_description": "Random histogram equalization parameters",
+    "augmentations_defaults_random_equalize_p_description": "Probability of applying equalization",
+    "augmentations_defaults_random_perspective_description": "Random perspective transformation parameters",
+    "augmentations_defaults_random_perspective_distortion_scale_description": "Distortion intensity (0 = none, 1 = maximum)",
+    "augmentations_defaults_random_perspective_p_description": "Probability of applying perspective transform",
+    "augmentations_defaults_random_perspective_interpolation_description": "Interpolation method for transform",
+    "augmentations_defaults_random_perspective_fill_description": "Fill value for areas outside the image",
+    "ui_group": {
+      "activations_defaults": "Activation Defaults",
+      "augmentations_defaults": "Augmentation Defaults"
+    },
     "models_description": "Model configurations",
     "models_resnet_description": "ResNet model family settings",
     "models_resnet_variants_description": "ResNet variants configuration",

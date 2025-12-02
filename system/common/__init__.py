@@ -1,6 +1,7 @@
 """Common utility functions for Hootsight system.
 
 This module contains shared functions used across the system.
+Note: Device detection and memory utilities are in system/device.py
 """
 from __future__ import annotations
 
@@ -10,7 +11,6 @@ import hashlib
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 import numpy as np
-import torch
 from system.log import info, warning, error
 
 
@@ -95,34 +95,8 @@ def calculate_file_hash(file_path: Union[str, Path], algorithm: str = 'md5') -> 
     return hash_func.hexdigest()
 
 
-def get_device() -> torch.device:
-    """Get the best available device for PyTorch.
-
-    Returns:
-        torch.device: CUDA device if available, otherwise CPU
-    """
-    if torch.cuda.is_available():
-        device = torch.device('cuda')
-        info(f"Using CUDA device: {torch.cuda.get_device_name()}")
-    else:
-        device = torch.device('cpu')
-        info("Using CPU device")
-
-    return device
-
-
-def setup_torch_reproducibility(seed: int = 42) -> None:
-    """Setup PyTorch for reproducible results.
-
-    Args:
-        seed: Random seed
-    """
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-    np.random.seed(seed)
+# NOTE: get_device() and get_memory_usage() have been moved to system/device.py
+# NOTE: setup_torch_reproducibility() has been moved to system/device.py
 
 
 def format_number(num: Union[int, float], precision: int = 4) -> str:
@@ -138,22 +112,6 @@ def format_number(num: Union[int, float], precision: int = 4) -> str:
     if isinstance(num, float):
         return f"{num:.{precision}f}"
     return str(num)
-
-
-def get_memory_usage() -> Dict[str, float]:
-    """Get current memory usage statistics.
-
-    Returns:
-        Dictionary with memory statistics
-    """
-    if torch.cuda.is_available():
-        return {
-            'allocated': torch.cuda.memory_allocated() / 1024**2,  # MB
-            'cached': torch.cuda.memory_reserved() / 1024**2,     # MB
-            'max_allocated': torch.cuda.max_memory_allocated() / 1024**2,  # MB
-            'max_cached': torch.cuda.max_memory_reserved() / 1024**2       # MB
-        }
-    return {}
 
 
 def validate_config(config: Dict[str, Any], required_keys: List[str]) -> List[str]:

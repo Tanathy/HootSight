@@ -103,9 +103,9 @@ const ProjectsPage = {
             tableWidget: null
         };
 
-        // Stats table widget - use balance_analysis from cached stats
+        // Stats table widget - use project-level stats
         const statsTable = new TableWidget(`${name}_stats`, {
-            data: this._formatStats(project.balance_analysis),
+            data: this._formatStats(project),
             emptyText: lang('projects_page.card.no_stats')
         });
         card.addWidget(statsTable);
@@ -129,7 +129,7 @@ const ProjectsPage = {
         // Load button
         const loadBtn = new ActionButton(`${name}_load`, {
             label: isActive ? lang('projects_page.buttons.loaded') : lang('projects_page.buttons.load'),
-            className: isActive ? 'btn btn-success' : 'btn btn-primary',
+            className: isActive ? 'btn btn-primary' : 'btn btn-secondary',
             onClick: () => this._loadProject(name)
         });
         if (isActive) {
@@ -143,17 +143,18 @@ const ProjectsPage = {
 
     /**
      * Format stats for table display
-     * @param {Object} stats - Raw stats object
+     * @param {Object} project - Full project object with stats
      * @returns {Object|null} - Formatted stats for TableWidget
      */
-    _formatStats: function(stats) {
-        if (!stats) return null;
+    _formatStats: function(project) {
+        if (!project) return null;
 
         const result = {};
-        result[lang('projects_page.stats.total_images')] = stats.total_images ?? '-';
-        result[lang('projects_page.stats.labels')] = stats.num_labels ?? '-';
-        result[lang('projects_page.stats.min_images')] = stats.min_images ?? '-';
-        result[lang('projects_page.stats.max_images')] = stats.max_images ?? '-';
+        result[lang('projects_page.stats.total_images')] = project.image_count ?? '-';
+        result[lang('projects_page.stats.balance_score')] = project.balance_score != null 
+            ? (project.balance_score * 100).toFixed(1) + '%' 
+            : '-';
+        result[lang('projects_page.stats.balance_status')] = project.balance_status ?? '-';
         return result;
     },
 
@@ -171,14 +172,15 @@ const ProjectsPage = {
             loadingData[lang('projects_page.card.loading')] = '...';
             projectData.tableWidget.setData(loadingData);
 
-            // Recompute and save stats via dataset editor API
-            await API.datasetEditor.refreshStats(name);
+            // Recompute and save stats via dataset editor API - returns updated stats
+            const result = await API.datasetEditor.refreshStats(name);
             
-            // Fetch the computed stats
-            const stats = await API.datasetEditor.getStats(name);
-
-            // Update table with new stats - format from StatsSummary model
-            const formattedStats = this._formatStatsFromEditor(stats);
+            // Format and display the returned stats
+            const formattedStats = this._formatStats({
+                image_count: result.image_count,
+                balance_score: result.balance_score,
+                balance_status: result.balance_status
+            });
             projectData.tableWidget.setData(formattedStats);
 
         } catch (err) {
@@ -187,27 +189,6 @@ const ProjectsPage = {
             errorData[lang('projects_page.card.error')] = err.message;
             projectData.tableWidget.setData(errorData);
         }
-    },
-
-    /**
-     * Format stats from dataset editor StatsSummary
-     * @param {Object} stats - StatsSummary from API
-     * @returns {Object|null} - Formatted stats for TableWidget
-     */
-    _formatStatsFromEditor: function(stats) {
-        if (!stats) return null;
-
-        const labelCount = stats.label_distribution ? Object.keys(stats.label_distribution).length : 0;
-        const counts = stats.label_distribution ? Object.values(stats.label_distribution) : [];
-        const minImages = counts.length > 0 ? Math.min(...counts) : 0;
-        const maxImages = counts.length > 0 ? Math.max(...counts) : 0;
-
-        const result = {};
-        result[lang('projects_page.stats.total_images')] = stats.total_images ?? '-';
-        result[lang('projects_page.stats.labels')] = labelCount || '-';
-        result[lang('projects_page.stats.min_images')] = minImages || '-';
-        result[lang('projects_page.stats.max_images')] = maxImages || '-';
-        return result;
     },
 
     /**
@@ -224,10 +205,16 @@ const ProjectsPage = {
             // Update all card visuals
             this._updateActiveProjectVisuals(name);
             
-            // Enable delete button when a project is loaded
+            // Enable delete/rename buttons when a project is loaded
             if (this._deleteProjectBtn) {
                 this._deleteProjectBtn.setDisabled(false);
             }
+            if (this._renameProjectBtn) {
+                this._renameProjectBtn.setDisabled(false);
+            }
+            
+            // Update training button state
+            this._updateTrainingButton();
             
             console.log('Project loaded:', name);
             
@@ -257,11 +244,11 @@ const ProjectsPage = {
                 if (isActive) {
                     data.loadBtn.setLabel(lang('projects_page.buttons.loaded'));
                     data.loadBtn.setDisabled(true);
-                    data.loadBtn.getElement().className = 'btn btn-success disabled';
+                    data.loadBtn.getElement().className = 'btn btn-primary disabled';
                 } else {
                     data.loadBtn.setLabel(lang('projects_page.buttons.load'));
                     data.loadBtn.setDisabled(false);
-                    data.loadBtn.getElement().className = 'btn btn-primary';
+                    data.loadBtn.getElement().className = 'btn btn-secondary';
                 }
             }
         }
@@ -274,22 +261,103 @@ const ProjectsPage = {
         const headerActions = document.getElementById('header-actions');
         if (!headerActions) return;
 
+        // Start/Stop Training button
+        const isTraining = TrainingController.isTraining();
+        const hasProject = !!Config.getActiveProject();
+        
+        this._trainingBtn = new ActionButton('projects-training', {
+            label: isTraining ? lang('projects_page.buttons.stop_training') : lang('projects_page.buttons.start_training'),
+            className: 'btn btn-primary',
+            onClick: () => this._toggleTraining()
+        });
+        
+        // Disable if no project loaded and not training
+        if (!hasProject && !isTraining) {
+            this._trainingBtn.setDisabled(true);
+        }
+        
+        headerActions.appendChild(this._trainingBtn.getElement());
+
         // New Project button
         this._newProjectBtn = new ActionButton('projects-new', {
             label: lang('projects_page.buttons.new_project'),
-            className: 'btn btn-primary',
+            className: 'btn btn-secondary',
             onClick: () => this._createNewProject()
         });
         headerActions.appendChild(this._newProjectBtn.getElement());
 
+        // Rename Project button
+        this._renameProjectBtn = new ActionButton('projects-rename', {
+            label: lang('projects_page.buttons.rename_project'),
+            className: 'btn btn-secondary',
+            onClick: () => this._renameSelectedProject()
+        });
+        this._renameProjectBtn.setDisabled(!hasProject);
+        headerActions.appendChild(this._renameProjectBtn.getElement());
+
         // Delete Selected Project button
         this._deleteProjectBtn = new ActionButton('projects-delete', {
             label: lang('projects_page.buttons.delete_project'),
-            className: 'btn btn-danger',
+            className: 'btn btn-secondary',
             onClick: () => this._deleteSelectedProject()
         });
-        this._deleteProjectBtn.setDisabled(true); // Disabled until a project is selected
+        this._deleteProjectBtn.setDisabled(!hasProject);
         headerActions.appendChild(this._deleteProjectBtn.getElement());
+    },
+
+    /**
+     * Toggle training start/stop
+     */
+    _toggleTraining: async function() {
+        if (TrainingController.isTraining()) {
+            // Stop training
+            const result = await TrainingController.stopTraining();
+            if (result.stopped) {
+                this._updateTrainingButton();
+            } else {
+                Modal.alert(result.error || lang('projects_page.training.stop_error'));
+            }
+        } else {
+            // Start training for active project
+            const project = Config.getActiveProject();
+            if (!project) {
+                Modal.alert(lang('projects_page.training.no_project'));
+                return;
+            }
+
+            // Get model settings from config
+            const modelConfig = Config.get('model') || {};
+            const modelType = modelConfig.type || 'resnet';
+            const modelName = modelConfig.name || 'resnet50';
+            
+            const result = await TrainingController.startTraining(project, modelType, modelName);
+            
+            if (result.started) {
+                this._updateTrainingButton();
+            } else {
+                Modal.alert(result.error || lang('projects_page.training.start_error'));
+            }
+        }
+    },
+
+    /**
+     * Update training button state
+     */
+    _updateTrainingButton: function() {
+        if (!this._trainingBtn) return;
+        
+        const isTraining = TrainingController.isTraining();
+        const hasProject = !!Config.getActiveProject();
+        
+        if (isTraining) {
+            this._trainingBtn.setLabel(lang('projects_page.buttons.stop_training'));
+            this._trainingBtn.getElement().className = 'btn btn-primary';
+            this._trainingBtn.setDisabled(false);
+        } else {
+            this._trainingBtn.setLabel(lang('projects_page.buttons.start_training'));
+            this._trainingBtn.getElement().className = 'btn btn-primary';
+            this._trainingBtn.setDisabled(!hasProject);
+        }
     },
 
     /**
@@ -345,12 +413,48 @@ const ProjectsPage = {
                 await this.loadProjects();
                 // Update delete button state
                 this._deleteProjectBtn.setDisabled(true);
+                this._renameProjectBtn.setDisabled(true);
             } else {
                 Modal.alert(result.message || lang('projects_page.delete_project.error'));
             }
         } catch (err) {
             console.error('Failed to delete project:', err);
             Modal.alert(lang('projects_page.delete_project.error') + ': ' + err.message);
+        }
+    },
+
+    /**
+     * Rename the currently active/selected project
+     */
+    _renameSelectedProject: async function() {
+        const activeProject = Config.getActiveProject();
+        if (!activeProject) {
+            Modal.alert(lang('projects_page.rename_project.no_selection'));
+            return;
+        }
+        
+        const newName = await Modal.prompt(
+            lang('projects_page.rename_project.prompt'),
+            lang('projects_page.rename_project.title'),
+            activeProject
+        );
+        
+        if (!newName || newName === activeProject) return;
+        
+        try {
+            const result = await API.projects.rename(activeProject, newName);
+            
+            if (result.status === 'success') {
+                // Update active project to new name
+                Config.setActiveProject(result.new_name || newName);
+                // Reload projects list
+                await this.loadProjects();
+            } else {
+                Modal.alert(result.message || lang('projects_page.rename_project.error'));
+            }
+        } catch (err) {
+            console.error('Failed to rename project:', err);
+            Modal.alert(lang('projects_page.rename_project.error') + ': ' + err.message);
         }
     }
 };

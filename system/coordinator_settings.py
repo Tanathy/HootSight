@@ -22,8 +22,8 @@ def _determine_root() -> Path:
 
 
 ROOT = _determine_root()
+SYSTEM_CONFIG_PATH = ROOT / "config" / "system_config.json"
 DEFAULT_CONFIG_PATH = ROOT / "config" / "config.json"
-USER_CONFIG_PATH = ROOT / "config" / "config_user.json"
 PACKAGES_CONFIG_PATH = ROOT / "config" / "packages.jsonc"
 MAPPINGS_CONFIG_PATH = ROOT / "config" / "mappings.json"
 LOCALIZATIONS_DIR = ROOT / "config" / "localizations"
@@ -53,17 +53,25 @@ def _load_file_if_exists(path: Path) -> str | None:
 from typing import Any
 
 def reload_settings() -> Any:
-    base = _load_file_if_exists(DEFAULT_CONFIG_PATH)
-    user = _load_file_if_exists(USER_CONFIG_PATH)
+    system_cfg = _load_file_if_exists(SYSTEM_CONFIG_PATH)
+    training_cfg = _load_file_if_exists(DEFAULT_CONFIG_PATH)
 
-    if base is None and user is None:
-        merged = {}
-    elif base is None:
-        merged = deep_merge_json({}, user)
-    elif user is None:
-        merged = deep_merge_json(base)
-    else:
-        merged = deep_merge_json(base, user)
+    # Start with empty dict
+    merged = {}
+    
+    # Merge system config first (general, api, ui, paths, system, memory, dataset_editor)
+    if system_cfg:
+        merged = deep_merge_json(system_cfg)
+    
+    # Then merge training config (training, dataset, activations, augmentations, optimizers, etc.)
+    if training_cfg:
+        training_data = deep_merge_json(training_cfg)
+        # Manual merge to combine both configs
+        for key, value in training_data.items():
+            if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
+                merged[key] = {**merged[key], **value}
+            else:
+                merged[key] = value
 
     global SETTINGS
     SETTINGS = merged
@@ -79,7 +87,7 @@ def reload_settings() -> Any:
         try:
             cache_dir = SETTINGS['paths']['cache_dir']
         except Exception:
-            raise ValueError("Missing 'paths.cache_dir' in config/config.json")
+            raise ValueError("Missing 'paths.cache_dir' in config/system_config.json")
         cache_path = ROOT / cache_dir
         cache_path.mkdir(parents=True, exist_ok=True)
         torch.hub.set_dir(str(cache_path))
@@ -221,27 +229,27 @@ def load_language_data() -> dict:
     return _language_data
 
 
-def _persist_language_to_user_config(lang_code: str) -> None:
+def _persist_language_to_system_config(lang_code: str) -> None:
     import json
     try:
-        USER_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        SYSTEM_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
         
-        if USER_CONFIG_PATH.exists():
-            with open(USER_CONFIG_PATH, 'r', encoding='utf-8') as f:
-                user_config = json.load(f)
+        if SYSTEM_CONFIG_PATH.exists():
+            with open(SYSTEM_CONFIG_PATH, 'r', encoding='utf-8') as f:
+                system_config = json.load(f)
         else:
-            user_config = {}
+            system_config = {}
         
-        if "general" not in user_config:
-            user_config["general"] = {}
-        user_config["general"]["language"] = lang_code
+        if "general" not in system_config:
+            system_config["general"] = {}
+        system_config["general"]["language"] = lang_code
         
-        with open(USER_CONFIG_PATH, 'w', encoding='utf-8') as f:
-            json.dump(user_config, f, indent=2, ensure_ascii=False)
+        with open(SYSTEM_CONFIG_PATH, 'w', encoding='utf-8') as f:
+            json.dump(system_config, f, indent=4, ensure_ascii=False)
         
-        info(f"Language persisted to user config: {lang_code}")
+        info(f"Language persisted to system config: {lang_code}")
     except Exception as ex:
-        error(f"Failed to persist language to user config: {ex}")
+        error(f"Failed to persist language to system config: {ex}")
 
 
 def _get_localized_text(data: dict, key: str, **kwargs) -> str | None:
@@ -343,7 +351,7 @@ def switch_language(lang_code: str) -> dict:
             SETTINGS["general"] = {}
         SETTINGS["general"]["language"] = lang_code
     
-    _persist_language_to_user_config(lang_code)
+    _persist_language_to_system_config(lang_code)
     
     global _language_data
     _language_data = None
@@ -354,32 +362,29 @@ def switch_language(lang_code: str) -> dict:
     return data
 
 
-def save_user_settings() -> None:
+def save_system_settings() -> None:
+    """Save current system settings to system_config.json."""
     import json
-    from pathlib import Path
     
-    if not USER_CONFIG_PATH.exists():
-        USER_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    SYSTEM_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     
-    default_config = {}
-    if DEFAULT_CONFIG_PATH.exists():
-        try:
-            default_config = deep_merge_json(str(DEFAULT_CONFIG_PATH))
-        except Exception:
-            default_config = {}
+    # Extract only system-related settings
+    system_keys = ["general", "api", "ui", "paths", "system", "memory", "dataset_editor"]
+    system_settings = {k: v for k, v in SETTINGS.items() if k in system_keys}
     
     try:
-        with open(USER_CONFIG_PATH, 'w', encoding='utf-8') as f:
-            json.dump(SETTINGS, f, indent=2, ensure_ascii=False)
-        info(f"User settings saved to {USER_CONFIG_PATH}")
+        with open(SYSTEM_CONFIG_PATH, 'w', encoding='utf-8') as f:
+            json.dump(system_settings, f, indent=4, ensure_ascii=False)
+        info(f"System settings saved to {SYSTEM_CONFIG_PATH}")
     except Exception as ex:
-        error(f"Failed to save user settings: {str(ex)}")
+        error(f"Failed to save system settings: {str(ex)}")
         raise
+
 
 __all__ = [
     "SETTINGS",
     "reload_settings",
-    "save_user_settings",
+    "save_system_settings",
     "PACKAGES",
     "reload_packages",
     "MAPPINGS",

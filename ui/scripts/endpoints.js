@@ -100,6 +100,22 @@ const API = {
             });
             if (!response.ok) throw new Error(`Failed to delete project: ${response.statusText}`);
             return response.json();
+        },
+
+        /**
+         * Rename a project
+         * @param {string} name - Current project name
+         * @param {string} newName - New project name
+         * @returns {Promise<Object>} - Result
+         */
+        rename: async function(name, newName) {
+            const response = await fetch(`${API.baseUrl}/projects/${encodeURIComponent(name)}/rename`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ new_name: newName })
+            });
+            if (!response.ok) throw new Error(`Failed to rename project: ${response.statusText}`);
+            return response.json();
         }
     },
 
@@ -139,6 +155,50 @@ const API = {
                 method: 'POST'
             });
             if (!response.ok) throw new Error(`Failed to refresh stats: ${response.statusText}`);
+            return response.json();
+        },
+
+        /**
+         * Set dataset type override
+         * @param {string} projectName - Project name
+         * @param {string} type - Dataset type (auto, multi_label, folder_classification, annotation, mixed)
+         * @returns {Promise<Object>} - Result status
+         */
+        setDatasetType: async function(projectName, type) {
+            const response = await fetch(`${API.baseUrl}/dataset/editor/projects/${encodeURIComponent(projectName)}/dataset-type`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type })
+            });
+            if (!response.ok) throw new Error(`Failed to set dataset type: ${response.statusText}`);
+            return response.json();
+        },
+
+        /**
+         * Get dataset type override
+         * @param {string} projectName - Project name
+         * @returns {Promise<Object>} - {type: string}
+         */
+        getDatasetType: async function(projectName) {
+            const response = await fetch(`${API.baseUrl}/dataset/editor/projects/${encodeURIComponent(projectName)}/dataset-type`);
+            if (!response.ok) throw new Error(`Failed to get dataset type: ${response.statusText}`);
+            return response.json();
+        },
+
+        /**
+         * Set project config value (saves to characteristics.db)
+         * @param {string} projectName - Project name
+         * @param {string} key - Config key (e.g., 'training.input_size')
+         * @param {any} value - Config value
+         * @returns {Promise<Object>} - Result status
+         */
+        setProjectConfigValue: async function(projectName, key, value) {
+            const response = await fetch(`${API.baseUrl}/projects/${encodeURIComponent(projectName)}/config/set`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key, value })
+            });
+            if (!response.ok) throw new Error(`Failed to set project config: ${response.statusText}`);
             return response.json();
         },
 
@@ -365,6 +425,155 @@ const API = {
                 method: 'POST'
             });
             if (!response.ok) throw new Error(`Failed to scan duplicates: ${response.statusText}`);
+            return response.json();
+        }
+    },
+
+    /**
+     * System monitoring endpoints
+     */
+    system: {
+        /**
+         * Get current system resource usage
+         * @returns {Promise<Object>} - { cpu, memory, gpus: [{ index, name, usage, memory }] }
+         */
+        getStats: async function() {
+            const response = await fetch(`${API.baseUrl}/system/stats`);
+            if (!response.ok) throw new Error(`Failed to get system stats: ${response.statusText}`);
+            return response.json();
+        }
+    },
+
+    /**
+     * Training endpoints
+     */
+    training: {
+        /**
+         * Start a new training session
+         * @param {string} projectName - Project name
+         * @param {string} modelType - Model type (e.g., 'resnet', 'efficientnet')
+         * @param {string} modelName - Model name (e.g., 'resnet50')
+         * @param {number} [epochs] - Optional epoch count override
+         * @returns {Promise<Object>} - Training start result with training_id
+         */
+        start: async function(projectName, modelType, modelName, epochs = null) {
+            const body = {
+                project_name: projectName,
+                model_type: modelType,
+                model_name: modelName
+            };
+            if (epochs) body.epochs = epochs;
+            
+            const response = await fetch(`${API.baseUrl}/training/start`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (!response.ok) throw new Error(`Failed to start training: ${response.statusText}`);
+            return response.json();
+        },
+
+        /**
+         * Stop a running training session
+         * @param {string} trainingId - Training ID to stop
+         * @returns {Promise<Object>} - Stop result
+         */
+        stop: async function(trainingId) {
+            const response = await fetch(`${API.baseUrl}/training/stop`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ training_id: trainingId })
+            });
+            if (!response.ok) throw new Error(`Failed to stop training: ${response.statusText}`);
+            return response.json();
+        },
+
+        /**
+         * Get training status and updates (incremental)
+         * @param {string} [trainingId] - Optional training ID, omit for list of active trainings
+         * @returns {Promise<Object>} - Training status with incremental updates
+         */
+        getStatus: async function(trainingId = null) {
+            const url = trainingId 
+                ? `${API.baseUrl}/training/status?training_id=${encodeURIComponent(trainingId)}`
+                : `${API.baseUrl}/training/status`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Failed to get training status: ${response.statusText}`);
+            return response.json();
+        },
+
+        /**
+         * Get full training history (all events)
+         * @param {string} [trainingId] - Optional training ID
+         * @returns {Promise<Object>} - Full training history with all events
+         */
+        getHistory: async function(trainingId = null) {
+            const url = trainingId
+                ? `${API.baseUrl}/training/status/all?training_id=${encodeURIComponent(trainingId)}`
+                : `${API.baseUrl}/training/status/all`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Failed to get training history: ${response.statusText}`);
+            return response.json();
+        }
+    },
+
+    /**
+     * Heatmap endpoints
+     */
+    heatmap: {
+        /**
+         * Generate heatmap for an image
+         * @param {string} projectName - Project name
+         * @param {string|null} imagePath - Optional image path (uses random if not provided)
+         * @param {number|null} classIndex - Optional target class index
+         * @param {number} alpha - Heatmap overlay alpha (0-1)
+         * @returns {Promise<Blob>} - PNG image blob
+         */
+        generate: async function(projectName, imagePath = null, classIndex = null, alpha = 0.5) {
+            const params = new URLSearchParams();
+            if (imagePath) params.append('image_path', imagePath);
+            if (classIndex !== null) params.append('class_index', classIndex);
+            params.append('alpha', alpha);
+            
+            const url = `${API.baseUrl}/projects/${encodeURIComponent(projectName)}/heatmap?${params}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Failed to generate heatmap: ${response.statusText}`);
+            return response.blob();
+        },
+
+        /**
+         * Evaluate image with heatmap and predictions
+         * @param {string} projectName - Project name
+         * @param {string|null} imagePath - Optional image path (uses random if not provided)
+         * @param {string|null} checkpointPath - Optional specific checkpoint path
+         * @returns {Promise<Object>} - Evaluation results with heatmap (base64) and predictions
+         */
+        evaluate: async function(projectName, imagePath = null, checkpointPath = null) {
+            const params = new URLSearchParams();
+            if (imagePath) params.append('image_path', imagePath);
+            if (checkpointPath) params.append('checkpoint_path', checkpointPath);
+            
+            const url = `${API.baseUrl}/projects/${encodeURIComponent(projectName)}/evaluate?${params}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`Failed to evaluate: ${response.statusText}`);
+            return response.json();
+        },
+
+        /**
+         * Upload and evaluate a custom image
+         * @param {string} projectName - Project name
+         * @param {File} file - Image file to upload
+         * @returns {Promise<Object>} - Evaluation results
+         */
+        evaluateUpload: async function(projectName, file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const response = await fetch(`${API.baseUrl}/projects/${encodeURIComponent(projectName)}/evaluate/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            if (!response.ok) throw new Error(`Failed to evaluate uploaded image: ${response.statusText}`);
             return response.json();
         }
     }

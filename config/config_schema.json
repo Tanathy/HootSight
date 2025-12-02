@@ -38,6 +38,8 @@
       "training.early_stopping": { "label": "schema.ui_group.training_early_stopping", "order": 18, "collapsible": true },
       "training.gradient": { "label": "schema.ui_group.training_gradient", "order": 19, "collapsible": true },
       "training.runtime": { "label": "schema.ui_group.training_runtime", "order": 20, "collapsible": true },
+      "activations.defaults": { "label": "schema.ui_group.activations_defaults", "order": 21, "collapsible": true },
+      "augmentations.defaults": { "label": "schema.ui_group.augmentations_defaults", "order": 22, "collapsible": true },
       "optimizers": { "label": "schema.ui_group.optimizers", "order": 30, "collapsible": true, "collapsed_default": true },
       "schedulers": { "label": "schema.ui_group.schedulers", "order": 31, "collapsible": true, "collapsed_default": true },
       "losses": { "label": "schema.ui_group.losses", "order": 32, "collapsible": true, "collapsed_default": true },
@@ -574,7 +576,7 @@
           "minimum": 32,
           "maximum": 1024,
           "default": 224,
-          "ui": { "widget": "slider", "group": "training.hyperparameters", "order": 5, "step": 32 }
+          "ui": { "widget": "hidden" }
         },
         "normalize": {
           "type": "object",
@@ -682,7 +684,7 @@
         "activations": {
           "type": "object",
           "description": "schema.activations_description",
-          "ui": { "widget": "nested", "group": "activations", "order": 1, "visible": false },
+          "ui": { "widget": "nested", "group": "training.model", "order": 99, "visible": false },
           "properties": {
             "defaults": {
               "type": "object",
@@ -713,7 +715,7 @@
         "augmentations": {
           "type": "object",
           "description": "schema.augmentations_description",
-          "ui": { "widget": "nested", "group": "augmentations", "order": 1, "visible": false },
+          "ui": { "widget": "nested", "group": "training.augmentation", "order": 99, "visible": false },
           "properties": {
             "defaults": {
               "type": "object",
@@ -2335,6 +2337,700 @@
           "items": { "type": "string", "enum": ["resnet", "resnext", "mobilenet", "shufflenet", "squeezenet", "efficientnet"] },
           "default": ["resnet", "resnext", "mobilenet", "shufflenet", "squeezenet", "efficientnet"],
           "ui": { "widget": "array", "visible": false }
+        }
+      },
+      "additionalProperties": false
+    },
+    "activations": {
+      "type": "object",
+      "description": "schema.activations_description",
+      "ui": { "group": "activations", "order": 33, "visible": false },
+      "properties": {
+        "defaults": {
+          "type": "object",
+          "description": "schema.activations_defaults_description",
+          "properties": {
+            "leaky_relu": {
+              "type": "object",
+              "description": "schema.activations_defaults_leaky_relu_description",
+              "ui": { "group": "activations.defaults", "order": 1 },
+              "properties": {
+                "negative_slope": {
+                  "type": "number",
+                  "description": "schema.activations_defaults_leaky_relu_negative_slope_description",
+                  "minimum": 0.001,
+                  "maximum": 1.0,
+                  "default": 0.01,
+                  "ui": { "widget": "slider", "group": "activations.defaults", "order": 1, "precision": 3 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "prelu": {
+              "type": "object",
+              "description": "schema.activations_defaults_prelu_description",
+              "ui": { "group": "activations.defaults", "order": 2 },
+              "properties": {
+                "num_parameters": {
+                  "type": "integer",
+                  "description": "schema.activations_defaults_prelu_num_parameters_description",
+                  "minimum": 1,
+                  "maximum": 1024,
+                  "default": 1,
+                  "ui": { "widget": "slider", "group": "activations.defaults", "order": 2, "step": 1 }
+                },
+                "init": {
+                  "type": "number",
+                  "description": "schema.activations_defaults_prelu_init_description",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "default": 0.25,
+                  "ui": { "widget": "slider", "group": "activations.defaults", "order": 3, "precision": 2 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "elu": {
+              "type": "object",
+              "description": "schema.activations_defaults_elu_description",
+              "ui": { "group": "activations.defaults", "order": 3 },
+              "properties": {
+                "alpha": {
+                  "type": "number",
+                  "description": "schema.activations_defaults_elu_alpha_description",
+                  "minimum": 0.1,
+                  "maximum": 10.0,
+                  "default": 1.0,
+                  "ui": { "widget": "slider", "group": "activations.defaults", "order": 4, "precision": 2 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "celu": {
+              "type": "object",
+              "description": "schema.activations_defaults_celu_description",
+              "ui": { "group": "activations.defaults", "order": 4 },
+              "properties": {
+                "alpha": {
+                  "type": "number",
+                  "description": "schema.activations_defaults_celu_alpha_description",
+                  "minimum": 0.1,
+                  "maximum": 10.0,
+                  "default": 1.0,
+                  "ui": { "widget": "slider", "group": "activations.defaults", "order": 5, "precision": 2 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "hardtanh": {
+              "type": "object",
+              "description": "schema.activations_defaults_hardtanh_description",
+              "ui": { "group": "activations.defaults", "order": 5 },
+              "properties": {
+                "min_val": {
+                  "type": "number",
+                  "description": "schema.activations_defaults_hardtanh_min_val_description",
+                  "minimum": -10.0,
+                  "maximum": 0.0,
+                  "default": -1.0,
+                  "ui": { "widget": "slider", "group": "activations.defaults", "order": 6, "precision": 2 }
+                },
+                "max_val": {
+                  "type": "number",
+                  "description": "schema.activations_defaults_hardtanh_max_val_description",
+                  "minimum": 0.0,
+                  "maximum": 10.0,
+                  "default": 1.0,
+                  "ui": { "widget": "slider", "group": "activations.defaults", "order": 7, "precision": 2 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "hardshrink": {
+              "type": "object",
+              "description": "schema.activations_defaults_hardshrink_description",
+              "ui": { "group": "activations.defaults", "order": 6 },
+              "properties": {
+                "lambd": {
+                  "type": "number",
+                  "description": "schema.activations_defaults_hardshrink_lambd_description",
+                  "minimum": 0.0,
+                  "maximum": 5.0,
+                  "default": 0.5,
+                  "ui": { "widget": "slider", "group": "activations.defaults", "order": 8, "precision": 2 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "softshrink": {
+              "type": "object",
+              "description": "schema.activations_defaults_softshrink_description",
+              "ui": { "group": "activations.defaults", "order": 7 },
+              "properties": {
+                "lambd": {
+                  "type": "number",
+                  "description": "schema.activations_defaults_softshrink_lambd_description",
+                  "minimum": 0.0,
+                  "maximum": 5.0,
+                  "default": 0.5,
+                  "ui": { "widget": "slider", "group": "activations.defaults", "order": 9, "precision": 2 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "threshold": {
+              "type": "object",
+              "description": "schema.activations_defaults_threshold_description",
+              "ui": { "group": "activations.defaults", "order": 8 },
+              "properties": {
+                "threshold": {
+                  "type": "number",
+                  "description": "schema.activations_defaults_threshold_threshold_description",
+                  "minimum": -10.0,
+                  "maximum": 10.0,
+                  "default": 0.5,
+                  "ui": { "widget": "slider", "group": "activations.defaults", "order": 10, "precision": 2 }
+                },
+                "value": {
+                  "type": "number",
+                  "description": "schema.activations_defaults_threshold_value_description",
+                  "minimum": -10.0,
+                  "maximum": 10.0,
+                  "default": 0.0,
+                  "ui": { "widget": "slider", "group": "activations.defaults", "order": 11, "precision": 2 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "softplus": {
+              "type": "object",
+              "description": "schema.activations_defaults_softplus_description",
+              "ui": { "group": "activations.defaults", "order": 9 },
+              "properties": {
+                "beta": {
+                  "type": "number",
+                  "description": "schema.activations_defaults_softplus_beta_description",
+                  "minimum": 0.1,
+                  "maximum": 10.0,
+                  "default": 1.0,
+                  "ui": { "widget": "slider", "group": "activations.defaults", "order": 12, "precision": 2 }
+                },
+                "threshold": {
+                  "type": "number",
+                  "description": "schema.activations_defaults_softplus_threshold_description",
+                  "minimum": 1.0,
+                  "maximum": 100.0,
+                  "default": 20.0,
+                  "ui": { "widget": "slider", "group": "activations.defaults", "order": 13, "precision": 1 }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "properties": {
+          "type": "object",
+          "description": "schema.activations_properties_description",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "range": { "type": "string" },
+              "differentiable": { "type": "boolean" },
+              "monotonic": { "type": "boolean" },
+              "zero_at_zero": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "augmentations": {
+      "type": "object",
+      "description": "schema.augmentations_description",
+      "ui": { "group": "augmentations", "order": 34, "visible": false },
+      "properties": {
+        "defaults": {
+          "type": "object",
+          "description": "schema.augmentations_defaults_description",
+          "properties": {
+            "random_crop": {
+              "type": "object",
+              "description": "schema.augmentations_defaults_random_crop_description",
+              "ui": { "group": "augmentations.defaults", "order": 1 },
+              "properties": {
+                "size": {
+                  "type": "integer",
+                  "description": "schema.augmentations_defaults_random_crop_size_description",
+                  "minimum": 32,
+                  "maximum": 1024,
+                  "default": 224,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 1, "step": 1 }
+                },
+                "padding": {
+                  "type": ["integer", "null"],
+                  "description": "schema.augmentations_defaults_random_crop_padding_description",
+                  "minimum": 0,
+                  "maximum": 128,
+                  "default": null,
+                  "ui": { "widget": "auto_or_number", "group": "augmentations.defaults", "order": 2 }
+                },
+                "pad_if_needed": {
+                  "type": "boolean",
+                  "description": "schema.augmentations_defaults_random_crop_pad_if_needed_description",
+                  "default": false,
+                  "ui": { "widget": "switch", "group": "augmentations.defaults", "order": 3 }
+                },
+                "fill": {
+                  "type": "integer",
+                  "description": "schema.augmentations_defaults_random_crop_fill_description",
+                  "minimum": 0,
+                  "maximum": 255,
+                  "default": 0,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 4, "step": 1 }
+                },
+                "padding_mode": {
+                  "type": "string",
+                  "description": "schema.augmentations_defaults_random_crop_padding_mode_description",
+                  "enum": ["constant", "edge", "reflect", "symmetric"],
+                  "default": "constant",
+                  "ui": { "widget": "dropdown", "group": "augmentations.defaults", "order": 5 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "random_resized_crop": {
+              "type": "object",
+              "description": "schema.augmentations_defaults_random_resized_crop_description",
+              "ui": { "group": "augmentations.defaults", "order": 2 },
+              "properties": {
+                "size": {
+                  "type": "integer",
+                  "description": "schema.augmentations_defaults_random_resized_crop_size_description",
+                  "minimum": 32,
+                  "maximum": 1024,
+                  "default": 224,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 6, "step": 1 }
+                },
+                "scale": {
+                  "type": "array",
+                  "description": "schema.augmentations_defaults_random_resized_crop_scale_description",
+                  "items": { "type": "number", "minimum": 0.01, "maximum": 1.0 },
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "default": [0.08, 1.0],
+                  "ui": { "widget": "array", "group": "augmentations.defaults", "order": 7 }
+                },
+                "ratio": {
+                  "type": "array",
+                  "description": "schema.augmentations_defaults_random_resized_crop_ratio_description",
+                  "items": { "type": "number", "minimum": 0.1, "maximum": 10.0 },
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "default": [0.75, 1.333],
+                  "ui": { "widget": "array", "group": "augmentations.defaults", "order": 8 }
+                },
+                "interpolation": {
+                  "type": "string",
+                  "description": "schema.augmentations_defaults_random_resized_crop_interpolation_description",
+                  "enum": ["nearest", "bilinear", "bicubic"],
+                  "default": "bilinear",
+                  "ui": { "widget": "dropdown", "group": "augmentations.defaults", "order": 9 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "center_crop": {
+              "type": "object",
+              "description": "schema.augmentations_defaults_center_crop_description",
+              "ui": { "group": "augmentations.defaults", "order": 3 },
+              "properties": {
+                "size": {
+                  "type": "integer",
+                  "description": "schema.augmentations_defaults_center_crop_size_description",
+                  "minimum": 32,
+                  "maximum": 1024,
+                  "default": 224,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 10, "step": 1 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "random_horizontal_flip": {
+              "type": "object",
+              "description": "schema.augmentations_defaults_random_horizontal_flip_description",
+              "ui": { "group": "augmentations.defaults", "order": 4 },
+              "properties": {
+                "p": {
+                  "type": "number",
+                  "description": "schema.augmentations_defaults_random_horizontal_flip_p_description",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "default": 0.5,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 11, "precision": 2 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "random_vertical_flip": {
+              "type": "object",
+              "description": "schema.augmentations_defaults_random_vertical_flip_description",
+              "ui": { "group": "augmentations.defaults", "order": 5 },
+              "properties": {
+                "p": {
+                  "type": "number",
+                  "description": "schema.augmentations_defaults_random_vertical_flip_p_description",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "default": 0.5,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 12, "precision": 2 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "random_rotation": {
+              "type": "object",
+              "description": "schema.augmentations_defaults_random_rotation_description",
+              "ui": { "group": "augmentations.defaults", "order": 6 },
+              "properties": {
+                "degrees": {
+                  "type": "array",
+                  "description": "schema.augmentations_defaults_random_rotation_degrees_description",
+                  "items": { "type": "number", "minimum": -360, "maximum": 360 },
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "default": [-30, 30],
+                  "ui": { "widget": "array", "group": "augmentations.defaults", "order": 13 }
+                },
+                "interpolation": {
+                  "type": "string",
+                  "description": "schema.augmentations_defaults_random_rotation_interpolation_description",
+                  "enum": ["nearest", "bilinear", "bicubic"],
+                  "default": "nearest",
+                  "ui": { "widget": "dropdown", "group": "augmentations.defaults", "order": 14 }
+                },
+                "expand": {
+                  "type": "boolean",
+                  "description": "schema.augmentations_defaults_random_rotation_expand_description",
+                  "default": false,
+                  "ui": { "widget": "switch", "group": "augmentations.defaults", "order": 15 }
+                },
+                "fill": {
+                  "type": "integer",
+                  "description": "schema.augmentations_defaults_random_rotation_fill_description",
+                  "minimum": 0,
+                  "maximum": 255,
+                  "default": 0,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 16, "step": 1 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "color_jitter": {
+              "type": "object",
+              "description": "schema.augmentations_defaults_color_jitter_description",
+              "ui": { "group": "augmentations.defaults", "order": 7 },
+              "properties": {
+                "brightness": {
+                  "type": "number",
+                  "description": "schema.augmentations_defaults_color_jitter_brightness_description",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "default": 0.1,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 17, "precision": 2 }
+                },
+                "contrast": {
+                  "type": "number",
+                  "description": "schema.augmentations_defaults_color_jitter_contrast_description",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "default": 0.1,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 18, "precision": 2 }
+                },
+                "saturation": {
+                  "type": "number",
+                  "description": "schema.augmentations_defaults_color_jitter_saturation_description",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "default": 0.1,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 19, "precision": 2 }
+                },
+                "hue": {
+                  "type": "number",
+                  "description": "schema.augmentations_defaults_color_jitter_hue_description",
+                  "minimum": 0.0,
+                  "maximum": 0.5,
+                  "default": 0.1,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 20, "precision": 2 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "random_grayscale": {
+              "type": "object",
+              "description": "schema.augmentations_defaults_random_grayscale_description",
+              "ui": { "group": "augmentations.defaults", "order": 8 },
+              "properties": {
+                "p": {
+                  "type": "number",
+                  "description": "schema.augmentations_defaults_random_grayscale_p_description",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "default": 0.1,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 21, "precision": 2 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "random_erasing": {
+              "type": "object",
+              "description": "schema.augmentations_defaults_random_erasing_description",
+              "ui": { "group": "augmentations.defaults", "order": 9 },
+              "properties": {
+                "p": {
+                  "type": "number",
+                  "description": "schema.augmentations_defaults_random_erasing_p_description",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "default": 0.5,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 22, "precision": 2 }
+                },
+                "scale": {
+                  "type": "array",
+                  "description": "schema.augmentations_defaults_random_erasing_scale_description",
+                  "items": { "type": "number", "minimum": 0.01, "maximum": 1.0 },
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "default": [0.02, 0.33],
+                  "ui": { "widget": "array", "group": "augmentations.defaults", "order": 23 }
+                },
+                "ratio": {
+                  "type": "array",
+                  "description": "schema.augmentations_defaults_random_erasing_ratio_description",
+                  "items": { "type": "number", "minimum": 0.1, "maximum": 10.0 },
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "default": [0.3, 3.3],
+                  "ui": { "widget": "array", "group": "augmentations.defaults", "order": 24 }
+                },
+                "value": {
+                  "type": "integer",
+                  "description": "schema.augmentations_defaults_random_erasing_value_description",
+                  "minimum": 0,
+                  "maximum": 255,
+                  "default": 0,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 25, "step": 1 }
+                },
+                "inplace": {
+                  "type": "boolean",
+                  "description": "schema.augmentations_defaults_random_erasing_inplace_description",
+                  "default": false,
+                  "ui": { "widget": "switch", "group": "augmentations.defaults", "order": 26 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "normalize": {
+              "type": "object",
+              "description": "schema.augmentations_defaults_normalize_description",
+              "ui": { "group": "augmentations.defaults", "order": 10 },
+              "properties": {
+                "mean": {
+                  "type": "array",
+                  "description": "schema.augmentations_defaults_normalize_mean_description",
+                  "items": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "default": [0.485, 0.456, 0.406],
+                  "ui": { "widget": "array", "group": "augmentations.defaults", "order": 27 }
+                },
+                "std": {
+                  "type": "array",
+                  "description": "schema.augmentations_defaults_normalize_std_description",
+                  "items": { "type": "number", "minimum": 0.001, "maximum": 1.0 },
+                  "minItems": 3,
+                  "maxItems": 3,
+                  "default": [0.229, 0.224, 0.225],
+                  "ui": { "widget": "array", "group": "augmentations.defaults", "order": 28 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "random_invert": {
+              "type": "object",
+              "description": "schema.augmentations_defaults_random_invert_description",
+              "ui": { "group": "augmentations.defaults", "order": 11 },
+              "properties": {
+                "p": {
+                  "type": "number",
+                  "description": "schema.augmentations_defaults_random_invert_p_description",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "default": 0.5,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 29, "precision": 2 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "random_posterize": {
+              "type": "object",
+              "description": "schema.augmentations_defaults_random_posterize_description",
+              "ui": { "group": "augmentations.defaults", "order": 12 },
+              "properties": {
+                "bits": {
+                  "type": "integer",
+                  "description": "schema.augmentations_defaults_random_posterize_bits_description",
+                  "minimum": 1,
+                  "maximum": 8,
+                  "default": 4,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 30, "step": 1 }
+                },
+                "p": {
+                  "type": "number",
+                  "description": "schema.augmentations_defaults_random_posterize_p_description",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "default": 0.5,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 31, "precision": 2 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "random_solarize": {
+              "type": "object",
+              "description": "schema.augmentations_defaults_random_solarize_description",
+              "ui": { "group": "augmentations.defaults", "order": 13 },
+              "properties": {
+                "threshold": {
+                  "type": "integer",
+                  "description": "schema.augmentations_defaults_random_solarize_threshold_description",
+                  "minimum": 0,
+                  "maximum": 255,
+                  "default": 128,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 32, "step": 1 }
+                },
+                "p": {
+                  "type": "number",
+                  "description": "schema.augmentations_defaults_random_solarize_p_description",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "default": 0.5,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 33, "precision": 2 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "random_adjust_sharpness": {
+              "type": "object",
+              "description": "schema.augmentations_defaults_random_adjust_sharpness_description",
+              "ui": { "group": "augmentations.defaults", "order": 14 },
+              "properties": {
+                "sharpness_factor": {
+                  "type": "number",
+                  "description": "schema.augmentations_defaults_random_adjust_sharpness_sharpness_factor_description",
+                  "minimum": 0.0,
+                  "maximum": 10.0,
+                  "default": 2.0,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 34, "precision": 1 }
+                },
+                "p": {
+                  "type": "number",
+                  "description": "schema.augmentations_defaults_random_adjust_sharpness_p_description",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "default": 0.5,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 35, "precision": 2 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "random_autocontrast": {
+              "type": "object",
+              "description": "schema.augmentations_defaults_random_autocontrast_description",
+              "ui": { "group": "augmentations.defaults", "order": 15 },
+              "properties": {
+                "p": {
+                  "type": "number",
+                  "description": "schema.augmentations_defaults_random_autocontrast_p_description",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "default": 0.5,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 36, "precision": 2 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "random_equalize": {
+              "type": "object",
+              "description": "schema.augmentations_defaults_random_equalize_description",
+              "ui": { "group": "augmentations.defaults", "order": 16 },
+              "properties": {
+                "p": {
+                  "type": "number",
+                  "description": "schema.augmentations_defaults_random_equalize_p_description",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "default": 0.5,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 37, "precision": 2 }
+                }
+              },
+              "additionalProperties": false
+            },
+            "random_perspective": {
+              "type": "object",
+              "description": "schema.augmentations_defaults_random_perspective_description",
+              "ui": { "group": "augmentations.defaults", "order": 17 },
+              "properties": {
+                "distortion_scale": {
+                  "type": "number",
+                  "description": "schema.augmentations_defaults_random_perspective_distortion_scale_description",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "default": 0.5,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 38, "precision": 2 }
+                },
+                "p": {
+                  "type": "number",
+                  "description": "schema.augmentations_defaults_random_perspective_p_description",
+                  "minimum": 0.0,
+                  "maximum": 1.0,
+                  "default": 0.5,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 39, "precision": 2 }
+                },
+                "interpolation": {
+                  "type": "string",
+                  "description": "schema.augmentations_defaults_random_perspective_interpolation_description",
+                  "enum": ["nearest", "bilinear", "bicubic"],
+                  "default": "bilinear",
+                  "ui": { "widget": "dropdown", "group": "augmentations.defaults", "order": 40 }
+                },
+                "fill": {
+                  "type": "integer",
+                  "description": "schema.augmentations_defaults_random_perspective_fill_description",
+                  "minimum": 0,
+                  "maximum": 255,
+                  "default": 0,
+                  "ui": { "widget": "slider", "group": "augmentations.defaults", "order": 41, "step": 1 }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "properties": {
+          "type": "object",
+          "description": "schema.augmentations_properties_description",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "random": { "type": "boolean" },
+              "spatial": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          }
         }
       },
       "additionalProperties": false

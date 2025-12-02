@@ -223,9 +223,11 @@ html, body {
 
 .content {
     flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     padding: var(--spacing-lg);
+    min-height: 0;
 }
 
 /* ============================================================================
@@ -254,4 +256,58 @@ html, body {
 * {
     scrollbar-width: thin;
     scrollbar-color: var(--bg-hover) var(--bg-primary);
+}
+
+/* ============================================================================
+   Header Training Progress
+   ============================================================================ */
+
+.header-training-progress {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    animation: progressSlideIn 0.3s ease;
+}
+
+.training-progress-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 120px;
+}
+
+.training-project-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent-primary);
+}
+
+.training-progress-text {
+    font-size: 0.6875rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.training-progress-bar-container {
+    width: 150px;
+    height: 6px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.training-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-primary), var(--accent-success));
+    border-radius: var(--radius-sm);
+    transition: width 0.3s ease;
+}
+
+.training-stop-btn {
+    padding: var(--spacing-xs) var(--spacing-sm) !important;
+    font-size: 0.75rem !important;
+    min-height: auto !important;
 }

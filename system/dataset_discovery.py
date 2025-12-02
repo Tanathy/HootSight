@@ -607,11 +607,12 @@ def discover_projects(compute_stats: bool = False) -> List[ProjectInfo]:
             
             if project.has_dataset:
                 if compute_stats:
-                    # Full analysis - expensive
-                    (dataset_type, labels, image_count, label_distribution, balance_score, 
+                    # Full analysis - expensive (for balance/labels only, not dataset_type)
+                    (_, labels, image_count, label_distribution, balance_score, 
                      detailed_distribution, balance_analysis, recommendations) = analyze_dataset_type(project.dataset_path)
                     
-                    project.dataset_type = dataset_type
+                    # dataset_type is set by user, not auto-detected
+                    project.dataset_type = DatasetType.UNKNOWN
                     project.labels = labels
                     project.image_count = image_count
                     project.label_distribution = label_distribution
@@ -620,10 +621,11 @@ def discover_projects(compute_stats: bool = False) -> List[ProjectInfo]:
                     project.balance_analysis = balance_analysis
                     project.recommendations = recommendations
                 else:
-                    # Lightweight - just count images, no label analysis
+                    # Lightweight - just count images
                     image_files = get_image_files(project.dataset_path)
                     project.image_count = len(image_files)
-                    project.dataset_type = _detect_dataset_type_fast(project.dataset_path)
+                    # dataset_type is set by user via UI, not auto-detected
+                    project.dataset_type = DatasetType.UNKNOWN
             
             projects.append(project)
     

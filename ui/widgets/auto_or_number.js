@@ -74,7 +74,7 @@ class AutoOrNumber {
         // Controls container
         this.controlsContainer = Q('<div>', { class: 'auto-or-number-controls' }).get(0);
         
-        // Auto switch (mini version)
+        // Auto switch (mini version using standard switch styling)
         this.autoSwitchContainer = Q('<div>', { class: 'auto-switch-container' }).get(0);
         
         this.autoLabel = Q('<span>', { 
@@ -82,9 +82,9 @@ class AutoOrNumber {
             text: 'Auto' 
         }).get(0);
         
-        // Build mini switch
-        this.switchTrack = Q('<div>', { class: 'mini-switch-track' }).get(0);
-        this.switchThumb = Q('<div>', { class: 'mini-switch-thumb' }).get(0);
+        // Build switch using standard classes
+        this.switchTrack = Q('<div>', { class: 'switch-track' }).get(0);
+        this.switchThumb = Q('<div>', { class: 'switch-thumb' }).get(0);
         this.switchTrack.appendChild(this.switchThumb);
         
         if (this._isAuto) {

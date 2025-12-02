@@ -9,11 +9,12 @@ import gc
 
 from system.log import info, warning, error, success
 from system.coordinator_settings import SETTINGS
+from system.device import get_device, is_cuda_available
 
 
 class MemoryManager:
     def __init__(self):
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = get_device()
         self.total_memory = self._get_total_memory()
         self.available_memory = self._get_available_memory()
         try:
@@ -25,13 +26,13 @@ class MemoryManager:
         self.reserved_memory_ratio = mem_cfg['reserved_memory_ratio']
 
     def _get_total_memory(self) -> int:
-        if torch.cuda.is_available():
+        if is_cuda_available():
             return torch.cuda.get_device_properties(0).total_memory
         else:
             return psutil.virtual_memory().total
 
     def _get_available_memory(self) -> int:
-        if torch.cuda.is_available():
+        if is_cuda_available():
             return torch.cuda.mem_get_info()[0]
         else:
             return psutil.virtual_memory().available
@@ -48,7 +49,7 @@ class MemoryManager:
             model.eval()
 
             with torch.no_grad():
-                if torch.cuda.is_available():
+                if is_cuda_available():
                     torch.cuda.reset_peak_memory_stats()
                     dummy_input = dummy_input.to(self.device)
                     model = model.to(self.device)
@@ -133,7 +134,7 @@ class MemoryManager:
         return recommendations
 
     def get_memory_status(self) -> Dict[str, Any]:
-        if torch.cuda.is_available():
+        if is_cuda_available():
             allocated = torch.cuda.memory_allocated()
             reserved = torch.cuda.memory_reserved()
             free, total = torch.cuda.mem_get_info()
@@ -157,7 +158,7 @@ class MemoryManager:
             }
 
     def cleanup_memory(self):
-        if torch.cuda.is_available():
+        if is_cuda_available():
             torch.cuda.empty_cache()
         gc.collect()
 

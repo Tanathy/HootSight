@@ -102,7 +102,8 @@ def _create_model_from_checkpoint(checkpoint_path: str, map_location: Optional[s
     if not os.path.isfile(checkpoint_path):
         raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    from system.device import get_device
+    device = get_device()
     checkpoint = torch.load(checkpoint_path, map_location=map_location or device)
     model_name = checkpoint.get('model_name', 'resnet50')
     num_classes = int(checkpoint.get('num_classes', 1000))

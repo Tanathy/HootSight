@@ -6,7 +6,6 @@ Dataset Editor Metadata Store - Legacy compatibility wrapper.
 This module wraps the centralized characteristics_db for dataset editor operations.
 The actual storage is now in characteristics.db (SQLite) using:
 - snapshots table: image metadata with hash-based IDs
-- dataset_status table: build status tracking
 - build_cache table: incremental build data
 
 Legacy methods are preserved for backward compatibility but delegate to characteristics_db.
@@ -15,12 +14,10 @@ Legacy methods are preserved for backward compatibility but delegate to characte
 import json
 from pathlib import Path
 from threading import RLock
-from typing import Dict, Iterable, Optional, Sequence
+from typing import Dict, Iterable, Optional
 
 from system.log import warning
 from system import characteristics_db as cdb
-
-FINGERPRINT_FIELD = "_fingerprint"
 
 
 def _dump_json(data: dict) -> str:
@@ -40,8 +37,6 @@ def _convert_to_new_format(key: str, old_data: dict) -> dict:
         'min_dimension': old_data.get('min_dimension', 0),
         'tags': old_data.get('tags', []),
         'crop': old_data.get('bounds', old_data.get('crop', {})),
-        'fingerprint': old_data.get(FINGERPRINT_FIELD, old_data.get('fingerprint', {})),
-        'updated_at': old_data.get('updated_at', ''),
     }
 
 
@@ -66,8 +61,6 @@ def _convert_from_new_format(new_data: dict) -> dict:
             'center_y': crop.get('center_y', 0.5),
         },
         'has_custom_bounds': crop.get('zoom', 1.0) != 1.0 or crop.get('center_x', 0.5) != 0.5 or crop.get('center_y', 0.5) != 0.5,
-        'updated_at': new_data.get('updated_at', ''),
-        FINGERPRINT_FIELD: new_data.get('fingerprint', {}),
     }
 
 
@@ -100,7 +93,6 @@ class EditorStore:
         records = {key: _convert_to_new_format(key, data) for key, data in payloads.items()}
         with self._lock:
             cdb.snapshot_upsert(self.project_name, records)
-            cdb.status_ensure_rows(self.project_name, list(payloads.keys()))
 
     def upsert(self, key: str, payload: dict) -> None:
         """Insert or update a single record."""
@@ -144,12 +136,6 @@ class EditorStore:
         """Get count of records."""
         return cdb.snapshot_count(self.project_name)
 
-    def should_update(self, key: str, fingerprint: dict) -> bool:
-        """Check if record needs update based on fingerprint."""
-        if not key:
-            return False
-        return cdb.snapshot_should_update(self.project_name, key, fingerprint)
-
     def load_snapshot(self) -> Dict[str, dict]:
         """Load all snapshot records."""
         with self._lock:
@@ -168,39 +154,17 @@ class EditorStore:
             if records:
                 converted = {key: _convert_to_new_format(key, data) for key, data in records.items()}
                 cdb.snapshot_upsert(self.project_name, converted)
-                cdb.status_ensure_rows(self.project_name, list(records.keys()))
 
     def update_snapshot_entry(self, key: str, data: dict) -> None:
         """Update a single snapshot entry."""
         with self._lock:
             converted = _convert_to_new_format(key, data)
             cdb.snapshot_upsert(self.project_name, {key: converted})
-            cdb.status_ensure_rows(self.project_name, [key])
 
     def remove_snapshot_entries(self, keys: Iterable[str]) -> None:
         """Remove snapshot entries."""
         with self._lock:
             cdb.snapshot_remove(self.project_name, keys)
-
-    def pending_dataset_ids(self) -> list[str]:
-        """Get IDs of items pending dataset build."""
-        return cdb.status_get_pending(self.project_name)
-
-    def mark_dataset_built(self, record_id: str) -> None:
-        """Mark item as built in dataset."""
-        cdb.status_mark_built(self.project_name, record_id)
-
-    def mark_dataset_needs_update(self, record_id: str) -> None:
-        """Mark item as needing rebuild."""
-        cdb.status_mark_needs_update(self.project_name, record_id)
-
-    def mark_dataset_not_built(self, record_id: str) -> None:
-        """Mark item as not in dataset."""
-        cdb.status_mark_not_built(self.project_name, record_id)
-
-    def remove_status(self, record_ids: Iterable[str]) -> None:
-        """Remove status entries (handled by snapshot_remove)."""
-        pass  # Status is removed with snapshots automatically
 
     def load_build_cache(self) -> Dict[str, dict]:
         """Load build cache."""
@@ -289,4 +253,4 @@ class EditorStore:
             warning(f"Unable to archive legacy dataset snapshot cache: {exc}")
 
 
-__all__ = ["EditorStore", "FINGERPRINT_FIELD"]
+__all__ = ["EditorStore"]

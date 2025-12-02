@@ -20,11 +20,23 @@ class ActionButton {
         if (this.options.title) this._element.title = this.options.title;
         if (this.options.disabled) this.setDisabled(true);
 
-        this._element.addEventListener('click', (e) => {
+        this._element.addEventListener('click', async (e) => {
             if (this.options.disabled) return;
-            for (const cb of this._callbacks) cb(e);
+            for (const cb of this._callbacks) {
+                try {
+                    const result = cb(e);
+                    if (result instanceof Promise) await result;
+                } catch (err) {
+                    console.error('ActionButton callback error:', err);
+                }
+            }
             if (typeof this.options.onClick === 'function') {
-                try { this.options.onClick(e); } catch (err) { console.error(err); }
+                try {
+                    const result = this.options.onClick(e);
+                    if (result instanceof Promise) await result;
+                } catch (err) {
+                    console.error('ActionButton onClick error:', err);
+                }
             }
         });
     }

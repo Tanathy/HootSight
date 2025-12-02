@@ -1,5 +1,6 @@
 /**
  * HootSight - Button Styles
+ * Only primary and secondary variants are used
  */
 
 .btn {
@@ -41,33 +42,6 @@
 .btn-secondary:hover:not(:disabled) {
     background: var(--bg-hover);
     color: var(--text-primary);
-}
-
-.btn-success {
-    background: var(--accent-success);
-    color: white;
-}
-
-.btn-success:hover:not(:disabled) {
-    background: #1da851;
-}
-
-.btn-warning {
-    background: var(--accent-warning);
-    color: white;
-}
-
-.btn-warning:hover:not(:disabled) {
-    background: #e08d0a;
-}
-
-.btn-danger {
-    background: var(--accent-error);
-    color: white;
-}
-
-.btn-danger:hover:not(:disabled) {
-    background: #dc2626;
 }
 
 .btn-sm {

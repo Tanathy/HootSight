@@ -290,6 +290,29 @@ class Dropdown {
         this._updateSelectedDisplay();
         return this;
     }
+
+    /**
+     * Update a single option's label
+     * @param {string} value - Option value to update
+     * @param {string} label - New label for the option
+     * @returns {Dropdown}
+     */
+    updateOptionLabel(value, label) {
+        this.options.optionLabels[value] = label;
+        
+        // Update option element in list
+        const optionEl = this.optionsContainer.querySelector(`[data-value="${value}"]`);
+        if (optionEl) {
+            optionEl.textContent = label;
+        }
+        
+        // Update selected display if this is the current value
+        if (this._value === value) {
+            this._updateSelectedDisplay();
+        }
+        
+        return this;
+    }
     
     /**
      * Register change callback

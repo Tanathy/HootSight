@@ -1,52 +1,4 @@
 {
-    "general": {
-        "language": "en"
-    },
-    "api": {
-        "host": "127.0.0.1",
-        "port": 8000
-    },
-    "ui": {
-        "title": "Hootsight",
-        "width": 1200,
-        "height": 800,
-        "resizable": true
-    },
-    "paths": {
-        "projects_dir": "projects",
-        "ui_dir": "ui",
-        "config_dir": "config",
-        "localizations_dir": "config/localizations",
-        "packages_file": "config/packages.jsonc",
-        "cache_dir": "cache",
-        "docs_dir": "docs"
-    },
-    "system": {
-        "max_threads": "auto",
-        "fallback_batch_size": 8,
-        "startup_wait_seconds": 2,
-        "http_timeout": 20,
-        "update_repository_url": "https://raw.githubusercontent.com/Tanathy/HootSight/refs/heads/main/",
-        "update_skip_paths": ["config/config.json"]
-    },
-    "memory": {
-        "target_memory_usage": 0.8,
-        "safety_margin": 0.9,
-        "augmentation_threads": "auto",
-        "reserved_memory_ratio": 0.1,
-        "memory_per_sample_multiplier": 2.5,
-        "min_batch_size": 1,
-        "max_batch_size": 128,
-        "memory_thresholds": {
-            "high_usage": 0.9,
-            "moderate_usage": 0.7,
-            "low_usage": 0.5
-        },
-        "batch_size_limits": {
-            "small_batch_warning": 4,
-            "large_batch_warning": 64
-        }
-    },
     "training": {
         "model_type": "resnet",
         "model_name": "resnet50",
@@ -77,64 +29,8 @@
             "prefetch_factor": 2
         },
         "augmentation": {
-            "train": [
-                {
-                    "type": "random_resized_crop",
-                    "params": {
-                        "size": 224
-                    }
-                },
-                {
-                    "type": "random_horizontal_flip",
-                    "params": {
-                        "p": 0.5
-                    }
-                },
-                {
-                    "type": "to_tensor"
-                },
-                {
-                    "type": "normalize",
-                    "params": {
-                        "mean": [
-                            0.485,
-                            0.456,
-                            0.406
-                        ],
-                        "std": [
-                            0.229,
-                            0.224,
-                            0.225
-                        ]
-                    }
-                }
-            ],
-            "val": [
-                {
-                    "type": "center_crop",
-                    "params": {
-                        "size": 224
-                    }
-                },
-                {
-                    "type": "to_tensor"
-                },
-                {
-                    "type": "normalize",
-                    "params": {
-                        "mean": [
-                            0.485,
-                            0.456,
-                            0.406
-                        ],
-                        "std": [
-                            0.229,
-                            0.224,
-                            0.225
-                        ]
-                    }
-                }
-            ]
+            "train": [],
+            "val": []
         },
         "optimizer_type": "adamw",
         "optimizer_lr": 0.001,
@@ -367,23 +263,6 @@
             "random_autocontrast": {"type": "color", "random": true, "spatial": false},
             "random_equalize": {"type": "color", "random": true, "spatial": false},
             "compose": {"type": "composition", "random": true, "spatial": true}
-        }
-    },
-    "dataset_editor": {
-        "page_sizes": [25, 50, 100, 200, 500, 750],
-        "default_page_size": 50,
-        "size_presets": {
-            "Generic": [128, 256, 512, 768, 1024],
-            "YOLO": [416, 512, 640, 960],
-            "ResNet": [224, 256, 384, 448, 512]
-        },
-        "default_size": 512,
-        "build_workers": "auto",
-        "discovery_workers": "auto",
-        "project_name_validation": {
-            "min_length": 3,
-            "max_length": 64,
-            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$"
         }
     },
     "optimizers": {

@@ -15,6 +15,8 @@ from pathlib import Path
 
 from system.log import info, success, warning, error
 from system.coordinator_settings import SETTINGS
+from system.device import get_device, get_device_type, create_grad_scaler, autocast_context
+from system.common.training_metrics import build_step_metrics, build_epoch_result
 
 
 class EfficientNetModel:
@@ -33,7 +35,8 @@ class EfficientNetModel:
         self.num_classes = num_classes
         self.pretrained = pretrained
         self.task = task
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = get_device()
+        self._device_type = get_device_type()
 
         # Runtime performance settings - require presence in config
         try:
@@ -42,7 +45,7 @@ class EfficientNetModel:
             raise ValueError("Missing required 'training.runtime' configuration in config/config.json")
         self.use_amp = bool(runtime_cfg['mixed_precision'])
         self.channels_last = bool(runtime_cfg['channels_last'])
-        self._scaler = torch.cuda.amp.GradScaler() if self.use_amp and self.device.type == 'cuda' else None
+        self._scaler = create_grad_scaler(self.use_amp and self._device_type == 'cuda')
 
         # Initialize model
         self.model = self._create_model()
@@ -53,6 +56,23 @@ class EfficientNetModel:
     def _create_model(self) -> nn.Module:
         """Create EfficientNet model based on model_name and task."""
         if self.task in ('classification', 'multi_label'):
+            # Map model names to their weight classes for the new torchvision API
+            weights_map = {
+                # EfficientNet V1
+                'efficientnet_b0': models.EfficientNet_B0_Weights.DEFAULT,
+                'efficientnet_b1': models.EfficientNet_B1_Weights.DEFAULT,
+                'efficientnet_b2': models.EfficientNet_B2_Weights.DEFAULT,
+                'efficientnet_b3': models.EfficientNet_B3_Weights.DEFAULT,
+                'efficientnet_b4': models.EfficientNet_B4_Weights.DEFAULT,
+                'efficientnet_b5': models.EfficientNet_B5_Weights.DEFAULT,
+                'efficientnet_b6': models.EfficientNet_B6_Weights.DEFAULT,
+                'efficientnet_b7': models.EfficientNet_B7_Weights.DEFAULT,
+                # EfficientNet V2
+                'efficientnet_v2_s': models.EfficientNet_V2_S_Weights.DEFAULT,
+                'efficientnet_v2_m': models.EfficientNet_V2_M_Weights.DEFAULT,
+                'efficientnet_v2_l': models.EfficientNet_V2_L_Weights.DEFAULT
+            }
+            
             model_map = {
                 # EfficientNet V1
                 'efficientnet_b0': models.efficientnet_b0,
@@ -72,7 +92,8 @@ class EfficientNetModel:
             if self.model_name not in model_map:
                 raise ValueError(f"Unsupported EfficientNet variant: {self.model_name}")
 
-            model = model_map[self.model_name](pretrained=self.pretrained)
+            weights = weights_map.get(self.model_name) if self.pretrained else None
+            model = model_map[self.model_name](weights=weights)
 
             # Modify final classifier for custom number of classes
             # EfficientNet uses Linear layer as final classifier
@@ -156,11 +177,10 @@ class EfficientNetModel:
             targets = targets.to(self.device, non_blocking=True)
 
             optimizer.zero_grad()
-            if self.use_amp and self.device.type == 'cuda':
-                with torch.cuda.amp.autocast():
+            if self.use_amp and self._scaler is not None:
+                with autocast_context(True):
                     outputs = self.model(inputs)
                     loss = criterion(outputs, targets.float() if self.task == 'multi_label' else targets)
-                assert self._scaler is not None
                 self._scaler.scale(loss).backward()
                 self._scaler.step(optimizer)
                 self._scaler.update()
@@ -179,16 +199,14 @@ class EfficientNetModel:
             if progress:
                 try:
                     running_loss = total_loss / step_idx if step_idx else loss_value
-                    metrics_payload: Dict[str, Any] = {
-                        'loss': loss_value,
-                        'step_loss': loss_value,
-                        'epoch_loss': running_loss,
-                        'train_loss': running_loss
-                    }
-                    if self.task != 'multi_label' and total > 0:
-                        running_acc = 100.0 * correct / total
-                        metrics_payload['epoch_accuracy'] = running_acc
-                        metrics_payload['train_accuracy'] = running_acc
+                    running_acc = 100.0 * correct / total if self.task != 'multi_label' and total > 0 else None
+                    metrics_payload = build_step_metrics(
+                        loss=loss_value,
+                        running_loss=running_loss,
+                        phase='train',
+                        optimizer=optimizer,
+                        accuracy=running_acc
+                    )
                     progress('train', epoch_index or 0, step_idx, steps_total, metrics_payload)
                 except Exception:
                     pass
@@ -202,9 +220,9 @@ class EfficientNetModel:
 
         avg_loss = total_loss / steps_completed if steps_completed else 0.0
         if self.task == 'multi_label':
-            return {'train_loss': avg_loss}
+            return build_epoch_result(avg_loss=avg_loss, phase='train', optimizer=optimizer)
         accuracy = 100. * correct / total if total > 0 else 0.0
-        return {'train_loss': avg_loss, 'train_accuracy': accuracy}
+        return build_epoch_result(avg_loss=avg_loss, phase='train', optimizer=optimizer, accuracy=accuracy)
 
     def validate(self, val_loader: DataLoader, criterion: nn.Module,
                 progress: Optional[Callable[[str, int, int, int, Dict[str, Any]], None]] = None,
@@ -239,8 +257,8 @@ class EfficientNetModel:
                         pass
                 targets = targets.to(self.device, non_blocking=True)
 
-                if self.use_amp and self.device.type == 'cuda':
-                    with torch.cuda.amp.autocast():
+                if self.use_amp and self._scaler is not None:
+                    with autocast_context(True):
                         outputs = self.model(inputs)
                         loss = criterion(outputs, targets.float() if self.task == 'multi_label' else targets)
                 else:
@@ -256,16 +274,13 @@ class EfficientNetModel:
                 if progress:
                     try:
                         running_loss = total_loss / step_idx if step_idx else loss_value
-                        metrics_payload: Dict[str, Any] = {
-                            'loss': loss_value,
-                            'step_loss': loss_value,
-                            'epoch_loss': running_loss,
-                            'val_loss': running_loss
-                        }
-                        if self.task != 'multi_label' and total > 0:
-                            running_acc = 100.0 * correct / total
-                            metrics_payload['epoch_accuracy'] = running_acc
-                            metrics_payload['val_accuracy'] = running_acc
+                        running_acc = 100.0 * correct / total if self.task != 'multi_label' and total > 0 else None
+                        metrics_payload = build_step_metrics(
+                            loss=loss_value,
+                            running_loss=running_loss,
+                            phase='val',
+                            accuracy=running_acc
+                        )
                         progress('val', epoch_index or 0, step_idx, steps_total, metrics_payload)
                     except Exception:
                         pass
@@ -275,9 +290,9 @@ class EfficientNetModel:
 
         avg_loss = total_loss / steps_completed if steps_completed else 0.0
         if self.task == 'multi_label':
-            return {'val_loss': avg_loss}
+            return build_epoch_result(avg_loss=avg_loss, phase='val')
         accuracy = 100. * correct / total if total > 0 else 0.0
-        return {'val_loss': avg_loss, 'val_accuracy': accuracy}
+        return build_epoch_result(avg_loss=avg_loss, phase='val', accuracy=accuracy)
 
     def save_checkpoint(self, path: str, epoch: int, best_accuracy: float):
         """Save model checkpoint.
