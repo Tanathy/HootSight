@@ -130,12 +130,21 @@ def get_scheduler_for_training(optimizer: Optimizer,
                     selected = scheduler_params_source.get(scheduler_type, {})
                     if isinstance(selected, dict):
                         scheduler_params.update(selected)
-                step_size_override = training_config.get('scheduler_step_size')
-                if isinstance(step_size_override, int):
-                    scheduler_params['step_size'] = step_size_override
-                gamma_override = training_config.get('scheduler_gamma')
-                if isinstance(gamma_override, (int, float)):
-                    scheduler_params['gamma'] = gamma_override
+                
+                # Only apply step_size/gamma overrides for schedulers that use them
+                schedulers_with_step_size = ('step_lr', 'multi_step_lr')
+                schedulers_with_gamma = ('step_lr', 'multi_step_lr', 'exponential_lr')
+                
+                if scheduler_type in schedulers_with_step_size:
+                    step_size_override = training_config.get('scheduler_step_size')
+                    if isinstance(step_size_override, int):
+                        scheduler_params['step_size'] = step_size_override
+                
+                if scheduler_type in schedulers_with_gamma:
+                    gamma_override = training_config.get('scheduler_gamma')
+                    if isinstance(gamma_override, (int, float)):
+                        scheduler_params['gamma'] = gamma_override
+                
                 scheduler_config = {'type': scheduler_type, 'params': scheduler_params}
             else:
                 raise ValueError("No scheduler configuration found. Add 'training.scheduler' or 'training.scheduler_type' to config/config.json")

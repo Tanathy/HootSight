@@ -78,6 +78,9 @@ class MemoryManager:
             max_batch = mem_cfg.get('max_batch_size')
             optimal_batch_size = min(optimal_batch_size, max_batch)
             optimal_batch_size = max(optimal_batch_size, 1)
+            
+            # Ensure batch_size is always an integer (PyTorch DataLoader requirement)
+            optimal_batch_size = int(optimal_batch_size)
 
             estimated_memory_usage = (memory_per_sample * optimal_batch_size) / self.total_memory
 
