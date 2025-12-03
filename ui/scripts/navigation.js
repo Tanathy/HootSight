@@ -16,9 +16,7 @@ const Navigation = {
         { order: 3, page: 'dataset', langKey: 'nav.dataset' },
         { order: 4, page: 'performance', langKey: 'nav.performance' },
         { order: 5, page: 'heatmap', langKey: 'nav.heatmap' },
-        { order: 6, page: 'inference', langKey: 'nav.inference' },
-        { order: 7, page: 'settings', langKey: 'nav.settings' },
-        { order: 8, page: 'updates', langKey: 'nav.updates' }
+        { order: 6, page: 'updates', langKey: 'nav.updates' }
     ],
 
     /**
