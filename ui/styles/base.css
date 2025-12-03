@@ -14,7 +14,7 @@ body {
     height: 100%;
     width: 100%;
     font-family: var(--font-family);
-    font-size: 14px;
+    font-size: var(--font-description);
     line-height: 1.5;
     background: var(--bg-primary);
     color: var(--text-primary);
@@ -55,7 +55,7 @@ body {
 }
 
 .sidebar-logo {
-    font-size: 18px;
+    font-size: var(--font-title);
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -92,7 +92,7 @@ body {
 }
 
 .nav-item-label {
-    font-size: 12px;
+    font-size: var(--font-normal);
     font-weight: 500;
 }
 
@@ -112,7 +112,7 @@ body {
 }
 
 .sidebar-footer .widget-label {
-    font-size: 11px;
+    font-size: var(--font-normal);
     color: var(--text-secondary);
     margin-bottom: var(--spacing-xs);
     text-transform: uppercase;
@@ -211,7 +211,7 @@ body {
 }
 
 .progress-label {
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-secondary);
     font-weight: 500;
     white-space: nowrap;
@@ -233,13 +233,13 @@ body {
 }
 
 .progress-status {
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-muted);
     min-width: 40px;
 }
 
 .progress-text {
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-muted);
 }
 
@@ -306,13 +306,13 @@ body {
 }
 
 .training-project-label {
-    font-size: 12px;
+    font-size: var(--font-normal);
     font-weight: 600;
     color: var(--accent-primary);
 }
 
 .training-progress-text {
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-secondary);
     white-space: nowrap;
 }
@@ -334,6 +334,6 @@ body {
 
 .training-stop-btn {
     padding: var(--spacing-xs) var(--spacing-sm) !important;
-    font-size: 12px !important;
+    font-size: var(--font-normal) !important;
     min-height: auto !important;
 }

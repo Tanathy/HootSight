@@ -9,14 +9,14 @@
 }
 
 .presets-header h2 {
-    font-size: 18px;
+    font-size: var(--font-title);
     font-weight: 600;
     margin-bottom: var(--spacing-md);
     color: var(--text-primary);
 }
 
 .presets-description {
-    font-size: 14px;
+    font-size: var(--font-description);
     color: var(--text-secondary);
     margin: 0;
 }
@@ -49,7 +49,7 @@
 }
 
 .preset-card-name {
-    font-size: 14px;
+    font-size: var(--font-description);
     font-weight: 600;
     margin: 0;
     color: var(--text-primary);
@@ -57,7 +57,7 @@
 }
 
 .preset-card-task {
-    font-size: 12px;
+    font-size: var(--font-normal);
     font-weight: 500;
     text-transform: uppercase;
     padding: var(--spacing-xs) var(--spacing-md);
@@ -68,7 +68,7 @@
 }
 
 .preset-card-description {
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-secondary);
     line-height: 1.5;
     margin: 0;
@@ -82,13 +82,13 @@
 }
 
 .preset-card-models-label {
-    font-size: 12px;
+    font-size: var(--font-normal);
     font-weight: 500;
     color: var(--text-muted);
 }
 
 .preset-card-model-tag {
-    font-size: 12px;
+    font-size: var(--font-normal);
     padding: var(--spacing-xs) var(--spacing-md);
     background: var(--bg-tertiary);
     color: var(--text-secondary);
@@ -103,7 +103,7 @@
     color: var(--text-primary);
     border: none;
     border-radius: var(--radius-sm);
-    font-size: 12px;
+    font-size: var(--font-normal);
     font-weight: 500;
     cursor: pointer;
     width: 100%;
@@ -131,7 +131,7 @@
     background: rgba(240, 160, 32, 0.1);
     border: 1px solid var(--accent-warning, #f0a020);
     border-radius: var(--radius-sm);
-    font-size: 12px;
+    font-size: var(--font-normal);
 }
 
 .preset-card-warning-icon {
@@ -144,7 +144,7 @@
     color: var(--bg-primary);
     border-radius: 50%;
     font-weight: bold;
-    font-size: 11px;
+    font-size: var(--font-normal);
     flex-shrink: 0;
 }
 
@@ -161,7 +161,7 @@
 }
 
 .preset-card-size-label {
-    font-size: 12px;
+    font-size: var(--font-normal);
     font-weight: 500;
     color: var(--text-secondary);
 }
@@ -174,7 +174,7 @@
 
 .preset-card-size-btn {
     padding: var(--spacing-xs) var(--spacing-sm);
-    font-size: 11px;
+    font-size: var(--font-normal);
     background: var(--bg-tertiary);
     color: var(--text-secondary);
     border: 1px solid var(--border-color);
@@ -195,7 +195,7 @@
 }
 
 .preset-card-size-description {
-    font-size: 11px;
+    font-size: var(--font-normal);
     color: var(--text-muted);
     font-style: italic;
     line-height: 1.4;
@@ -207,7 +207,7 @@
 .error-message {
     padding: var(--spacing-xl);
     text-align: center;
-    font-size: 14px;
+    font-size: var(--font-description);
     color: var(--text-secondary);
     border-radius: var(--radius-md);
 }
@@ -251,7 +251,7 @@
 .presets-search-wrapper .text-input {
     width: 100%;
     padding: var(--spacing-md) var(--spacing-lg);
-    font-size: 14px;
+    font-size: var(--font-description);
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
@@ -279,13 +279,13 @@
 }
 
 .presets-controls .switch-label {
-    font-size: 13px;
+    font-size: var(--font-normal);
     font-weight: 500;
     white-space: nowrap;
 }
 
 .presets-search-stats {
-    font-size: 13px;
+    font-size: var(--font-normal);
     color: var(--text-muted);
     white-space: nowrap;
     flex-shrink: 0;
@@ -305,7 +305,7 @@
     max-width: 400px;
     padding: var(--spacing-md) var(--spacing-lg);
     padding-right: 36px;
-    font-size: 14px;
+    font-size: var(--font-description);
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
@@ -332,7 +332,7 @@
     border: none;
     background: transparent;
     color: var(--text-muted);
-    font-size: 18px;
+    font-size: var(--font-title);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -347,7 +347,7 @@
 }
 
 .presets-search-stats {
-    font-size: 13px;
+    font-size: var(--font-normal);
     color: var(--text-muted);
     white-space: nowrap;
 }
@@ -392,6 +392,6 @@
     width: 100%;
     padding: var(--spacing-xl);
     text-align: center;
-    font-size: 14px;
+    font-size: var(--font-description);
     color: var(--text-muted);
 }

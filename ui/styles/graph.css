@@ -21,7 +21,7 @@
 }
 
 .graph-title {
-    font-size: 14px;
+    font-size: var(--font-description);
     font-weight: 500;
     color: var(--text-primary);
 }
@@ -29,7 +29,7 @@
 .graph-values {
     display: flex;
     gap: var(--spacing-lg);
-    font-size: 18px;
+    font-size: var(--font-title);
     font-weight: 600;
 }
 
@@ -58,7 +58,7 @@
 /* Axis labels */
 .graph-label {
     fill: var(--text-muted);
-    font-size: 11px;
+    font-size: var(--font-normal);
     font-family: var(--font-family);
 }
 
@@ -90,7 +90,7 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-secondary);
 }
 
@@ -111,11 +111,11 @@
 }
 
 .graph-widget.compact .graph-title {
-    font-size: 12px;
+    font-size: var(--font-normal);
 }
 
 .graph-widget.compact .graph-values {
-    font-size: 14px;
+    font-size: var(--font-description);
 }
 
 /* No border variant */
@@ -166,14 +166,14 @@
 }
 
 .performance-section-title {
-    font-size: 18px;
+    font-size: var(--font-title);
     font-weight: 600;
     color: var(--text-primary);
     margin: 0;
 }
 
 .performance-status {
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-muted);
     padding: var(--spacing-sm) var(--spacing-md);
     background: var(--bg-tertiary);
@@ -208,14 +208,14 @@
 }
 
 .performance-placeholder h3 {
-    font-size: 18px;
+    font-size: var(--font-title);
     font-weight: 500;
     color: var(--text-secondary);
     margin: 0 0 var(--spacing-md) 0;
 }
 
 .performance-placeholder p {
-    font-size: 14px;
+    font-size: var(--font-description);
     margin: 0;
     max-width: 400px;
 }
@@ -228,7 +228,7 @@
 }
 
 .performance-hw-info {
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-muted);
     font-weight: 400;
 }
@@ -264,12 +264,12 @@
 }
 
 .info-label {
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-muted);
 }
 
 .info-value {
-    font-size: 12px;
+    font-size: var(--font-normal);
     font-weight: 500;
     color: var(--text-primary);
     font-variant-numeric: tabular-nums;

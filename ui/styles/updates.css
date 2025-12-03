@@ -22,7 +22,7 @@
     margin-bottom: var(--spacing-lg);
     font-weight: 500;
     text-align: center;
-    font-size: 13px;
+    font-size: var(--font-normal);
     border: 1px solid var(--border-color);
 }
 
@@ -95,7 +95,7 @@
 .updates-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 12px;
+    font-size: var(--font-normal);
     table-layout: fixed;
 }
 
@@ -111,7 +111,7 @@
     font-weight: 600;
     color: var(--text-secondary);
     text-transform: uppercase;
-    font-size: 10px;
+    font-size: var(--font-normal);
     letter-spacing: 0.5px;
     padding: var(--spacing-xs) var(--spacing-sm);
     text-align: left;
@@ -153,7 +153,7 @@
 /* File path - compact monospace */
 .updates-table .file-path {
     font-family: 'Consolas', 'Monaco', monospace;
-    font-size: 11px;
+    font-size: var(--font-normal);
     color: var(--text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -163,7 +163,7 @@
 
 .updates-table .hash-cell {
     font-family: 'Consolas', 'Monaco', monospace;
-    font-size: 10px;
+    font-size: var(--font-normal);
     color: var(--text-secondary);
     word-break: break-all;
     line-height: 1.4;
@@ -174,7 +174,7 @@
     display: inline-block;
     padding: 2px 8px;
     border-radius: 3px;
-    font-size: 9px;
+    font-size: var(--font-normal);
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.3px;
@@ -210,7 +210,7 @@
 }
 
 .updates-orphaned h3 {
-    font-size: 12px;
+    font-size: var(--font-normal);
     font-weight: 600;
     color: var(--text-secondary);
     margin-bottom: var(--spacing-sm);
@@ -230,7 +230,7 @@
 .updates-orphaned li {
     padding: var(--spacing-xs) var(--spacing-sm);
     font-family: 'Consolas', 'Monaco', monospace;
-    font-size: 11px;
+    font-size: var(--font-normal);
     color: var(--text-secondary);
     background: var(--bg-tertiary);
     border-radius: var(--radius-sm);
@@ -294,7 +294,7 @@
     background: var(--bg-tertiary);
     border-radius: var(--radius-md);
     margin-bottom: var(--spacing-sm);
-    font-size: 12px;
+    font-size: var(--font-normal);
 }
 
 .updates-summary-count {

@@ -65,6 +65,14 @@
     
     /* Font */
     --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-title: 18px;
+    --font-description: 14px;
+    --font-normal: 12px;
+    
+    /* Icon sizes */
+    --icon-lg: 48px;
+    --icon-md: 32px;
+    
     --bg-bounds: url('bound.png');
     --bg-sidebar: url('bg1.png');
     /* Layout sizes */

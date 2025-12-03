@@ -20,13 +20,13 @@
 }
 
 .widget-label {
-    font-size: 12px;
+    font-size: var(--font-normal);
     font-weight: 500;
     color: var(--text-primary);
 }
 
 .widget-description {
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-muted);
     margin-top: var(--spacing-xs);
 }
@@ -39,7 +39,7 @@
     height:100%;
     border-radius: var(--radius-sm);
     color: var(--text-primary);
-    font-size: 12px;
+    font-size: var(--font-normal);
 }
 
 .widget-input:focus {
@@ -52,7 +52,7 @@
 }
 
 .widget-dynamic-description {
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-secondary);
     margin-top: var(--spacing-sm);
     padding: var(--spacing-sm) var(--spacing-md);
@@ -93,7 +93,7 @@
 }
 
 .widget-param .widget-label {
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-muted);
 }
 
@@ -129,7 +129,7 @@
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     color: var(--text-primary);
-    font-size: 12px;
+    font-size: var(--font-normal);
     cursor: pointer;
     user-select: none;
     min-height: 38px;
@@ -146,7 +146,7 @@
 }
 
 .dropdown-arrow {
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-muted);
     margin-left: var(--spacing-sm);
 }
@@ -199,7 +199,7 @@ body > .dropdown-options {
 .dropdown-option {
     padding: var(--spacing-sm) var(--spacing-md);
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: var(--font-normal);
     cursor: pointer;
 }
 
@@ -311,7 +311,7 @@ body > .dropdown-options {
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     color: var(--text-primary);
-    font-size: 12px;
+    font-size: var(--font-normal);
     font-family: var(--font-family);
     min-height: 38px;
 }
@@ -346,7 +346,7 @@ body > .dropdown-options {
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     color: var(--text-primary);
-    font-size: 12px;
+    font-size: var(--font-normal);
     font-family: var(--font-family);
     resize: vertical;
     min-height: 80px;
@@ -391,7 +391,7 @@ body > .dropdown-options {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-primary);
 }
 
@@ -403,7 +403,7 @@ body > .dropdown-options {
 .array-tag-delete {
     cursor: pointer;
     color: var(--text-muted);
-    font-size: 14px;
+    font-size: var(--font-description);
     line-height: 1;
 }
 
@@ -415,7 +415,7 @@ body > .dropdown-options {
     border: none;
     background: transparent;
     color: var(--text-primary);
-    font-size: 12px;
+    font-size: var(--font-normal);
     font-family: var(--font-family);
     width: 80px;
     padding: 0;
@@ -434,7 +434,7 @@ body > .dropdown-options {
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     color: var(--text-primary);
-    font-size: 12px;
+    font-size: var(--font-normal);
     font-family: var(--font-family);
 }
 
@@ -458,7 +458,7 @@ body > .dropdown-options {
     border: none;
     border-radius: var(--radius-md);
     color: white;
-    font-size: 14px;
+    font-size: var(--font-description);
     font-weight: 600;
     cursor: pointer;
     min-width: 38px;
@@ -495,7 +495,7 @@ body > .dropdown-options {
 }
 
 .slider-label {
-    font-size: 12px;
+    font-size: var(--font-normal);
     font-weight: 500;
     color: var(--text-primary);
 }
@@ -573,7 +573,7 @@ body > .dropdown-options {
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     color: var(--text-primary);
-    font-size: 12px;
+    font-size: var(--font-normal);
     font-family: var(--font-family);
     text-align: center;
 }
@@ -593,7 +593,7 @@ body > .dropdown-options {
 }
 
 .slider-description {
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-muted);
 }
 
@@ -637,7 +637,7 @@ body > .dropdown-options {
 }
 
 .auto-label {
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-secondary);
     cursor: pointer;
     user-select: none;
@@ -686,7 +686,7 @@ body > .dropdown-options {
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     color: var(--text-primary);
-    font-size: 14px;
+    font-size: var(--font-description);
     font-weight: 600;
     cursor: pointer;
     user-select: none;
@@ -716,7 +716,7 @@ body > .dropdown-options {
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     color: var(--text-primary);
-    font-size: 12px;
+    font-size: var(--font-normal);
     text-align: center;
     appearance: textfield;
     -moz-appearance: textfield;
@@ -772,7 +772,7 @@ body > .dropdown-options {
 .nested-header {
     padding: var(--spacing-sm) var(--spacing-md);
     background: var(--bg-tertiary);
-    font-size: 12px;
+    font-size: var(--font-normal);
     font-weight: 500;
     color: var(--text-primary);
     border-bottom: 1px solid var(--border-color);
@@ -800,7 +800,7 @@ body > .dropdown-options {
 .nested-section-header {
     padding: var(--spacing-sm) var(--spacing-md);
     background: var(--bg-tertiary);
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-primary);
     cursor: pointer;
     display: flex;
@@ -816,7 +816,7 @@ body > .dropdown-options {
 .nested-section-toggle {
     font-family: monospace;
     font-weight: bold;
-    font-size: 12px;
+    font-size: var(--font-normal);
     width: 1rem;
     text-align: center;
     color: var(--text-secondary);
@@ -827,7 +827,7 @@ body > .dropdown-options {
 }
 
 .nested-section-desc {
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-secondary);
     margin-left: auto;
     max-width: 60%;
@@ -890,7 +890,7 @@ body > .dropdown-options {
     gap: var(--spacing-sm);
     padding: var(--spacing-sm) var(--spacing-md);
     color: var(--text-primary);
-    font-size: 12px;
+    font-size: var(--font-normal);
     cursor: pointer;
 }
 
@@ -936,14 +936,14 @@ body > .dropdown-options {
 }
 
 .context-menu-shortcut {
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-muted);
     margin-left: auto;
     padding-left: var(--spacing-md);
 }
 
 .context-menu-arrow {
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-muted);
     margin-left: auto;
 }
@@ -1008,7 +1008,7 @@ body > .dropdown-options {
     background: var(--accent-secondary);
     color: var(--text-primary);
     border-radius: var(--radius-sm);
-    font-size: 12px;
+    font-size: var(--font-normal);
     line-height: 1.4;
     max-width: 200px;
 }
@@ -1017,7 +1017,7 @@ body > .dropdown-options {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 12px;
+    font-size: var(--font-normal);
     padding: 2px 5px;
 }
 
@@ -1029,7 +1029,7 @@ body > .dropdown-options {
     height: 16px;
     cursor: pointer;
     opacity: 0.6;
-    font-size: 14px;
+    font-size: var(--font-description);
     line-height: 1;
     border-radius: var(--radius-xs);
 }
@@ -1053,7 +1053,7 @@ body > .dropdown-options {
     background: transparent;
     border: none;
     color: var(--text-primary);
-    font-size: 12px;
+    font-size: var(--font-normal);
     outline: none;
 }
 
@@ -1086,7 +1086,7 @@ body > .dropdown-options {
 .tag-suggestion-item {
     padding: var(--spacing-sm) var(--spacing-md);
     cursor: pointer;
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-secondary);
 }
 
@@ -1158,7 +1158,7 @@ body > .dropdown-options {
 
 .modal-title {
     margin: 0;
-    font-size: 14px;
+    font-size: var(--font-description);
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -1167,7 +1167,7 @@ body > .dropdown-options {
     background: none;
     border: none;
     color: var(--text-muted);
-    font-size: 18px;
+    font-size: var(--font-title);
     line-height: 1;
     cursor: pointer;
     padding: 0;
@@ -1192,7 +1192,7 @@ body > .dropdown-options {
 
 .modal-message {
     margin: 0;
-    font-size: 14px;
+    font-size: var(--font-description);
     color: var(--text-secondary);
     line-height: 1.5;
     white-space: pre-wrap;
@@ -1219,7 +1219,7 @@ body > .dropdown-options {
 }
 
 .augmentation-builder-label {
-    font-size: 14px;
+    font-size: var(--font-description);
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: var(--spacing-xs);
@@ -1259,7 +1259,7 @@ body > .dropdown-options {
 }
 
 .augmentation-item-title {
-    font-size: 12px;
+    font-size: var(--font-normal);
     font-weight: 500;
     color: var(--text-primary);
     flex: 1;
@@ -1287,7 +1287,7 @@ body > .dropdown-options {
 }
 
 .augmentation-no-params {
-    font-size: 12px;
+    font-size: var(--font-normal);
     color: var(--text-muted);
     font-style: italic;
 }
@@ -1298,7 +1298,7 @@ body > .dropdown-options {
 }
 
 .augmentation-item-params .widget-label {
-    font-size: 12px;
+    font-size: var(--font-normal);
     min-width: 100px;
 }
 
@@ -1354,7 +1354,7 @@ body > .dropdown-options {
 }
 
 .widget-array-inline .widget-label {
-    font-size: 12px;
+    font-size: var(--font-normal);
     min-width: 100px;
     flex-shrink: 0;
 }
@@ -1478,7 +1478,7 @@ body > .dropdown-options {
     width: 100%;
     height: 100%;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: var(--font-normal);
     text-align: center;
     padding: var(--spacing-md);
 }
@@ -1496,12 +1496,12 @@ body > .dropdown-options {
 .augmentation-preview-buttons .btn {
     flex: 1;
     padding: var(--spacing-sm) var(--spacing-xs);
-    font-size: 12px;
+    font-size: var(--font-normal);
     white-space: nowrap;
 }
 
 .augmentation-section-title {
-    font-size: 14px;
+    font-size: var(--font-description);
     font-weight: 600;
     color: var(--text-primary);
     margin: 0;

@@ -58,7 +58,7 @@
 
 .heatmap-project-label {
     color: var(--text-secondary);
-    font-size: var(--font-sm);
+    font-size: var(--font-normal);
 }
 
 .heatmap-project-name {
@@ -170,18 +170,18 @@
 }
 
 .drop-icon {
-    font-size: 48px;
+    font-size: var(--icon-lg);
     margin-bottom: var(--spacing-md);
     opacity: 0.5;
 }
 
 .drop-text {
-    font-size: var(--font-md);
+    font-size: var(--font-description);
     margin-bottom: var(--spacing-xs);
 }
 
 .drop-hint {
-    font-size: var(--font-sm);
+    font-size: var(--font-normal);
     opacity: 0.7;
 }
 
@@ -208,7 +208,7 @@
 
 .heatmap-alpha-control label {
     color: var(--text-secondary);
-    font-size: var(--font-sm);
+    font-size: var(--font-normal);
     white-space: nowrap;
 }
 
@@ -243,7 +243,7 @@
 
 #heatmap-alpha-value {
     color: var(--text-primary);
-    font-size: var(--font-sm);
+    font-size: var(--font-normal);
     min-width: 40px;
     text-align: right;
 }
@@ -260,7 +260,7 @@
     padding: var(--spacing-sm);
     background: var(--bg-tertiary);
     border-radius: var(--radius-sm);
-    font-size: var(--font-sm);
+    font-size: var(--font-normal);
 }
 
 .image-filename {
@@ -289,7 +289,7 @@
 .heatmap-results-header h3 {
     margin: 0;
     color: var(--text-primary);
-    font-size: var(--font-md);
+    font-size: var(--font-description);
 }
 
 .heatmap-predictions {
@@ -320,11 +320,11 @@
 }
 
 .error-icon {
-    font-size: 32px;
+    font-size: var(--icon-md);
 }
 
 .error-message {
-    font-size: var(--font-sm);
+    font-size: var(--font-normal);
     max-width: 100%;
     word-break: break-word;
 }
@@ -360,7 +360,7 @@
 .prediction-confidence {
     color: var(--accent-primary);
     font-weight: 600;
-    font-size: var(--font-sm);
+    font-size: var(--font-normal);
 }
 
 .prediction-bar-bg {

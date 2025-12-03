@@ -351,14 +351,14 @@ def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
 
     if task == 'multi_label':
         probabilities = torch.sigmoid(logits)
-        threshold = 0.65
+        threshold = 0.25
         predictions = (probabilities > threshold).float()
         predicted_classes = torch.nonzero(predictions[0]).flatten().tolist()
         class_names = [labels[idx] for idx in predicted_classes if idx < len(labels)]
         confidence_values = [probabilities[0, idx].item() for idx in predicted_classes if idx < len(labels)]
     else:
         probabilities = F.softmax(logits, dim=1)[0]
-        high_conf_mask = probabilities > 0.65
+        high_conf_mask = probabilities > 0.25
         predicted_indices = torch.nonzero(high_conf_mask).flatten().tolist()
         class_names = [labels[idx] for idx in predicted_indices if idx < len(labels)]
         confidence_values = [probabilities[idx].item() for idx in predicted_indices]

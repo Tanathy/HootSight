@@ -55,9 +55,9 @@
                     "optimizer_type": "adamw",
                     "optimizer_lr": 5e-05,
                     "optimizer_weight_decay": 0.02,
-                    "scheduler_type": "cosine_annealing",
+                    "scheduler_type": "cosine_annealing_lr",
                     "scheduler_params": {
-                        "cosine_annealing": {
+                        "cosine_annealing_lr": {
                             "T_max": 150,
                             "eta_min": 1e-07
                         }
@@ -127,9 +127,9 @@
                     "optimizer_type": "adamw",
                     "optimizer_lr": 0.0001,
                     "optimizer_weight_decay": 0.01,
-                    "scheduler_type": "cosine_annealing",
+                    "scheduler_type": "cosine_annealing_lr",
                     "scheduler_params": {
-                        "cosine_annealing": {
+                        "cosine_annealing_lr": {
                             "T_max": 100,
                             "eta_min": 1e-07
                         }
@@ -199,9 +199,9 @@
                     "optimizer_type": "adamw",
                     "optimizer_lr": 0.0005,
                     "optimizer_weight_decay": 0.001,
-                    "scheduler_type": "cosine_annealing",
+                    "scheduler_type": "cosine_annealing_lr",
                     "scheduler_params": {
-                        "cosine_annealing": {
+                        "cosine_annealing_lr": {
                             "T_max": 75,
                             "eta_min": 1e-07
                         }
@@ -271,9 +271,9 @@
                     "optimizer_type": "adamw",
                     "optimizer_lr": 0.001,
                     "optimizer_weight_decay": 0.0001,
-                    "scheduler_type": "cosine_annealing",
+                    "scheduler_type": "cosine_annealing_lr",
                     "scheduler_params": {
-                        "cosine_annealing": {
+                        "cosine_annealing_lr": {
                             "T_max": 50,
                             "eta_min": 1e-07
                         }
@@ -343,9 +343,9 @@
                     "optimizer_type": "adamw",
                     "optimizer_lr": 0.002,
                     "optimizer_weight_decay": 5e-05,
-                    "scheduler_type": "cosine_annealing",
+                    "scheduler_type": "cosine_annealing_lr",
                     "scheduler_params": {
-                        "cosine_annealing": {
+                        "cosine_annealing_lr": {
                             "T_max": 40,
                             "eta_min": 1e-07
                         }
@@ -415,9 +415,9 @@
                     "optimizer_type": "adamw",
                     "optimizer_lr": 0.003,
                     "optimizer_weight_decay": 1e-05,
-                    "scheduler_type": "cosine_annealing",
+                    "scheduler_type": "cosine_annealing_lr",
                     "scheduler_params": {
-                        "cosine_annealing": {
+                        "cosine_annealing_lr": {
                             "T_max": 30,
                             "eta_min": 1e-07
                         }
@@ -487,9 +487,9 @@
                     "optimizer_type": "adamw",
                     "optimizer_lr": 0.005,
                     "optimizer_weight_decay": 5e-06,
-                    "scheduler_type": "cosine_annealing",
+                    "scheduler_type": "cosine_annealing_lr",
                     "scheduler_params": {
-                        "cosine_annealing": {
+                        "cosine_annealing_lr": {
                             "T_max": 25,
                             "eta_min": 1e-07
                         }
