@@ -11,7 +11,7 @@ from system.log import error, info, success, warning
 from system.coordinator_settings import lang, SETTINGS
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-REMOTE_CONFIG_PATH = "config/config.json"
+REMOTE_CONFIG_PATH = "config/system_config.json"
 LOCAL_CHECKSUM_PATH = os.path.join(ROOT_DIR, "config", "checksum.json")
 DEFAULT_HEADERS = {"User-Agent": "Hootsight-Updater/1.0"}
 
