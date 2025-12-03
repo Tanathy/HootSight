@@ -1,0 +1,522 @@
+{
+    "name": "Binary/Multi-class Classification",
+    "description": "Standard single-label classification where each image belongs to exactly ONE class. Perfect for building models that categorize images into distinct, mutually exclusive categories. USE CASES: Cat vs dog detection, product category identification (electronics/clothing/food), digit recognition (0-9), sentiment classification from facial expressions, defective vs non-defective parts, spam vs legitimate images, gender classification, yes/no decisions, pass/fail quality control. SUPPORTED MODELS: ResNet (reliable baseline), EfficientNet (best accuracy), MobileNet/ShuffleNet (fast inference), SqueezeNet (minimal size), ResNeXt (complex patterns). OUTPUT: Single class label with softmax confidence score per image. The model learns decision boundaries between categories and outputs the most likely class.",
+    "task": "classification",
+    "dataset_types": [
+        "folder_classification"
+    ],
+    "recommended_models": [
+        "resnet",
+        "resnext",
+        "efficientnet",
+        "mobilenet",
+        "shufflenet",
+        "squeezenet"
+    ],
+    "configs": {
+        "tiny": {
+            "description": "Very small datasets (50-500 images). Heavy regularization, aggressive augmentation, smaller models. High risk of overfitting - early stopping essential.",
+            "range": [
+                50,
+                500
+            ],
+            "config": {
+                "training": {
+                    "task": "classification",
+                    "model_type": "resnet",
+                    "model_name": "resnet18",
+                    "pretrained": true,
+                    "input_size": 224,
+                    "batch_size": 16,
+                    "epochs": 150,
+                    "learning_rate": 5e-05,
+                    "weight_decay": 0.02,
+                    "val_ratio": 0.25,
+                    "normalize": {
+                        "mean": [
+                            0.485,
+                            0.456,
+                            0.406
+                        ],
+                        "std": [
+                            0.229,
+                            0.224,
+                            0.225
+                        ]
+                    },
+                    "dataloader": {
+                        "num_workers": 0,
+                        "pin_memory": true,
+                        "persistent_workers": false,
+                        "prefetch_factor": 2
+                    },
+                    "augmentation": {
+                        "train": [],
+                        "val": []
+                    },
+                    "loss_type": "cross_entropy",
+                    "loss_reduction": "mean",
+                    "optimizer_type": "adamw",
+                    "optimizer_lr": 5e-05,
+                    "optimizer_weight_decay": 0.02,
+                    "scheduler_type": "cosine_annealing",
+                    "scheduler_params": {
+                        "cosine_annealing": {
+                            "T_max": 150,
+                            "eta_min": 1e-07
+                        }
+                    },
+                    "early_stopping": {
+                        "enabled": true,
+                        "patience": 25,
+                        "min_delta": 0.001,
+                        "monitor": "val_loss"
+                    },
+                    "gradient": {
+                        "clip_norm": 1.0,
+                        "clip_value": null,
+                        "accumulation_steps": 2
+                    },
+                    "runtime": {
+                        "mixed_precision": true,
+                        "channels_last": true,
+                        "allow_tf32": true,
+                        "cudnn_benchmark": true
+                    }
+                }
+            }
+        },
+        "small": {
+            "description": "Small datasets (500-2.5k images). Moderate regularization with pretrained weights. Balance between learning capacity and overfitting prevention.",
+            "range": [
+                500,
+                2500
+            ],
+            "config": {
+                "training": {
+                    "task": "classification",
+                    "model_type": "resnet",
+                    "model_name": "resnet34",
+                    "pretrained": true,
+                    "input_size": 224,
+                    "batch_size": 24,
+                    "epochs": 100,
+                    "learning_rate": 0.0001,
+                    "weight_decay": 0.01,
+                    "val_ratio": 0.2,
+                    "normalize": {
+                        "mean": [
+                            0.485,
+                            0.456,
+                            0.406
+                        ],
+                        "std": [
+                            0.229,
+                            0.224,
+                            0.225
+                        ]
+                    },
+                    "dataloader": {
+                        "num_workers": 0,
+                        "pin_memory": true,
+                        "persistent_workers": false,
+                        "prefetch_factor": 2
+                    },
+                    "augmentation": {
+                        "train": [],
+                        "val": []
+                    },
+                    "loss_type": "cross_entropy",
+                    "loss_reduction": "mean",
+                    "optimizer_type": "adamw",
+                    "optimizer_lr": 0.0001,
+                    "optimizer_weight_decay": 0.01,
+                    "scheduler_type": "cosine_annealing",
+                    "scheduler_params": {
+                        "cosine_annealing": {
+                            "T_max": 100,
+                            "eta_min": 1e-07
+                        }
+                    },
+                    "early_stopping": {
+                        "enabled": true,
+                        "patience": 20,
+                        "min_delta": 0.001,
+                        "monitor": "val_loss"
+                    },
+                    "gradient": {
+                        "clip_norm": 1.0,
+                        "clip_value": null,
+                        "accumulation_steps": 1
+                    },
+                    "runtime": {
+                        "mixed_precision": true,
+                        "channels_last": true,
+                        "allow_tf32": true,
+                        "cudnn_benchmark": true
+                    }
+                }
+            }
+        },
+        "medium": {
+            "description": "Medium datasets (2.5k-10k images). Standard hyperparameters with good augmentation. Balanced training approach works well.",
+            "range": [
+                2500,
+                10000
+            ],
+            "config": {
+                "training": {
+                    "task": "classification",
+                    "model_type": "resnet",
+                    "model_name": "resnet50",
+                    "pretrained": true,
+                    "input_size": 224,
+                    "batch_size": 32,
+                    "epochs": 75,
+                    "learning_rate": 0.0005,
+                    "weight_decay": 0.001,
+                    "val_ratio": 0.15,
+                    "normalize": {
+                        "mean": [
+                            0.485,
+                            0.456,
+                            0.406
+                        ],
+                        "std": [
+                            0.229,
+                            0.224,
+                            0.225
+                        ]
+                    },
+                    "dataloader": {
+                        "num_workers": 2,
+                        "pin_memory": true,
+                        "persistent_workers": true,
+                        "prefetch_factor": 2
+                    },
+                    "augmentation": {
+                        "train": [],
+                        "val": []
+                    },
+                    "loss_type": "cross_entropy",
+                    "loss_reduction": "mean",
+                    "optimizer_type": "adamw",
+                    "optimizer_lr": 0.0005,
+                    "optimizer_weight_decay": 0.001,
+                    "scheduler_type": "cosine_annealing",
+                    "scheduler_params": {
+                        "cosine_annealing": {
+                            "T_max": 75,
+                            "eta_min": 1e-07
+                        }
+                    },
+                    "early_stopping": {
+                        "enabled": true,
+                        "patience": 15,
+                        "min_delta": 0.001,
+                        "monitor": "val_loss"
+                    },
+                    "gradient": {
+                        "clip_norm": null,
+                        "clip_value": null,
+                        "accumulation_steps": 1
+                    },
+                    "runtime": {
+                        "mixed_precision": true,
+                        "channels_last": true,
+                        "allow_tf32": true,
+                        "cudnn_benchmark": true
+                    }
+                }
+            }
+        },
+        "large": {
+            "description": "Large datasets (10k-30k images). Reduced regularization, larger models viable. Higher learning rates and bigger batches effective.",
+            "range": [
+                10000,
+                30000
+            ],
+            "config": {
+                "training": {
+                    "task": "classification",
+                    "model_type": "resnet",
+                    "model_name": "resnet50",
+                    "pretrained": true,
+                    "input_size": 224,
+                    "batch_size": 48,
+                    "epochs": 50,
+                    "learning_rate": 0.001,
+                    "weight_decay": 0.0001,
+                    "val_ratio": 0.15,
+                    "normalize": {
+                        "mean": [
+                            0.485,
+                            0.456,
+                            0.406
+                        ],
+                        "std": [
+                            0.229,
+                            0.224,
+                            0.225
+                        ]
+                    },
+                    "dataloader": {
+                        "num_workers": 4,
+                        "pin_memory": true,
+                        "persistent_workers": true,
+                        "prefetch_factor": 2
+                    },
+                    "augmentation": {
+                        "train": [],
+                        "val": []
+                    },
+                    "loss_type": "cross_entropy",
+                    "loss_reduction": "mean",
+                    "optimizer_type": "adamw",
+                    "optimizer_lr": 0.001,
+                    "optimizer_weight_decay": 0.0001,
+                    "scheduler_type": "cosine_annealing",
+                    "scheduler_params": {
+                        "cosine_annealing": {
+                            "T_max": 50,
+                            "eta_min": 1e-07
+                        }
+                    },
+                    "early_stopping": {
+                        "enabled": true,
+                        "patience": 12,
+                        "min_delta": 0.001,
+                        "monitor": "val_loss"
+                    },
+                    "gradient": {
+                        "clip_norm": null,
+                        "clip_value": null,
+                        "accumulation_steps": 1
+                    },
+                    "runtime": {
+                        "mixed_precision": true,
+                        "channels_last": true,
+                        "allow_tf32": true,
+                        "cudnn_benchmark": true
+                    }
+                }
+            }
+        },
+        "huge": {
+            "description": "Huge datasets (30k-50k images). Minimal regularization needed. Deep networks train effectively with standard augmentation.",
+            "range": [
+                30000,
+                50000
+            ],
+            "config": {
+                "training": {
+                    "task": "classification",
+                    "model_type": "resnet",
+                    "model_name": "resnet101",
+                    "pretrained": true,
+                    "input_size": 224,
+                    "batch_size": 64,
+                    "epochs": 40,
+                    "learning_rate": 0.002,
+                    "weight_decay": 5e-05,
+                    "val_ratio": 0.1,
+                    "normalize": {
+                        "mean": [
+                            0.485,
+                            0.456,
+                            0.406
+                        ],
+                        "std": [
+                            0.229,
+                            0.224,
+                            0.225
+                        ]
+                    },
+                    "dataloader": {
+                        "num_workers": 4,
+                        "pin_memory": true,
+                        "persistent_workers": true,
+                        "prefetch_factor": 2
+                    },
+                    "augmentation": {
+                        "train": [],
+                        "val": []
+                    },
+                    "loss_type": "cross_entropy",
+                    "loss_reduction": "mean",
+                    "optimizer_type": "adamw",
+                    "optimizer_lr": 0.002,
+                    "optimizer_weight_decay": 5e-05,
+                    "scheduler_type": "cosine_annealing",
+                    "scheduler_params": {
+                        "cosine_annealing": {
+                            "T_max": 40,
+                            "eta_min": 1e-07
+                        }
+                    },
+                    "early_stopping": {
+                        "enabled": true,
+                        "patience": 10,
+                        "min_delta": 0.001,
+                        "monitor": "val_loss"
+                    },
+                    "gradient": {
+                        "clip_norm": null,
+                        "clip_value": null,
+                        "accumulation_steps": 1
+                    },
+                    "runtime": {
+                        "mixed_precision": true,
+                        "channels_last": true,
+                        "allow_tf32": true,
+                        "cudnn_benchmark": true
+                    }
+                }
+            }
+        },
+        "massive": {
+            "description": "Massive datasets (50k-100k images). Very deep networks fully supported. Fast learning rates, large batches, minimal regularization.",
+            "range": [
+                50000,
+                100000
+            ],
+            "config": {
+                "training": {
+                    "task": "classification",
+                    "model_type": "resnet",
+                    "model_name": "resnet101",
+                    "pretrained": true,
+                    "input_size": 224,
+                    "batch_size": 96,
+                    "epochs": 30,
+                    "learning_rate": 0.003,
+                    "weight_decay": 1e-05,
+                    "val_ratio": 0.1,
+                    "normalize": {
+                        "mean": [
+                            0.485,
+                            0.456,
+                            0.406
+                        ],
+                        "std": [
+                            0.229,
+                            0.224,
+                            0.225
+                        ]
+                    },
+                    "dataloader": {
+                        "num_workers": 4,
+                        "pin_memory": true,
+                        "persistent_workers": true,
+                        "prefetch_factor": 2
+                    },
+                    "augmentation": {
+                        "train": [],
+                        "val": []
+                    },
+                    "loss_type": "cross_entropy",
+                    "loss_reduction": "mean",
+                    "optimizer_type": "adamw",
+                    "optimizer_lr": 0.003,
+                    "optimizer_weight_decay": 1e-05,
+                    "scheduler_type": "cosine_annealing",
+                    "scheduler_params": {
+                        "cosine_annealing": {
+                            "T_max": 30,
+                            "eta_min": 1e-07
+                        }
+                    },
+                    "early_stopping": {
+                        "enabled": true,
+                        "patience": 8,
+                        "min_delta": 0.001,
+                        "monitor": "val_loss"
+                    },
+                    "gradient": {
+                        "clip_norm": null,
+                        "clip_value": null,
+                        "accumulation_steps": 1
+                    },
+                    "runtime": {
+                        "mixed_precision": true,
+                        "channels_last": true,
+                        "allow_tf32": true,
+                        "cudnn_benchmark": true
+                    }
+                }
+            }
+        },
+        "giant": {
+            "description": "Giant datasets (100k+ images). Maximum model capacity utilized. Can train from scratch or fine-tune with aggressive settings.",
+            "range": [
+                100000,
+                null
+            ],
+            "config": {
+                "training": {
+                    "task": "classification",
+                    "model_type": "resnet",
+                    "model_name": "resnet152",
+                    "pretrained": true,
+                    "input_size": 224,
+                    "batch_size": 128,
+                    "epochs": 25,
+                    "learning_rate": 0.005,
+                    "weight_decay": 5e-06,
+                    "val_ratio": 0.05,
+                    "normalize": {
+                        "mean": [
+                            0.485,
+                            0.456,
+                            0.406
+                        ],
+                        "std": [
+                            0.229,
+                            0.224,
+                            0.225
+                        ]
+                    },
+                    "dataloader": {
+                        "num_workers": 4,
+                        "pin_memory": true,
+                        "persistent_workers": true,
+                        "prefetch_factor": 2
+                    },
+                    "augmentation": {
+                        "train": [],
+                        "val": []
+                    },
+                    "loss_type": "cross_entropy",
+                    "loss_reduction": "mean",
+                    "optimizer_type": "adamw",
+                    "optimizer_lr": 0.005,
+                    "optimizer_weight_decay": 5e-06,
+                    "scheduler_type": "cosine_annealing",
+                    "scheduler_params": {
+                        "cosine_annealing": {
+                            "T_max": 25,
+                            "eta_min": 1e-07
+                        }
+                    },
+                    "early_stopping": {
+                        "enabled": true,
+                        "patience": 5,
+                        "min_delta": 0.001,
+                        "monitor": "val_loss"
+                    },
+                    "gradient": {
+                        "clip_norm": null,
+                        "clip_value": null,
+                        "accumulation_steps": 1
+                    },
+                    "runtime": {
+                        "mixed_precision": true,
+                        "channels_last": true,
+                        "allow_tf32": true,
+                        "cudnn_benchmark": true
+                    }
+                }
+            }
+        }
+    }
+}

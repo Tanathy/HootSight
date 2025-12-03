@@ -23,6 +23,23 @@
     --accent-warning: #f59e0b;
     --accent-error: #ef4444;
     
+    /* Button colors */
+    --btn-primary-bg: #6366f1;
+    --btn-primary-text: #ffffff;
+    --btn-primary-hover: #5558e0;
+    
+    --btn-secondary-bg: #3a3a46;
+    --btn-secondary-text: #a8a8b0;
+    --btn-secondary-hover: #4a4a56;
+    
+    --btn-success-bg: #b6b6b6;
+    --btn-success-text: #222222;
+    --btn-success-hover: #dbdbdb;
+    
+    --btn-danger-bg: #ef4444;
+    --btn-danger-text: #ffffff;
+    --btn-danger-hover: #dc3030;
+    
     /* Border colors */
     --border-color: #3a3a44;
     --border-light: #2a2a34;
@@ -49,6 +66,7 @@
     /* Font */
     --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --bg-bounds: url('bound.png');
+    --bg-sidebar: url('bg1.png');
     /* Layout sizes */
     --sidebar-width: 220px;
     --header-height: 56px;

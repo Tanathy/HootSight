@@ -23,10 +23,12 @@ const ProjectsPage = {
         // Clear container
         container.innerHTML = '';
 
-        // Page heading
+        // Page heading with lang keys for live translation
         const heading = new Heading('projects_heading', {
             title: lang('projects_page.title'),
-            description: lang('projects_page.description')
+            titleLangKey: 'projects_page.title',
+            description: lang('projects_page.description'),
+            descriptionLangKey: 'projects_page.description'
         });
         container.appendChild(heading.getElement());
 

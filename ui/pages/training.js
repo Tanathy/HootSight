@@ -13,6 +13,7 @@ const TrainingPage = {
      * Tab definitions based on schema groups
      */
     _tabGroups: [
+        { id: 'presets', langKey: 'training_page.tabs.presets' },
         { id: 'model', group: 'training.model', langKey: 'training_page.tabs.model' },
         { id: 'hyperparameters', group: 'training.hyperparameters', langKey: 'training_page.tabs.hyperparameters' },
         { id: 'dataloader', group: 'training.dataloader', langKey: 'training_page.tabs.dataloader' },
@@ -62,6 +63,9 @@ const TrainingPage = {
         // Ensure project config is loaded
         await Config.loadProject(activeProject);
 
+        // Initialize dynamic param configs from schema
+        this._initDynamicParamConfigs();
+
         // Create tabs container
         this._tabs = new Tabs('training-tabs');
 
@@ -81,14 +85,17 @@ const TrainingPage = {
         this._tabGroups.forEach(tabDef => {
             let tabContent;
             
-            // Special handling for augmentation tab - use AugmentationBuilder
-            if (tabDef.id === 'augmentation') {
+            // Special handling for specific tabs
+            if (tabDef.id === 'presets') {
+                tabContent = this._buildPresetsTab();
+            } else if (tabDef.id === 'augmentation') {
                 tabContent = this._buildAugmentationTab();
             } else {
                 tabContent = this._buildTabContent(tabDef.group, trainingSchema, 'training');
             }
             
-            this._tabs.addTab(tabDef.id, lang(tabDef.langKey), tabContent);
+            // Pass langKey for live translation support
+            this._tabs.addTab(tabDef.id, lang(tabDef.langKey), tabContent, { langKey: tabDef.langKey });
         });
 
         // Bind widget dependencies after all widgets are built
@@ -106,12 +113,15 @@ const TrainingPage = {
         
         const icon = Q('<div>', { class: 'no-project-icon', text: '!' }).get(0);
         const title = Q('<h2>', { text: lang('training_page.no_project.title') }).get(0);
+        title.setAttribute('data-lang-key', 'training_page.no_project.title');
         const desc = Q('<p>', { text: lang('training_page.no_project.description') }).get(0);
+        desc.setAttribute('data-lang-key', 'training_page.no_project.description');
         
         const btn = Q('<button>', { 
             class: 'btn btn-primary',
             text: lang('training_page.no_project.button')
         }).get(0);
+        btn.setAttribute('data-lang-key', 'training_page.no_project.button');
         
         Q(btn).on('click', () => {
             if (typeof Navigation !== 'undefined') {
@@ -138,6 +148,7 @@ const TrainingPage = {
             class: 'btn btn-secondary',
             text: lang('training_page.load_defaults_button')
         }).get(0);
+        this._loadDefaultsBtn.setAttribute('data-lang-key', 'training_page.load_defaults_button');
         Q(this._loadDefaultsBtn).on('click', () => this._loadSystemDefaults());
         headerActions.appendChild(this._loadDefaultsBtn);
 
@@ -334,17 +345,6 @@ const TrainingPage = {
                     ...fieldSchema
                 });
             }
-            // Check nested properties for the group
-            else if (fieldSchema.type === 'object' && fieldSchema.properties) {
-                // If the nested object itself belongs to the group
-                if (fieldGroup === groupName) {
-                    fields.push({
-                        key: key,
-                        path: `${basePath}.${key}`,
-                        ...fieldSchema
-                    });
-                }
-            }
         }
 
         return fields;
@@ -362,10 +362,11 @@ const TrainingPage = {
         // Generate a human-readable label from the key (e.g., "model_type" -> "Model Type")
         const label = field.key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 
-        // Common options
+        // Common options - include lang keys for live translation
         const options = {
             label: label,
             description: field.description ? lang(field.description) : '',
+            descriptionLangKey: field.description || null, // Store the lang key for live refresh
             default: field.default,
             disabled: field.ui?.disabled || false,
             visible: field.ui?.visible !== false
@@ -407,7 +408,11 @@ const TrainingPage = {
                 break;
 
             case 'array':
-                // Skip complex arrays for now
+                // Handle fixed-size number arrays (like normalize mean/std)
+                if (field.items?.type === 'number' && field.minItems && field.minItems === field.maxItems) {
+                    widget = this._buildNumberArray(field, options, configValue);
+                }
+                // Skip other complex arrays
                 break;
 
             default:
@@ -437,11 +442,32 @@ const TrainingPage = {
         },
         'loss_type': {
             configPath: 'losses.defaults',
-            paramsPath: 'training.loss_params'
+            paramsPath: 'training.loss_params',
+            paramTypes: null // Will be loaded from schema
         },
         'training.weight_init.type': {
             configPath: 'training.weight_init.defaults',
-            paramsPath: 'training.weight_init.params'
+            paramsPath: 'training.weight_init.params',
+            paramTypes: null // Will be loaded from schema
+        }
+    },
+
+    /**
+     * Initialize dynamic param configs from schema
+     */
+    _initDynamicParamConfigs: function() {
+        const schema = Config.getSchema();
+        
+        // Load weight_init param types
+        const weightInitParamTypes = schema?.properties?.training?.properties?.weight_init?.properties?.params?.ui?.param_types;
+        if (weightInitParamTypes) {
+            this._dynamicParamConfigs['training.weight_init.type'].paramTypes = weightInitParamTypes;
+        }
+        
+        // Load loss_params param types
+        const lossParamTypes = schema?.properties?.training?.properties?.loss_params?.ui?.param_types;
+        if (lossParamTypes) {
+            this._dynamicParamConfigs['loss_type'].paramTypes = lossParamTypes;
         }
     },
 
@@ -469,7 +495,10 @@ const TrainingPage = {
         const buildLabels = (opts) => {
             const labels = {};
             opts.forEach(val => {
-                labels[val] = val.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                const strVal = String(val);
+                labels[val] = strVal.includes('_') 
+                    ? strVal.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+                    : strVal;
             });
             return labels;
         };
@@ -566,6 +595,7 @@ const TrainingPage = {
 
         const typeDefaults = defaults[selectedType];
         const paramsPath = dynamicConfig.paramsPath;
+        const paramTypes = dynamicConfig.paramTypes || {};
 
         // Get current params from config (if any)
         const currentParams = Config.get(paramsPath) || {};
@@ -576,7 +606,7 @@ const TrainingPage = {
             const currentValue = typeParams[paramKey] ?? defaultValue;
             const paramPath = `${paramsPath}.${selectedType}.${paramKey}`;
             
-            const widget = this._buildParamWidget(paramKey, defaultValue, currentValue, paramPath);
+            const widget = this._buildParamWidget(paramKey, defaultValue, currentValue, paramPath, paramTypes);
             if (widget) {
                 container.appendChild(widget);
             }
@@ -586,7 +616,7 @@ const TrainingPage = {
     /**
      * Build a single parameter widget based on value type
      */
-    _buildParamWidget: function(key, defaultValue, currentValue, configPath) {
+    _buildParamWidget: function(key, defaultValue, currentValue, configPath, paramTypes) {
         const wrapper = document.createElement('div');
         wrapper.className = 'widget widget-param';
 
@@ -594,6 +624,30 @@ const TrainingPage = {
         const label = document.createElement('label');
         label.className = 'widget-label';
         label.textContent = key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+        // Check if this param has a defined type in schema (dropdown)
+        if (paramTypes && paramTypes[key] && paramTypes[key].widget === 'dropdown') {
+            wrapper.appendChild(label);
+            
+            const options = paramTypes[key].enum;
+            const optionLabels = {};
+            options.forEach(opt => {
+                optionLabels[opt] = opt.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            });
+            
+            const dropdown = new Dropdown(`param-${key}`, {
+                options: options,
+                optionLabels: optionLabels,
+                default: currentValue ?? defaultValue
+            });
+            
+            dropdown.onChange(newValue => {
+                Config.set(configPath, newValue);
+            });
+            
+            wrapper.appendChild(dropdown.getElement());
+            return wrapper;
+        }
 
         const valueType = typeof defaultValue;
         
@@ -858,6 +912,80 @@ const TrainingPage = {
     },
 
     /**
+     * Build fixed-size number array widget (e.g., RGB values for normalize mean/std)
+     */
+    _buildNumberArray: function(field, options, configValue) {
+        const container = document.createElement('div');
+        container.className = 'widget widget-array-inline';
+        container.id = field.key;
+
+        // Label
+        if (options.label) {
+            const label = document.createElement('label');
+            label.className = 'widget-label';
+            label.textContent = options.label;
+            container.appendChild(label);
+        }
+
+        // Inputs row
+        const inputsRow = document.createElement('div');
+        inputsRow.className = 'array-inputs-row';
+        
+        const arraySize = field.minItems || 3;
+        const currentValue = Array.isArray(configValue) ? configValue : (field.default || []);
+        const inputs = [];
+        
+        const itemSchema = field.items || {};
+        const min = itemSchema.minimum ?? 0;
+        const max = itemSchema.maximum ?? 1;
+        const step = itemSchema.step || 0.001;
+
+        for (let i = 0; i < arraySize; i++) {
+            const numberWidget = new NumberInput(`${field.key}-${i}`, {
+                label: '',
+                default: currentValue[i] ?? 0,
+                min: min,
+                max: max,
+                step: step,
+                precision: 3
+            });
+            
+            const widgetEl = numberWidget.getElement();
+            widgetEl.classList.add('array-item');
+            inputsRow.appendChild(widgetEl);
+            inputs.push(numberWidget);
+            
+            // Update config on change
+            numberWidget.onChange(() => {
+                const newArray = inputs.map(inp => inp.getValue());
+                Config.set(field.path, newArray);
+            });
+        }
+
+        container.appendChild(inputsRow);
+
+        // Description
+        if (options.description) {
+            const desc = document.createElement('div');
+            desc.className = 'widget-description';
+            desc.textContent = options.description;
+            container.appendChild(desc);
+        }
+
+        return {
+            getElement: () => container,
+            getValue: () => inputs.map(inp => inp.getValue()),
+            setValue: (val) => {
+                if (Array.isArray(val)) {
+                    inputs.forEach((inp, i) => {
+                        if (val[i] !== undefined) inp.setValue(val[i]);
+                    });
+                }
+            }
+        };
+    },
+
+    /**
      * Build nested object widget (collapsible group)
      */
     _buildNested: function(field, options) {
@@ -1035,6 +1163,326 @@ const TrainingPage = {
         content.appendChild(rightPanel);
 
         return content;
+    },
+
+    /**
+     * Build the Presets tab
+     * @returns {HTMLElement}
+     */
+    _buildPresetsTab: function() {
+        const content = document.createElement('div');
+        content.className = 'tab-content-wrapper presets-tab';
+
+        const header = document.createElement('div');
+        header.className = 'presets-header';
+        
+        const title = document.createElement('h2');
+        title.textContent = lang('training_page.presets.title');
+        title.setAttribute('data-lang-key', 'training_page.presets.title');
+        
+        const description = document.createElement('p');
+        description.className = 'presets-description';
+        description.textContent = lang('training_page.presets.description');
+        description.setAttribute('data-lang-key', 'training_page.presets.description');
+        
+        header.appendChild(title);
+        header.appendChild(description);
+        content.appendChild(header);
+
+        // Search and filter controls container
+        const controlsContainer = document.createElement('div');
+        controlsContainer.className = 'presets-controls';
+
+        // Search input using TextInput widget
+        this._searchWidget = new TextInput('presets-search', {
+            label: '',
+            placeholder: lang('training_page.presets.search_placeholder') || 'Search presets by name, description, task...',
+            placeholderLangKey: 'training_page.presets.search_placeholder',
+            default: ''
+        });
+        
+        const searchWrapper = document.createElement('div');
+        searchWrapper.className = 'presets-search-wrapper';
+        searchWrapper.appendChild(this._searchWidget.getElement());
+        
+        // Search stats
+        const searchStats = document.createElement('span');
+        searchStats.className = 'presets-search-stats';
+        searchWrapper.appendChild(searchStats);
+        this._presetsSearchStats = searchStats;
+        
+        controlsContainer.appendChild(searchWrapper);
+
+        // Only Compatible switch
+        this._compatibleOnlySwitch = new Switch('presets-compatible-only', {
+            label: lang('training_page.presets.only_compatible') || 'Only Compatible',
+            labelLangKey: 'training_page.presets.only_compatible',
+            description: '',
+            default: false
+        });
+        
+        controlsContainer.appendChild(this._compatibleOnlySwitch.getElement());
+        content.appendChild(controlsContainer);
+
+        const presetsContainer = document.createElement('div');
+        presetsContainer.className = 'presets-container';
+        content.appendChild(presetsContainer);
+
+        // Store references
+        this._presetsContainer = presetsContainer;
+        this._presetsData = [];
+        this._currentDatasetType = 'unknown';
+
+        // Search event handler
+        let searchTimeout;
+        this._searchWidget.onChange((value) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                this._filterPresets();
+            }, 150);
+        });
+
+        // Compatible only switch handler
+        this._compatibleOnlySwitch.onChange((value) => {
+            this._filterPresets();
+        });
+
+        // Load presets
+        this._loadPresets(presetsContainer);
+
+        return content;
+    },
+
+    /**
+     * Filter presets based on search query and compatibility
+     */
+    _filterPresets: function() {
+        if (!this._presetsData || this._presetsData.length === 0) {
+            return;
+        }
+
+        const container = this._presetsContainer;
+        const stats = this._presetsSearchStats;
+        const query = this._searchWidget ? this._searchWidget.get() : '';
+        const onlyCompatible = this._compatibleOnlySwitch ? this._compatibleOnlySwitch.get() : false;
+
+        let filteredPresets = this._presetsData;
+
+        // Filter by compatibility first
+        if (onlyCompatible && this._currentDatasetType && this._currentDatasetType !== 'unknown') {
+            filteredPresets = filteredPresets.filter(preset => {
+                if (!preset.dataset_types || preset.dataset_types.length === 0) {
+                    return true; // No restriction = compatible with all
+                }
+                return preset.dataset_types.includes(this._currentDatasetType);
+            });
+        }
+
+        // Then apply search filter with 0.97+ threshold
+        let matchedIds = new Set();
+        if (query && query.trim() !== '') {
+            const results = FuzzySearch.search(
+                filteredPresets, 
+                query, 
+                ['name', 'description', 'task'],
+                0.97  // High confidence threshold
+            );
+            matchedIds = new Set(results.map(r => r.item.id));
+            
+            // Store scores for ordering
+            this._searchScores = {};
+            results.forEach(r => {
+                this._searchScores[r.item.id] = r.score;
+            });
+        } else {
+            // No search query - show all filtered presets
+            matchedIds = new Set(filteredPresets.map(p => p.id));
+            this._searchScores = {};
+        }
+
+        let visibleCount = 0;
+
+        // Update visibility and order of preset cards
+        Array.from(container.children).forEach(card => {
+            const presetId = card.dataset.presetId;
+            const preset = this._presetsData.find(p => p.id === presetId);
+            
+            // Check compatibility filter
+            let passesCompatibility = true;
+            if (onlyCompatible && preset && this._currentDatasetType && this._currentDatasetType !== 'unknown') {
+                if (preset.dataset_types && preset.dataset_types.length > 0) {
+                    passesCompatibility = preset.dataset_types.includes(this._currentDatasetType);
+                }
+            }
+            
+            if (matchedIds.has(presetId) && passesCompatibility) {
+                card.style.display = '';
+                // Set order based on score
+                const score = this._searchScores[presetId];
+                card.style.order = score ? Math.round((1 - score) * 100) : 50;
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        // Update stats
+        if (query || onlyCompatible) {
+            stats.textContent = lang('training_page.presets.search_results')
+                ?.replace('{count}', visibleCount)
+                ?.replace('{total}', this._presetsData.length)
+                || `${visibleCount} / ${this._presetsData.length}`;
+        } else {
+            stats.textContent = '';
+        }
+    },
+
+    /**
+     * Load and display presets
+     * @param {HTMLElement} container
+     */
+    _loadPresets: async function(container) {
+        const projectName = Config.getActiveProject();
+        if (!projectName) {
+            container.innerHTML = '<p class="error-message">' + lang('training_page.no_project.description') + '</p>';
+            return;
+        }
+
+        container.innerHTML = '<p class="loading-message">' + lang('training_page.presets.loading') + '</p>';
+
+        try {
+            // Load presets and dataset type in parallel
+            const [presetsResponse, datasetTypeData] = await Promise.all([
+                fetch('/presets'),
+                API.datasetEditor.getDatasetType(projectName)
+            ]);
+            
+            const data = await presetsResponse.json();
+            const currentDatasetType = datasetTypeData.type || 'unknown';
+            
+            // Store dataset type for filtering
+            this._currentDatasetType = currentDatasetType;
+
+            if (!data.presets || data.presets.length === 0) {
+                container.innerHTML = '<p class="info-message">' + lang('training_page.presets.no_presets') + '</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+            
+            // Store presets data for search
+            this._presetsData = data.presets;
+
+            data.presets.forEach(preset => {
+                const card = PresetCard.create(preset, async (selectedPreset, selectedSize) => {
+                    await this._applyPreset(selectedPreset.id, selectedSize);
+                }, currentDatasetType);
+                // Add preset ID to card for search filtering
+                card.dataset.presetId = preset.id;
+                container.appendChild(card);
+            });
+
+        } catch (error) {
+            console.error('Failed to load presets:', error);
+            container.innerHTML = '<p class="error-message">' + lang('training_page.presets.apply_error') + '</p>';
+        }
+    },
+
+    /**
+     * Apply a preset to the UI (loads values into Config, does not save to DB)
+     * User must click Save to persist the changes
+     * @param {string} presetId
+     * @param {string} sizeVariant - Size variant key (tiny, small, medium, large, huge)
+     */
+    _applyPreset: async function(presetId, sizeVariant = 'medium') {
+        const projectName = Config.getActiveProject();
+        if (!projectName) {
+            Modal.alert(lang('training_page.no_project.description'));
+            return;
+        }
+
+        try {
+            // Fetch the preset data
+            const response = await fetch(`/presets/${presetId}`);
+            const result = await response.json();
+
+            if (result.status !== 'success' || !result.preset) {
+                Modal.alert(lang('training_page.presets.apply_error'));
+                return;
+            }
+
+            const preset = result.preset;
+            
+            // Get config from the selected size variant
+            let trainingConfig = null;
+            
+            // New structure with configs object
+            if (preset.configs && preset.configs[sizeVariant]) {
+                trainingConfig = preset.configs[sizeVariant].config?.training;
+            }
+            // Fallback to old structure
+            else if (preset.config && preset.config.training) {
+                trainingConfig = preset.config.training;
+            }
+            
+            if (!trainingConfig) {
+                Modal.alert(lang('training_page.presets.apply_error'));
+                return;
+            }
+
+            // Apply all training config values to the in-memory Config
+            // This uses deep merge to properly set nested objects
+            this._applyPresetValues(trainingConfig, 'training');
+
+            // Get schema for rebuilding
+            const schema = Config.getSchema();
+            const trainingSchema = schema?.properties?.training;
+
+            if (!trainingSchema) {
+                Modal.alert(lang('training_page.presets.apply_error'));
+                return;
+            }
+
+            // Clear widgets cache
+            this._widgets = {};
+            
+            // Clear and rebuild tab contents with new values
+            this._tabGroups.forEach(tabDef => {
+                let tabContent;
+                
+                if (tabDef.id === 'presets') {
+                    tabContent = this._buildPresetsTab();
+                } else if (tabDef.id === 'augmentation') {
+                    tabContent = this._buildAugmentationTab();
+                } else {
+                    tabContent = this._buildTabContent(tabDef.group, trainingSchema, 'training');
+                }
+                
+                this._tabs.setContent(tabDef.id, tabContent);
+            });
+            
+            // Re-bind widget dependencies
+            this._bindDependencies();
+            
+            // Show success message
+            Modal.alert(lang('training_page.presets.applied'));
+
+        } catch (error) {
+            console.error('Failed to apply preset:', error);
+            Modal.alert(lang('training_page.presets.apply_error'));
+        }
+    },
+
+    /**
+     * Recursively apply preset values to Config
+     * @param {Object} values - Values to apply
+     * @param {string} basePath - Base config path
+     */
+    _applyPresetValues: function(values, basePath) {
+        for (const [key, value] of Object.entries(values)) {
+            const fullPath = `${basePath}.${key}`;
+            Config.set(fullPath, value);
+        }
     },
 
     /**

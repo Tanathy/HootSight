@@ -98,6 +98,10 @@ class Slider {
             const label = document.createElement('label');
             label.className = 'slider-label';
             label.textContent = this.options.label;
+            // Add lang key attribute for live translation
+            if (this.options.labelLangKey) {
+                label.setAttribute('data-lang-key', this.options.labelLangKey);
+            }
             labelRow.appendChild(label);
             
             this._element.appendChild(labelRow);

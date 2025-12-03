@@ -62,6 +62,10 @@ class Dropdown {
         if (this.options.label) {
             this.labelEl = Q('<label>', { class: 'widget-label', text: this.options.label }).get(0);
             this.labelEl.setAttribute('for', this.id + '-select');
+            // Add lang key attribute for live translation
+            if (this.options.labelLangKey) {
+                this.labelEl.setAttribute('data-lang-key', this.options.labelLangKey);
+            }
             this.element.appendChild(this.labelEl);
         }
         
@@ -93,6 +97,10 @@ class Dropdown {
         // Description (static)
         if (this.options.description) {
             this.descEl = Q('<div>', { class: 'widget-description', text: this.options.description }).get(0);
+            // Add lang key attribute for live translation
+            if (this.options.descriptionLangKey) {
+                this.descEl.setAttribute('data-lang-key', this.options.descriptionLangKey);
+            }
             this.element.appendChild(this.descEl);
         }
         
@@ -232,12 +240,91 @@ class Dropdown {
     _open() {
         if (this.options.disabled) return;
         this._isOpen = true;
+        
+        // Portal the options to body for proper overflow handling
+        this._portalOptions();
+        
         Q(this.dropdownContainer).addClass('open');
+    }
+    
+    _portalOptions() {
+        // Move options container to body for proper positioning above overflow containers
+        if (!this._isPortaled) {
+            document.body.appendChild(this.optionsContainer);
+            this._isPortaled = true;
+            
+            // Add portal-specific styles
+            this.optionsContainer.style.position = 'fixed';
+            this.optionsContainer.style.zIndex = '10000';
+        }
+        
+        // Position the options relative to the selected display
+        this._positionPortaledOptions();
+        
+        // Update position on scroll/resize
+        this._scrollHandler = () => this._positionPortaledOptions();
+        window.addEventListener('scroll', this._scrollHandler, true);
+        window.addEventListener('resize', this._scrollHandler);
+    }
+    
+    _positionPortaledOptions() {
+        const rect = this.selectedDisplay.getBoundingClientRect();
+        const optionsHeight = Math.min(this.optionsContainer.scrollHeight, 200);
+        const viewportHeight = window.innerHeight;
+        
+        // Calculate available space
+        const spaceBelow = viewportHeight - rect.bottom - 8;
+        const spaceAbove = rect.top - 8;
+        
+        // Determine direction
+        const openUpward = optionsHeight > spaceBelow && spaceAbove > spaceBelow;
+        
+        // Position the options
+        this.optionsContainer.style.left = rect.left + 'px';
+        this.optionsContainer.style.width = rect.width + 'px';
+        
+        if (openUpward) {
+            this.optionsContainer.style.top = 'auto';
+            this.optionsContainer.style.bottom = (viewportHeight - rect.top + 4) + 'px';
+            Q(this.dropdownContainer).addClass('dropup');
+        } else {
+            this.optionsContainer.style.top = (rect.bottom + 4) + 'px';
+            this.optionsContainer.style.bottom = 'auto';
+            Q(this.dropdownContainer).removeClass('dropup');
+        }
+        
+        // Show the options
+        this.optionsContainer.style.display = 'block';
+    }
+    
+    _unportalOptions() {
+        if (this._isPortaled) {
+            // Hide and move back to container
+            this.optionsContainer.style.display = 'none';
+            this.dropdownContainer.appendChild(this.optionsContainer);
+            this._isPortaled = false;
+            
+            // Reset styles
+            this.optionsContainer.style.position = '';
+            this.optionsContainer.style.zIndex = '';
+            this.optionsContainer.style.left = '';
+            this.optionsContainer.style.top = '';
+            this.optionsContainer.style.bottom = '';
+            this.optionsContainer.style.width = '';
+            
+            // Remove listeners
+            if (this._scrollHandler) {
+                window.removeEventListener('scroll', this._scrollHandler, true);
+                window.removeEventListener('resize', this._scrollHandler);
+                this._scrollHandler = null;
+            }
+        }
     }
     
     _close() {
         this._isOpen = false;
-        Q(this.dropdownContainer).removeClass('open');
+        this._unportalOptions();
+        Q(this.dropdownContainer).removeClass('open').removeClass('dropup');
     }
     
     _navigateOptions(direction) {

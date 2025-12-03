@@ -65,6 +65,10 @@ class NumberInput {
                 text: this.options.label,
                 for: this.id + '-input'
             }).get(0);
+            // Add lang key attribute for live translation
+            if (this.options.labelLangKey) {
+                this.labelEl.setAttribute('data-lang-key', this.options.labelLangKey);
+            }
             this.element.appendChild(this.labelEl);
         }
         
@@ -109,6 +113,10 @@ class NumberInput {
                 class: 'widget-description', 
                 text: this.options.description 
             }).get(0);
+            // Add lang key attribute for live translation
+            if (this.options.descriptionLangKey) {
+                this.descEl.setAttribute('data-lang-key', this.options.descriptionLangKey);
+            }
             this.element.appendChild(this.descEl);
         }
         

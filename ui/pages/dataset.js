@@ -61,11 +61,16 @@ const DatasetPage = {
             return;
         }
 
-        // Get project info and dataset type
+        // Get project info and dataset type (before building layout)
         await this._loadProjectInfo();
 
-        // Build layout
+        // Build layout (creates the dropdown)
         this._buildLayout();
+
+        // Now set dropdown value from loaded dataset type
+        if (this._typeDropdown && this._datasetType) {
+            this._typeDropdown.set(this._datasetType);
+        }
 
         // Load initial data
         await this._loadFolderTree();
@@ -105,18 +110,6 @@ const DatasetPage = {
             // Update dropdown if it exists
             if (this._typeDropdown) {
                 this._typeDropdown.set(this._datasetType);
-            }
-            
-            // Load project-specific input_size from DB
-            const projectConfig = await API.projects.getConfig(this._projectName);
-            if (projectConfig && projectConfig.config && projectConfig.config['training.input_size']) {
-                const projectInputSize = projectConfig.config['training.input_size'];
-                Config.set('training.input_size', projectInputSize);
-                
-                // Update dropdown if it exists
-                if (this._inputSizeDropdown) {
-                    this._inputSizeDropdown.set(String(projectInputSize));
-                }
             }
         } catch (err) {
             console.error('Failed to load project info:', err);
@@ -643,10 +636,9 @@ const DatasetPage = {
      * Build toolbar
      */
     _buildToolbar: function() {
-        // Left section - dataset type selector and input size selector
+        // Left section - dataset type selector
         const leftSection = Q('<div>', { class: 'toolbar-left' })
             .append(this._buildDatasetTypeSelector())
-            .append(this._buildInputSizeSelector())
             .get(0);
 
         // Center section - search
@@ -729,13 +721,12 @@ const DatasetPage = {
      * Build dataset type selector using Dropdown widget
      */
     _buildDatasetTypeSelector: function() {
-        const types = ['unknown', 'multi_label', 'folder_classification', 'annotation', 'mixed'];
+        const types = ['unknown', 'multi_label', 'folder_classification', 'annotation'];
         const optionLabels = {
             'unknown': lang('dataset_page.types.unknown'),
             'multi_label': lang('dataset_page.types.multi_label'),
             'folder_classification': lang('dataset_page.types.folder_classification'),
-            'annotation': lang('dataset_page.types.annotation'),
-            'mixed': lang('dataset_page.types.mixed')
+            'annotation': lang('dataset_page.types.annotation')
         };
 
         this._typeDropdown = new Dropdown('dataset-type', {
@@ -757,40 +748,6 @@ const DatasetPage = {
 
         return Q('<div>', { class: 'dataset-type-selector' })
             .append(this._typeDropdown.getElement())
-            .get(0);
-    },
-
-    /**
-     * Build input size selector using Dropdown widget
-     */
-    _buildInputSizeSelector: function() {
-        const sizes = ['224', '256', '299', '384', '512'];
-        const optionLabels = {};
-        sizes.forEach(size => { optionLabels[size] = size + 'px'; });
-
-        const currentSize = String(Config.get('training.input_size', 224));
-
-        this._inputSizeDropdown = new Dropdown('input-size', {
-            label: lang('dataset_page.input_size_label'),
-            options: sizes,
-            optionLabels: optionLabels,
-            default: currentSize
-        });
-
-        this._inputSizeDropdown.onChange((value) => {
-            const sizeValue = parseInt(value, 10);
-            Config.set('training.input_size', sizeValue);
-            
-            // Save to characteristics.db for project
-            if (this._projectName) {
-                API.datasetEditor.setProjectConfigValue(this._projectName, 'training.input_size', sizeValue).catch(err => {
-                    console.error('Failed to save input_size to project config:', err);
-                });
-            }
-        });
-
-        return Q('<div>', { class: 'input-size-selector' })
-            .append(this._inputSizeDropdown.getElement())
             .get(0);
     },
 
@@ -1430,7 +1387,7 @@ const DatasetPage = {
 
         const container = Q('<div>', { class: 'annotation-editor' });
 
-        if (this._datasetType === 'multi_label' || this._datasetType === 'mixed') {
+        if (this._datasetType === 'multi_label') {
             // Tag editor using TagInput widget
             const tagInput = new TagInput('tags-' + image.id, {
                 placeholder: lang('dataset_page.tag_placeholder'),
@@ -1758,8 +1715,6 @@ const DatasetPage = {
      */
     _startBuild: async function() {
         try {
-            Q(this._buildBtn).attr('disabled', true);
-            
             // Show progress bar
             ProgressManager.show('build', {
                 label: lang('dataset_page.build_button'),
@@ -1772,7 +1727,6 @@ const DatasetPage = {
         } catch (err) {
             console.error('Failed to start build:', err);
             ProgressManager.hide('build');
-            Q(this._buildBtn).attr('disabled', false);
         }
     },
 

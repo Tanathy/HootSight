@@ -161,7 +161,7 @@ const API = {
         /**
          * Set dataset type override
          * @param {string} projectName - Project name
-         * @param {string} type - Dataset type (auto, multi_label, folder_classification, annotation, mixed)
+         * @param {string} type - Dataset type (multi_label, folder_classification, annotation)
          * @returns {Promise<Object>} - Result status
          */
         setDatasetType: async function(projectName, type) {

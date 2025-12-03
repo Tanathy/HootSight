@@ -62,7 +62,9 @@
             container.innerHTML = '';
             const heading = new Heading('not_found', {
                 title: 'Page Not Found',
-                description: `The page "${pageName}" does not exist`
+                description: `The page "${pageName}" does not exist`,
+                titleLangKey: 'app.page_not_found.title',
+                descriptionLangKey: 'app.page_not_found.description'
             });
             container.appendChild(heading.getElement());
         }

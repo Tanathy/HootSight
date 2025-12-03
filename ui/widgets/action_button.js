@@ -6,8 +6,10 @@ class ActionButton {
         this.id = id;
         this.options = {
             label: options.label || '',
+            labelLangKey: options.labelLangKey || null,
             className: options.className || 'btn btn-secondary',
             title: options.title || '',
+            titleLangKey: options.titleLangKey || null,
             disabled: options.disabled || false,
             onClick: options.onClick || null
         };
@@ -17,7 +19,18 @@ class ActionButton {
         this._element.className = this.options.className;
         this._element.id = `action-${this.id}`;
         this._element.textContent = this.options.label || '';
-        if (this.options.title) this._element.title = this.options.title;
+        
+        // Add lang key for live translation
+        if (this.options.labelLangKey) {
+            this._element.setAttribute('data-lang-key', this.options.labelLangKey);
+        }
+        if (this.options.title) {
+            this._element.title = this.options.title;
+            if (this.options.titleLangKey) {
+                this._element.setAttribute('data-lang-title', 'true');
+                this._element.setAttribute('data-lang-key', this.options.titleLangKey);
+            }
+        }
         if (this.options.disabled) this.setDisabled(true);
 
         this._element.addEventListener('click', async (e) => {
@@ -41,9 +54,13 @@ class ActionButton {
         });
     }
 
-    setLabel(label = '') {
+    setLabel(label = '', langKey = null) {
         this.options.label = label;
         this._element.textContent = label;
+        if (langKey) {
+            this.options.labelLangKey = langKey;
+            this._element.setAttribute('data-lang-key', langKey);
+        }
     }
 
     setDisabled(disabled = true) {

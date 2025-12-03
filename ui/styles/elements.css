@@ -61,7 +61,7 @@
 }
 
 .card-title {
-    font-size: 0.875rem;
+    font-size: 12px;
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -73,7 +73,7 @@
 }
 
 .card-subtitle {
-    font-size: 0.75rem;
+    font-size: 12px;
     color: var(--text-secondary);
 }
 
@@ -84,7 +84,7 @@
 
 .card-actions .btn {
     padding: var(--spacing-xs) var(--spacing-sm);
-    font-size: 0.75rem;
+    font-size: 12px;
 }
 
 .card-body {
@@ -108,14 +108,14 @@
 }
 
 .heading-title {
-    font-size: 1.5rem;
+    font-size: 18px;
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: var(--spacing-xs);
 }
 
 .heading-description {
-    font-size: 0.875rem;
+    font-size: 14px;
     color: var(--text-secondary);
 }
 
@@ -144,7 +144,7 @@
     gap: var(--spacing-sm);
     padding: var(--spacing-sm) 0;
     border-bottom: 1px solid var(--border-light);
-    font-size: 0.875rem;
+    font-size: 12px;
 }
 
 .list-item:last-child {
@@ -175,7 +175,7 @@
 .table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.875rem;
+    font-size: 12px;
 }
 
 .table-row {
@@ -229,12 +229,12 @@
 }
 
 .header-project-info .project-label {
-    font-size: 0.875rem;
+    font-size: 12px;
     color: var(--text-muted);
 }
 
 .header-project-info .project-name {
-    font-size: 1rem;
+    font-size: 14px;
     font-weight: 600;
     color: var(--accent-primary);
 }
@@ -275,7 +275,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2rem;
+    font-size: 18px;
     font-weight: 700;
     color: var(--accent-warning);
     background: var(--bg-tertiary);
@@ -285,14 +285,14 @@
 }
 
 .no-project-message h2 {
-    font-size: 1.25rem;
+    font-size: 18px;
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: var(--spacing-sm);
 }
 
 .no-project-message p {
-    font-size: 0.875rem;
+    font-size: 14px;
     color: var(--text-secondary);
     margin-bottom: var(--spacing-lg);
     max-width: 400px;

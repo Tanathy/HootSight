@@ -1,6 +1,5 @@
 /**
  * HootSight - Button Styles
- * Only primary and secondary variants are used
  */
 
 .btn {
@@ -11,11 +10,11 @@
     padding: var(--spacing-sm) var(--spacing-md);
     border: none;
     border-radius: var(--radius-md);
-    font-size: 0.875rem;
+    font-size: 12px;
     font-weight: 500;
     font-family: var(--font-family);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background 0.15s, opacity 0.15s;
     user-select: none;
 }
 
@@ -25,33 +24,49 @@
 }
 
 .btn-primary {
-    background: var(--accent-primary);
-    color: white;
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: var(--accent-secondary);
+    background: var(--btn-primary-hover);
 }
 
 .btn-secondary {
-    background: var(--bg-tertiary);
-    color: var(--text-secondary);
-    border: 1px solid var(--border-color);
+    background: var(--btn-secondary-bg);
+    color: var(--btn-secondary-text);
 }
 
 .btn-secondary:hover:not(:disabled) {
-    background: var(--bg-hover);
-    color: var(--text-primary);
+    background: var(--btn-secondary-hover);
+}
+
+.btn-success {
+    background: var(--btn-success-bg);
+    color: var(--btn-success-text);
+}
+
+.btn-success:hover:not(:disabled) {
+    background: var(--btn-success-hover);
+}
+
+.btn-danger {
+    background: var(--btn-danger-bg);
+    color: var(--btn-danger-text);
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: var(--btn-danger-hover);
 }
 
 .btn-sm {
     padding: var(--spacing-xs) var(--spacing-sm);
-    font-size: 0.75rem;
+    font-size: 11px;
 }
 
 .btn-lg {
     padding: var(--spacing-md) var(--spacing-lg);
-    font-size: 1rem;
+    font-size: 14px;
 }
 
 .btn-icon {

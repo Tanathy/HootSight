@@ -9,7 +9,8 @@
     box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
     height: 100%;
     width: 100%;
     font-family: var(--font-family);
@@ -54,7 +55,7 @@ html, body {
 }
 
 .sidebar-logo {
-    font-size: 1.25rem;
+    font-size: 18px;
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -63,6 +64,9 @@ html, body {
     flex: 1;
     overflow-y: auto;
     padding: var(--spacing-sm);
+    background: var(--bg-sidebar);
+    background-size: cover;
+    background-repeat: no-repeat;
 }
 
 .nav-item {
@@ -88,8 +92,31 @@ html, body {
 }
 
 .nav-item-label {
-    font-size: 0.875rem;
+    font-size: 12px;
     font-weight: 500;
+}
+
+/* ============================================================================
+   Sidebar Footer (Language Selector)
+   ============================================================================ */
+
+.sidebar-footer {
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+/* Make dropdown widget compact in sidebar footer */
+.sidebar-footer .widget-dropdown {
+    margin: 0;
+}
+
+.sidebar-footer .widget-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 /* ============================================================================
@@ -155,9 +182,6 @@ html, body {
     animation: progressSlideOut 0.3s ease forwards;
 }
 
-.header-progress-item.complete {
-}
-
 .header-progress-item.complete .progress-fill {
     background: var(--accent-success);
 }
@@ -167,6 +191,7 @@ html, body {
         opacity: 0;
         transform: translateY(-10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -178,6 +203,7 @@ html, body {
         opacity: 1;
         transform: translateY(0);
     }
+
     to {
         opacity: 0;
         transform: translateY(-10px);
@@ -185,7 +211,7 @@ html, body {
 }
 
 .progress-label {
-    font-size: 0.6875rem;
+    font-size: 12px;
     color: var(--text-secondary);
     font-weight: 500;
     white-space: nowrap;
@@ -207,13 +233,13 @@ html, body {
 }
 
 .progress-status {
-    font-size: 0.625rem;
+    font-size: 12px;
     color: var(--text-muted);
     min-width: 40px;
 }
 
 .progress-text {
-    font-size: 0.75rem;
+    font-size: 12px;
     color: var(--text-muted);
 }
 
@@ -280,13 +306,13 @@ html, body {
 }
 
 .training-project-label {
-    font-size: 0.75rem;
+    font-size: 12px;
     font-weight: 600;
     color: var(--accent-primary);
 }
 
 .training-progress-text {
-    font-size: 0.6875rem;
+    font-size: 12px;
     color: var(--text-secondary);
     white-space: nowrap;
 }
@@ -308,6 +334,6 @@ html, body {
 
 .training-stop-btn {
     padding: var(--spacing-xs) var(--spacing-sm) !important;
-    font-size: 0.75rem !important;
+    font-size: 12px !important;
     min-height: auto !important;
 }

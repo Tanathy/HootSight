@@ -573,10 +573,9 @@
         "input_size": {
           "type": "integer",
           "description": "schema.training_input_size_description",
-          "minimum": 32,
-          "maximum": 1024,
+          "enum": [224, 256, 299, 384, 512],
           "default": 224,
-          "ui": { "widget": "hidden" }
+          "ui": { "widget": "dropdown", "group": "training.hyperparameters", "order": 5 }
         },
         "normalize": {
           "type": "object",
@@ -882,7 +881,15 @@
             "type": "object",
             "additionalProperties": true
           },
-          "ui": { "widget": "nested", "group": "training.loss", "order": 3, "visible": false }
+          "ui": { 
+            "widget": "nested", 
+            "group": "training.loss", 
+            "order": 3, 
+            "visible": false,
+            "param_types": {
+              "reduction": { "widget": "dropdown", "enum": ["mean", "sum", "none", "batchmean"] }
+            }
+          }
         },
         "weight_init": {
            "type": "object",
@@ -914,7 +921,21 @@
               "params": { 
                  "type": "object", 
                  "description": "schema.training_weight_init_params_description",
-                 "ui": { "widget": "dynamic_params", "order": 2, "config_path": "training.weight_init.defaults" } 
+                 "ui": { 
+                    "widget": "dynamic_params", 
+                    "order": 2, 
+                    "config_path": "training.weight_init.defaults",
+                    "param_types": {
+                       "mode": {
+                          "widget": "dropdown",
+                          "enum": ["fan_in", "fan_out"]
+                       },
+                       "nonlinearity": {
+                          "widget": "dropdown",
+                          "enum": ["linear", "conv1d", "conv2d", "conv3d", "conv_transpose1d", "conv_transpose2d", "conv_transpose3d", "sigmoid", "tanh", "relu", "leaky_relu", "selu"]
+                       }
+                    }
+                 } 
               }
            },
            "required": ["type"],

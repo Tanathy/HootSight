@@ -7,6 +7,8 @@ class Heading {
         this.options = {
             title: options.title || '',
             description: options.description || '',
+            titleLangKey: options.titleLangKey || null,
+            descriptionLangKey: options.descriptionLangKey || null,
             tag: options.tag || 'h2'
         };
         
@@ -16,9 +18,17 @@ class Heading {
         
         this._titleEl = document.createElement(this._resolveTag(this.options.tag));
         this._titleEl.className = 'heading-title';
+        // Add lang key attribute for live translation
+        if (this.options.titleLangKey) {
+            this._titleEl.setAttribute('data-lang-key', this.options.titleLangKey);
+        }
         
         this._descriptionEl = document.createElement('div');
         this._descriptionEl.className = 'heading-description';
+        // Add lang key attribute for live translation
+        if (this.options.descriptionLangKey) {
+            this._descriptionEl.setAttribute('data-lang-key', this.options.descriptionLangKey);
+        }
         
         this._element.appendChild(this._titleEl);
         this._element.appendChild(this._descriptionEl);

@@ -364,6 +364,64 @@ def create_app() -> FastAPI:
             error(f"Localization switch failed: {ex}")
             return {"error": str(ex)}
 
+    @app.get("/presets")
+    def get_presets() -> Dict[str, Any]:
+        try:
+            presets_dir = root_path / "config" / "presets"
+            if not presets_dir.exists():
+                return {"presets": []}
+
+            presets = []
+            for preset_file in presets_dir.glob("*.json"):
+                try:
+                    with preset_file.open("r", encoding="utf-8") as f:
+                        preset_data = json.load(f)
+                        
+                        # Extract size variants info from configs
+                        size_variants = []
+                        configs = preset_data.get("configs", {})
+                        for size_key, size_data in configs.items():
+                            size_variants.append({
+                                "key": size_key,
+                                "description": size_data.get("description", ""),
+                                "range": size_data.get("range", [0, None])
+                            })
+                        
+                        presets.append({
+                            "id": preset_file.stem,
+                            "name": preset_data.get("name", preset_file.stem),
+                            "description": preset_data.get("description", ""),
+                            "task": preset_data.get("task", "unknown"),
+                            "recommended_models": preset_data.get("recommended_models", []),
+                            "dataset_types": preset_data.get("dataset_types", []),
+                            "size_variants": size_variants
+                        })
+                except Exception as ex:
+                    error(f"Failed to load preset {preset_file.name}: {ex}")
+                    continue
+
+            return {"presets": presets}
+        except Exception as ex:
+            error(f"Failed to load presets: {ex}")
+            return {"error": str(ex)}
+
+    @app.get("/presets/{preset_id}")
+    def get_preset(preset_id: str) -> Dict[str, Any]:
+        try:
+            presets_dir = root_path / "config" / "presets"
+            preset_file = presets_dir / f"{preset_id}.json"
+
+            if not preset_file.exists():
+                return {"status": "error", "message": f"Preset '{preset_id}' not found"}
+
+            with preset_file.open("r", encoding="utf-8") as f:
+                preset_data = json.load(f)
+
+            return {"status": "success", "preset": preset_data}
+        except Exception as ex:
+            error(f"Failed to load preset '{preset_id}': {ex}")
+            return {"status": "error", "message": str(ex)}
+
     @app.get("/docs/list")
     def docs_list() -> Dict[str, Any]:
         if docs_root is None:

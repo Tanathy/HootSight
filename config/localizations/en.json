@@ -1,5 +1,12 @@
 {
   "language_name": "English",
+  "app": {
+    "brand": "Hootsight",
+    "page_not_found": {
+      "title": "Page Not Found",
+      "description": "The requested page does not exist."
+    }
+  },
   "common": {
     "project_label": "Project:"
   },
@@ -25,9 +32,6 @@
     "new_subfolder": "New Subfolder",
     "rename": "Rename",
     "move_to": "Move To..."
-  },
-  "app": {
-    "brand": "Hootsight"
   },
   "nav": {
     "training_group": "Training",
@@ -60,8 +64,22 @@
       "early_stopping": "Early Stopping",
       "gradient": "Gradient",
       "runtime": "Runtime",
-      "activation_defaults": "Activation Defaults",
-      "augmentation_defaults": "Augmentation Defaults"
+      "presets": "Presets"
+    },
+    "presets": {
+      "title": "Training Presets",
+      "description": "Apply predefined training configurations optimized for specific tasks",
+      "no_presets": "No presets available",
+      "loading": "Loading presets...",
+      "apply_button": "Apply",
+      "applied": "Preset applied successfully",
+      "apply_error": "Failed to apply preset",
+      "incompatible_dataset": "Dataset type not compatible with this preset",
+      "dataset_size": "Dataset Size:",
+      "recommended": "Recommended:",
+      "search_placeholder": "Search presets by name, description, task...",
+      "search_results": "{count} of {total} presets",
+      "only_compatible": "Only Compatible"
     },
     "augmentation": {
       "train_title": "Training Augmentations",
@@ -880,13 +898,14 @@
     "table_header_status": "Status",
     "table_header_local": "Local",
     "table_header_remote": "Remote",
-    "table_row_missing": "Missing locally",
-    "table_row_outdated": "Checksum mismatch",
-    "table_footnote": "Hashes are truncated for readability.",
+    "table_row_missing": "New file",
+    "table_row_outdated": "Update available",
     "no_updates": "All tracked files are up to date.",
     "hash_missing": "—",
     "orphaned_title": "Untracked local files",
-    "orphaned_none": "No extra local files detected."
+    "orphaned_none": "No extra local files detected.",
+    "files_to_update": "files to update",
+    "selected": "selected"
   },
   "docs_ui": {
     "page_title": "Documentation",
@@ -960,6 +979,7 @@
     "training_runtime_allow_tf32_description": "Enable TF32 for faster matrix operations on Ampere+ GPUs",
     "training_runtime_cudnn_benchmark_description": "Enable cuDNN benchmark for optimized convolution algorithms",
     "dataset_description": "Dataset configuration",
+    "dataset_input_size_description": "Edge length in pixels for the square input tensor (images will be resized to this dimension)",
     "dataset_image_extensions_description": "Supported image file extensions",
     "dataset_discovery_description": "Dataset discovery heuristics and coverage validation settings",
     "dataset_discovery_annotation_formats_description": "Annotation format specific thresholds used to classify dataset structure",
@@ -1317,8 +1337,8 @@
       "apply_nothing": "No updates were necessary."
     },
     "status": {
-      "missing": "Missing locally",
-      "outdated": "Checksum mismatch"
+      "missing": "New file",
+      "outdated": "Update available"
     }
   },
   "status": {

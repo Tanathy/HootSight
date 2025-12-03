@@ -1,6 +1,7 @@
 /**
  * HootSight - Localization Module
  * Loads language data from API and provides lang() function for text retrieval
+ * Supports live language switching without page refresh
  */
 
 const Lang = {
@@ -14,6 +15,16 @@ const Lang = {
      * Whether localization data has been loaded
      */
     _loaded: false,
+
+    /**
+     * Currently active language code
+     */
+    _activeLanguage: 'en',
+
+    /**
+     * Available languages list
+     */
+    _availableLanguages: [],
 
     /**
      * Load localization data from API
@@ -31,7 +42,9 @@ const Lang = {
             if (data.localization) {
                 this._strings = this._flatten(data.localization);
                 this._loaded = true;
-                console.log('Localization loaded:', Object.keys(this._strings).length, 'keys');
+                this._activeLanguage = data.active || 'en';
+                this._availableLanguages = data.languages || [];
+                console.log('Localization loaded:', Object.keys(this._strings).length, 'keys, active:', this._activeLanguage);
                 return true;
             }
             return false;
@@ -39,6 +52,101 @@ const Lang = {
             console.error('Failed to load localization:', err);
             return false;
         }
+    },
+
+    /**
+     * Switch to a different language
+     * @param {string} langCode - Language code (e.g., 'en', 'hu')
+     * @returns {Promise<boolean>} - Success status
+     */
+    switchLanguage: async function(langCode) {
+        if (langCode === this._activeLanguage) {
+            return true; // Already on this language
+        }
+
+        try {
+            const response = await fetch('/localization/switch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lang_code: langCode })
+            });
+
+            if (!response.ok) {
+                console.error('Failed to switch language:', response.statusText);
+                return false;
+            }
+
+            const data = await response.json();
+            if (data.localization) {
+                this._strings = this._flatten(data.localization);
+                this._activeLanguage = data.active || langCode;
+                
+                // Refresh all translatable elements on the page
+                this.refresh();
+                
+                console.log('Language switched to:', this._activeLanguage);
+                return true;
+            }
+            return false;
+        } catch (err) {
+            console.error('Failed to switch language:', err);
+            return false;
+        }
+    },
+
+    /**
+     * Refresh all elements with data-lang-key attribute
+     * Updates their text content with the new language strings
+     */
+    refresh: function() {
+        // Find all elements with data-lang-key
+        const elements = document.querySelectorAll('[data-lang-key]');
+        
+        elements.forEach(el => {
+            const key = el.getAttribute('data-lang-key');
+            const params = el.getAttribute('data-lang-params');
+            
+            let parsedParams = {};
+            if (params) {
+                try {
+                    parsedParams = JSON.parse(params);
+                } catch (e) {
+                    // Ignore parse errors
+                }
+            }
+            
+            const text = this.get(key, parsedParams);
+            
+            // Check if it's an input placeholder
+            if (el.hasAttribute('data-lang-placeholder')) {
+                el.placeholder = text;
+            } else if (el.hasAttribute('data-lang-title')) {
+                el.title = text;
+            } else {
+                el.textContent = text;
+            }
+        });
+
+        // Dispatch custom event for components that need special refresh handling
+        document.dispatchEvent(new CustomEvent('lang:refresh', { 
+            detail: { language: this._activeLanguage } 
+        }));
+    },
+
+    /**
+     * Get currently active language code
+     * @returns {string}
+     */
+    getActiveLanguage: function() {
+        return this._activeLanguage;
+    },
+
+    /**
+     * Get list of available languages
+     * @returns {Array<{code: string, name: string}>}
+     */
+    getAvailableLanguages: function() {
+        return this._availableLanguages;
     },
 
     /**

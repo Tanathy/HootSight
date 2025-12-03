@@ -56,6 +56,10 @@ class Switch {
         if (this.options.label) {
             this.labelEl = Q('<label>', { class: 'widget-label switch-label', text: this.options.label }).get(0);
             this.labelEl.setAttribute('for', this.id + '-input');
+            // Add lang key attribute for live translation
+            if (this.options.labelLangKey) {
+                this.labelEl.setAttribute('data-lang-key', this.options.labelLangKey);
+            }
             this.switchRow.appendChild(this.labelEl);
         }
         
@@ -82,6 +86,10 @@ class Switch {
         // Description
         if (this.options.description) {
             this.descEl = Q('<div>', { class: 'widget-description', text: this.options.description }).get(0);
+            // Add lang key attribute for live translation
+            if (this.options.descriptionLangKey) {
+                this.descEl.setAttribute('data-lang-key', this.options.descriptionLangKey);
+            }
             this.element.appendChild(this.descEl);
         }
         

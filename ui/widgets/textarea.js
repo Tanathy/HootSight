@@ -61,6 +61,10 @@ class Textarea {
         if (this.options.label) {
             this.labelEl = Q('<label>', { class: 'widget-label', text: this.options.label }).get(0);
             this.labelEl.setAttribute('for', this.id + '-input');
+            // Add lang key attribute for live translation
+            if (this.options.labelLangKey) {
+                this.labelEl.setAttribute('data-lang-key', this.options.labelLangKey);
+            }
             this.element.appendChild(this.labelEl);
         }
         
@@ -71,6 +75,11 @@ class Textarea {
         
         if (this.options.placeholder) {
             this.textarea.placeholder = this.options.placeholder;
+            // Add lang key for placeholder
+            if (this.options.placeholderLangKey) {
+                this.textarea.setAttribute('data-lang-key', this.options.placeholderLangKey);
+                this.textarea.setAttribute('data-lang-placeholder', 'true');
+            }
         }
         if (this.options.minLength !== null) {
             this.textarea.minLength = this.options.minLength;
@@ -87,6 +96,10 @@ class Textarea {
         // Description
         if (this.options.description) {
             this.descEl = Q('<div>', { class: 'widget-description', text: this.options.description }).get(0);
+            // Add lang key attribute for live translation
+            if (this.options.descriptionLangKey) {
+                this.descEl.setAttribute('data-lang-key', this.options.descriptionLangKey);
+            }
             this.element.appendChild(this.descEl);
         }
         

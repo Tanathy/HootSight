@@ -17,8 +17,14 @@ const Navigation = {
         { order: 4, page: 'performance', langKey: 'nav.performance' },
         { order: 5, page: 'heatmap', langKey: 'nav.heatmap' },
         { order: 6, page: 'inference', langKey: 'nav.inference' },
-        { order: 7, page: 'settings', langKey: 'nav.settings' }
+        { order: 7, page: 'settings', langKey: 'nav.settings' },
+        { order: 8, page: 'updates', langKey: 'nav.updates' }
     ],
+
+    /**
+     * Language dropdown element reference
+     */
+    _langDropdown: null,
 
     /**
      * Build and render navigation items
@@ -51,10 +57,70 @@ const Navigation = {
             const label = document.createElement('span');
             label.className = 'nav-item-label';
             label.textContent = lang(item.langKey);
+            label.setAttribute('data-lang-key', item.langKey);
 
             navItem.appendChild(label);
             container.appendChild(navItem);
         });
+
+        // Build language selector in sidebar footer
+        this._buildLanguageSelector();
+    },
+
+    /**
+     * Build the language selector dropdown in sidebar footer
+     * Uses the Dropdown widget for consistent styling
+     */
+    _buildLanguageSelector: function() {
+        const sidebar = document.querySelector('.sidebar');
+        if (!sidebar) return;
+
+        // Remove existing footer if any
+        const existingFooter = sidebar.querySelector('.sidebar-footer');
+        if (existingFooter) {
+            existingFooter.remove();
+        }
+
+        // Get available languages
+        const activeCode = Lang.getActiveLanguage();
+        const languages = Lang.getAvailableLanguages();
+
+        if (!languages || languages.length === 0) {
+            return; // No languages available
+        }
+
+        // Build options and labels for Dropdown widget
+        const options = languages.map(l => l.code);
+        const optionLabels = {};
+        languages.forEach(l => {
+            optionLabels[l.code] = l.name;
+        });
+
+        // Create footer container
+        const footer = document.createElement('div');
+        footer.className = 'sidebar-footer';
+
+        // Create Dropdown widget
+        this._langDropdown = new Dropdown('language-selector', {
+            label: lang('ui.language_select_title'),
+            labelLangKey: 'ui.language_select_title',
+            description: '',
+            options: options,
+            optionLabels: optionLabels,
+            default: activeCode
+        });
+
+        // Handle language change
+        this._langDropdown.onChange(async (newCode) => {
+            const success = await Lang.switchLanguage(newCode);
+            if (!success) {
+                // Revert to previous value on failure
+                this._langDropdown.set(activeCode);
+            }
+        });
+
+        footer.appendChild(this._langDropdown.getElement());
+        sidebar.appendChild(footer);
     },
 
     /**

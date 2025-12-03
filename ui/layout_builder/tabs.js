@@ -31,15 +31,21 @@ class Tabs {
      * @param {string} tabId - Unique tab identifier
      * @param {string} label - Tab button label
      * @param {HTMLElement|null} content - Tab panel content (optional, can add later)
+     * @param {Object} options - Optional settings (e.g., langKey for localization)
      * @returns {Tabs} - Returns self for chaining
      */
-    addTab(tabId, label, content = null) {
+    addTab(tabId, label, content = null, options = {}) {
         // Create tab button
         const button = Q('<button>', { 
             class: 'tab-button',
             text: label
         }).get(0);
         button.dataset.tab = tabId;
+        
+        // Add lang key for live translation
+        if (options.langKey) {
+            button.setAttribute('data-lang-key', options.langKey);
+        }
         
         // Create tab panel
         const panel = Q('<div>', { class: 'tab-panel' }).get(0);
@@ -57,7 +63,7 @@ class Tabs {
         Q(button).on('click', () => this.activate(tabId));
         
         // Store tab info
-        this.tabs.push({ id: tabId, label, button, panel });
+        this.tabs.push({ id: tabId, label, button, panel, langKey: options.langKey });
         
         // Add to DOM
         this.header.appendChild(button);
