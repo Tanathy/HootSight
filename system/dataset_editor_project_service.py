@@ -32,7 +32,7 @@ from system.dataset_editor_models import (
 from system.dataset_editor_settings import get_dataset_editor_settings
 from system.duplicate_detection import scan_for_duplicates
 from system.log import warning, info
-from system import characteristics_db
+from system import project_db
 
 if TYPE_CHECKING:
     from system.dataset_editor_discovery import DiscoveryJob
@@ -260,7 +260,7 @@ class ProjectIndex:
             duration_seconds=duration,
         )
 
-        # Save computed stats to characteristics.db after discovery
+        # Save computed stats to project.db after discovery
         self.save_computed_stats()
 
         if job:
@@ -898,7 +898,7 @@ class ProjectIndex:
 
     def save_computed_stats(self) -> bool:
         """
-        Compute stats and save them to characteristics.db for caching.
+        Compute stats and save them to project.db for caching.
         Called after discovery/sync or on explicit refresh.
         """
         try:
@@ -907,7 +907,7 @@ class ProjectIndex:
             label_dist = stats_model.label_distribution or {}
             balance_anal = stats_model.balance_analysis or {}
             
-            # Build stats dict for characteristics_db.save_stats()
+            # Build stats dict for project_db.save_stats()
             stats_dict = {
                 "dataset_type": "multi_label",  # or detect from project config
                 "image_count": stats_model.total_images,
@@ -924,8 +924,8 @@ class ProjectIndex:
                 "has_model_dir": (self.root / "model").exists(),
             }
             
-            # Save to characteristics.db
-            characteristics_db.save_stats(self.name, stats_dict)
+            # Save to project.db
+            project_db.save_stats(self.name, stats_dict)
             
             info(f"Saved computed stats for project {self.name}: {stats_model.total_images} images, {len(label_dist)} labels")
             return True

@@ -186,7 +186,7 @@ const API = {
         },
 
         /**
-         * Set project config value (saves to characteristics.db)
+         * Set project config value (saves to project.db)
          * @param {string} projectName - Project name
          * @param {string} key - Config key (e.g., 'training.input_size')
          * @param {any} value - Config value

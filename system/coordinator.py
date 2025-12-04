@@ -15,7 +15,7 @@ from system.optimizers import get_optimizer_for_model
 from system.schedulers import get_scheduler_for_training
 from system.losses import get_loss_for_task
 from system.weight_init import WeightInitFactory
-from system.characteristics_db import list_metadata, flat_to_nested
+from system.project_db import list_metadata, flat_to_nested
 from system.common.deep_merge import deep_merge_json
 from system.project_labels import persist_project_labels
 
@@ -380,14 +380,14 @@ class TrainingCoordinator:
             except Exception as e:
                 warning(f"Failed to load project settings: {e}")
         
-        # STEP 2: Load characteristics.db metadata overrides (priority!)
+        # STEP 2: Load project.db metadata overrides (priority!)
         # These are set via the UI and override everything else
         db_overrides = list_metadata(project_name)
         if db_overrides:
             # Convert flat keys like "training.task" to nested {"training": {"task": ...}}
             nested_overrides = flat_to_nested(db_overrides)
             self.settings = deep_merge_json(self.settings, nested_overrides)
-            info(f"Applied {len(db_overrides)} project overrides from characteristics.db")
+            info(f"Applied {len(db_overrides)} project overrides from project.db")
             
             # Override model_type and model_name if specified in metadata
             if 'training.model_type' in db_overrides:

@@ -42,18 +42,18 @@ def compute_crop_box(width: int, height: int, bounds: BoundsModel) -> Tuple[int,
     return left, top, right, bottom
 
 class BuildCache:
-    """Build cache using characteristics.db (SQLite) instead of shelve files."""
+    """Build cache using project.db (SQLite) instead of shelve files."""
     def __init__(self, project: "ProjectIndex"):
         self._project_name = project.root.name
 
     def snapshot(self) -> Dict[str, dict]:
-        from system import characteristics_db as cdb
+        from system import project_db as cdb
         return cdb.build_cache_load(self._project_name)
 
     def commit(self, updates: Dict[str, dict], deletions: Iterable[str]) -> None:
         if not updates and not deletions:
             return
-        from system import characteristics_db as cdb
+        from system import project_db as cdb
         cdb.build_cache_update(self._project_name, updates, list(deletions))
 
 class BuildJob:

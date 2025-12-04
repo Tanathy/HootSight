@@ -22,7 +22,7 @@ from torchvision import transforms as tv_transforms
 from system.log import info, success, error, warning
 from system.coordinator_settings import SETTINGS
 from system.dataset_discovery import discover_projects, get_project_info, get_image_files, compute_project_stats
-from system.characteristics_db import (
+from system.project_db import (
     get_cached_stats,
     save_stats,
     stats_exist,
@@ -816,7 +816,7 @@ def create_app() -> FastAPI:
         """
         Compute and cache full statistics for a project.
         This is the expensive operation - use sparingly.
-        Results are saved to characteristics.db for future quick access.
+        Results are saved to project.db for future quick access.
         """
         try:
             # Full stats computation
@@ -901,7 +901,7 @@ def create_app() -> FastAPI:
 
     @app.post("/dataset/editor/projects/{project_name}/stats/refresh")
     def dataset_editor_refresh_stats(project_name: str) -> Dict[str, Any]:
-        """Recompute and save project statistics to characteristics.db, return updated stats"""
+        """Recompute and save project statistics to project.db, return updated stats"""
         project = _get_dataset_editor_project(project_name)
         success = project.save_computed_stats()
         
@@ -917,7 +917,7 @@ def create_app() -> FastAPI:
 
     @app.post("/dataset/editor/projects/{project_name}/dataset-type")
     def dataset_editor_set_dataset_type(project_name: str, payload: Dict[str, str] = Body(...)) -> Dict[str, Any]:
-        """Save user-selected dataset type to characteristics.db"""
+        """Save user-selected dataset type to project.db"""
         dataset_type = payload.get("type", "unknown")
         # Don't save "auto" - that's not a real type
         if dataset_type == "auto":
@@ -927,7 +927,7 @@ def create_app() -> FastAPI:
 
     @app.get("/dataset/editor/projects/{project_name}/dataset-type")
     def dataset_editor_get_dataset_type(project_name: str) -> Dict[str, Any]:
-        """Get user-selected dataset type from characteristics.db"""
+        """Get user-selected dataset type from project.db"""
         dataset_type = get_metadata(project_name, "dataset_type", "unknown")
         return {"type": dataset_type}
 

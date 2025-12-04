@@ -1,5 +1,5 @@
 """
-Characteristics database for project metadata, statistics, and build cache.
+Project database for project metadata, statistics, and build cache.
 
 This module provides a SQLite-based storage layer for:
 - Project statistics (balance scores, analysis results)
@@ -8,7 +8,7 @@ This module provides a SQLite-based storage layer for:
 - Generic key-value metadata storage
 
 Statistics are only computed on explicit request and cached for quick retrieval.
-The database file is stored as 'characteristics.db' in each project folder.
+The database file is stored as 'project.db' in each project folder.
 """
 
 import os
@@ -24,7 +24,7 @@ from system.log import info, warning, error
 from system.coordinator_settings import SETTINGS
 
 
-_DB_FILENAME = "characteristics.db"
+_DB_FILENAME = "project.db"
 _local = threading.local()
 
 
@@ -760,7 +760,7 @@ def db_exists(project_name: str) -> bool:
 
 def migrate_from_dataset_index(project_name: str) -> bool:
     """
-    Migrate data from old dataset_index.db to new characteristics.db.
+    Migrate data from old dataset_index.db to new project.db.
     Returns True if migration was performed.
     """
     old_path = _get_projects_root() / project_name / "dataset_index.db"
@@ -781,7 +781,7 @@ def migrate_from_dataset_index(project_name: str) -> bool:
     # Rename old to new
     try:
         old_path.rename(new_path)
-        info(f"Migrated dataset_index.db to characteristics.db for {project_name}")
+        info(f"Migrated dataset_index.db to project.db for {project_name}")
         return True
     except OSError as ex:
         warning(f"Failed to migrate database for {project_name}: {ex}")

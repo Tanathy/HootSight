@@ -7,7 +7,7 @@ import copy
 from system.log import info, success, error
 from system.coordinator import create_coordinator
 from system.coordinator_settings import SETTINGS
-from system import characteristics_db
+from system import project_db
 
 
 class TrainingManager:
@@ -372,8 +372,8 @@ class TrainingManager:
                     epoch_metrics['learning_rate'] = train_metrics['learning_rate']
                 training_history.append(epoch_metrics)
 
-                # Save to characteristics.db training_history table
-                characteristics_db.training_history_record(
+                # Save to project.db training_history table
+                project_db.training_history_record(
                     project_name=project_name,
                     training_id=training_id,
                     epoch=epoch + 1,

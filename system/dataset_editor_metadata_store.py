@@ -3,12 +3,12 @@ from __future__ import annotations
 """
 Dataset Editor Metadata Store - Legacy compatibility wrapper.
 
-This module wraps the centralized characteristics_db for dataset editor operations.
-The actual storage is now in characteristics.db (SQLite) using:
+This module wraps the centralized project_db for dataset editor operations.
+The actual storage is now in project.db (SQLite) using:
 - snapshots table: image metadata with hash-based IDs
 - build_cache table: incremental build data
 
-Legacy methods are preserved for backward compatibility but delegate to characteristics_db.
+Legacy methods are preserved for backward compatibility but delegate to project_db.
 """
 
 import json
@@ -17,7 +17,7 @@ from threading import RLock
 from typing import Dict, Iterable, Optional
 
 from system.log import warning
-from system import characteristics_db as cdb
+from system import project_db as cdb
 
 
 def _dump_json(data: dict) -> str:
@@ -66,10 +66,10 @@ def _convert_from_new_format(new_data: dict) -> dict:
 
 class EditorStore:
     """
-    Dataset Editor Store - now backed by characteristics.db.
+    Dataset Editor Store - now backed by project.db.
     
     This class provides the same interface as before but delegates
-    all storage operations to the centralized characteristics_db module.
+    all storage operations to the centralized project_db module.
     """
 
     def __init__(self, project_root: Path):
