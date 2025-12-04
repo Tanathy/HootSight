@@ -17,6 +17,7 @@ from system.losses import get_loss_for_task
 from system.weight_init import WeightInitFactory
 from system.characteristics_db import list_metadata, flat_to_nested
 from system.common.deep_merge import deep_merge_json
+from system.project_labels import persist_project_labels
 
 
 def _format_path_sample(paths: List[str], limit: int = 5) -> str:
@@ -412,6 +413,13 @@ class TrainingCoordinator:
         labels = base_labels if base_labels else project_info.labels
         self.config['labels'] = labels
         self.config['num_classes'] = len(labels)
+
+        persist_project_labels(
+            project_name,
+            labels,
+            self.config['task'],
+            self.config.get('projects_base_dir')
+        )
         
         # Sanity check - training with 0 classes makes no sense
         if self.config['num_classes'] == 0:

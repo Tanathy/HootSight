@@ -303,7 +303,7 @@ class ResNeXtModel:
             checkpoint['metrics'] = metrics
 
         torch.save(checkpoint, path)
-        info(f"Checkpoint saved to {path}")
+        info(f"Checkpoint saved to {path} with {len(labels or [])} labels")
 
     def load_checkpoint(self, path: str) -> Tuple[int, Dict[str, Any]]:
         """Load model checkpoint.

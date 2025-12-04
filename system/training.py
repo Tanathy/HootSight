@@ -414,7 +414,10 @@ class TrainingManager:
                     if 'best_model_filename' not in checkpoint_config:
                         raise ValueError("training.checkpoint.best_model_filename must be defined in config/config.json")
                     checkpoint_path = output_dir / checkpoint_config['best_model_filename']
-                    label_list = config.get('labels', [])
+                    if 'labels' not in config or not config['labels']:
+                        raise ValueError("Training config is missing the label list required for deterministic checkpoints")
+                    label_list = list(config['labels'])
+                    info(f"[DEBUG] Saving checkpoint with labels: {label_list} (count: {len(label_list)})")
                     model.save_checkpoint(
                         str(checkpoint_path),
                         epoch + 1,

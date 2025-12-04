@@ -271,27 +271,38 @@ class SqueezeNetModel:
         accuracy = 100. * correct / total if total > 0 else 0.0
         return build_epoch_result(avg_loss=avg_loss, phase='val', accuracy=accuracy)
 
-    def save_checkpoint(self, path: str, epoch: int, best_accuracy: float,
-                       labels: Optional[List[str]] = None):
+    def save_checkpoint(self, path: str, epoch: int, optimizer: optim.Optimizer,
+                       scheduler: Optional[optim.lr_scheduler._LRScheduler] = None,
+                       metrics: Optional[Dict[str, float]] = None,
+                       labels: Optional[List[str]] = None) -> None:
         """Save model checkpoint.
 
         Args:
             path: Path to save checkpoint
             epoch: Current epoch
-            best_accuracy: Best validation accuracy achieved
+            optimizer: Optimizer state
+            scheduler: Scheduler state (optional)
+            metrics: Training metrics (optional)
             labels: Class label names in index order (optional but recommended)
         """
         checkpoint = {
             'epoch': epoch,
             'model_state_dict': self.model.state_dict(),
-            'best_accuracy': best_accuracy,
+            'optimizer_state_dict': optimizer.state_dict(),
             'model_name': self.model_name,
             'num_classes': self.num_classes,
             'task': self.task,
             'labels': labels or []
         }
+
+        if scheduler:
+            checkpoint['scheduler_state_dict'] = scheduler.state_dict()
+
+        if metrics:
+            checkpoint['metrics'] = metrics
+
         torch.save(checkpoint, path)
-        info(f"Checkpoint saved to {path}")
+        info(f"Checkpoint saved to {path} with {len(labels or [])} labels")
 
     def load_checkpoint(self, path: str) -> Dict[str, Any]:
         """Load model checkpoint.

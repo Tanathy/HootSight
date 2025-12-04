@@ -20,6 +20,7 @@ from system.log import info, warning, error
 from system.coordinator_settings import SETTINGS
 from system.dataset_discovery import get_project_info
 from system.models.resnet import ResNetModel
+from system.project_labels import load_project_labels
 
 
 # Model cache: stores loaded models to avoid redundant loading
@@ -412,8 +413,10 @@ def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
     if not task:
         raise ValueError("training.task must be defined in config/config.json")
 
-    # Prefer labels from checkpoint (embedded during training), fallback to discovery
+    # Prefer labels from checkpoint (embedded during training), fallback to persisted manifest then discovery
     labels = ckpt_data.get('labels') or []
+    if not labels:
+        labels = load_project_labels(project_name)
     if not labels:
         labels = proj.labels or []
 
