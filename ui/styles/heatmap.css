@@ -56,6 +56,24 @@
     gap: var(--spacing-sm);
 }
 
+.heatmap-header-center {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.heatmap-header-center .switch-container {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.heatmap-header-center .switch-text {
+    color: var(--text-secondary);
+    font-size: var(--font-normal);
+    white-space: nowrap;
+}
+
 .heatmap-project-label {
     color: var(--text-secondary);
     font-size: var(--font-normal);

@@ -72,7 +72,11 @@ const TrainingMonitor = {
         epochLoss: null,
         epochAccuracy: null,
         valLoss: null,
-        valAccuracy: null
+        valAccuracy: null,
+        trainStepLoss: null,
+        valStepLoss: null,
+        trainStepAccuracy: null,
+        valStepAccuracy: null
     },
 
     /**
@@ -152,10 +156,40 @@ const TrainingMonitor = {
      */
     getLatestMetrics: function() {
         const metrics = { ...this._latestMetrics };
+        const lastValue = (collection, phase = null) => {
+            for (let i = collection.length - 1; i >= 0; i--) {
+                const entry = collection[i];
+                if (!phase || entry.phase === phase) {
+                    return entry.value;
+                }
+            }
+            return null;
+        };
         
         // If any metric is null but we have history, use last history value
-        if (metrics.loss === null && this._history.stepLoss.length > 0) {
-            metrics.loss = this._history.stepLoss[this._history.stepLoss.length - 1].value;
+        if (metrics.loss === null) {
+            const last = lastValue(this._history.stepLoss);
+            if (last !== null) metrics.loss = last;
+        }
+        if (metrics.trainStepLoss === null) {
+            const lastTrainLoss = lastValue(this._history.stepLoss, 'train');
+            if (lastTrainLoss !== null) metrics.trainStepLoss = lastTrainLoss;
+        }
+        if (metrics.valStepLoss === null) {
+            const lastValLoss = lastValue(this._history.stepLoss, 'val');
+            if (lastValLoss !== null) metrics.valStepLoss = lastValLoss;
+        }
+        if (metrics.accuracy === null) {
+            const lastAcc = lastValue(this._history.stepAccuracy);
+            if (lastAcc !== null) metrics.accuracy = lastAcc;
+        }
+        if (metrics.trainStepAccuracy === null) {
+            const lastTrainAcc = lastValue(this._history.stepAccuracy, 'train');
+            if (lastTrainAcc !== null) metrics.trainStepAccuracy = lastTrainAcc;
+        }
+        if (metrics.valStepAccuracy === null) {
+            const lastValAcc = lastValue(this._history.stepAccuracy, 'val');
+            if (lastValAcc !== null) metrics.valStepAccuracy = lastValAcc;
         }
         if (metrics.learningRate === null && this._history.learningRate.length > 0) {
             metrics.learningRate = this._history.learningRate[this._history.learningRate.length - 1].value;
@@ -197,7 +231,11 @@ const TrainingMonitor = {
             epochLoss: null,
             epochAccuracy: null,
             valLoss: null,
-            valAccuracy: null
+            valAccuracy: null,
+            trainStepLoss: null,
+            valStepLoss: null,
+            trainStepAccuracy: null,
+            valStepAccuracy: null
         };
         this._state = {
             status: 'idle',
@@ -273,6 +311,11 @@ const TrainingMonitor = {
                         value: metrics.step_loss
                     });
                     this._latestMetrics.loss = metrics.step_loss;
+                    if (phase === 'train') {
+                        this._latestMetrics.trainStepLoss = metrics.step_loss;
+                    } else if (phase === 'val') {
+                        this._latestMetrics.valStepLoss = metrics.step_loss;
+                    }
                 }
                 
                 if (metrics.step_accuracy !== undefined) {
@@ -283,6 +326,11 @@ const TrainingMonitor = {
                         value: metrics.step_accuracy
                     });
                     this._latestMetrics.accuracy = metrics.step_accuracy;
+                    if (phase === 'train') {
+                        this._latestMetrics.trainStepAccuracy = metrics.step_accuracy;
+                    } else if (phase === 'val') {
+                        this._latestMetrics.valStepAccuracy = metrics.step_accuracy;
+                    }
                 }
                 
                 if (metrics.learning_rate !== undefined) {

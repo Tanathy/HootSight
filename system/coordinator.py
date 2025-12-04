@@ -1,9 +1,10 @@
-from typing import Dict, Any, Optional, Tuple, List
+from typing import Dict, Any, Optional, Tuple, List, Set
 import os
 import json
 from pathlib import Path
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
+from PIL import Image
 
 from system.log import info, success, warning, error
 from system.coordinator_settings import SETTINGS
@@ -16,6 +17,184 @@ from system.losses import get_loss_for_task
 from system.weight_init import WeightInitFactory
 from system.characteristics_db import list_metadata, flat_to_nested
 from system.common.deep_merge import deep_merge_json
+
+
+def _format_path_sample(paths: List[str], limit: int = 5) -> str:
+    sample = ', '.join(Path(p).name for p in paths[:limit])
+    if len(paths) > limit:
+        sample += ', ...'
+    return sample
+
+
+def _read_annotation_file(txt_path: str) -> List[str]:
+    labels: List[str] = []
+    try:
+        with open(txt_path, 'r', encoding='utf-8') as handle:
+            for raw_line in handle:
+                line = raw_line.strip()
+                if not line:
+                    continue
+                parts = [segment.strip() for segment in line.split(',') if segment.strip()]
+                labels.extend(parts)
+    except FileNotFoundError:
+        raise
+    except Exception as exc:
+        raise ValueError(f"Failed to read labels from '{txt_path}': {exc}") from exc
+
+    # Preserve order but drop duplicates
+    seen: Set[str] = set()
+    deduped: List[str] = []
+    for label in labels:
+        if label not in seen:
+            seen.add(label)
+            deduped.append(label)
+    return deduped
+
+
+def _read_labels_for_image(img_path: str) -> List[str]:
+    """Read mandatory comma-separated labels from the sibling .txt file."""
+    txt_path = os.path.splitext(img_path)[0] + '.txt'
+    if not os.path.exists(txt_path):
+        raise FileNotFoundError(f"Missing annotation txt for '{img_path}' (expected '{txt_path}')")
+
+    labels = _read_annotation_file(txt_path)
+    if not labels:
+        raise ValueError(f"No labels defined inside '{txt_path}'. Provide at least one comma-separated tag.")
+    return labels
+
+
+def _build_label_cache(image_paths: List[str], labels_map: Dict[str, int]) -> Dict[str, List[str]]:
+    cache: Dict[str, List[str]] = {}
+    missing_files: List[str] = []
+    empty_or_invalid: List[str] = []
+    skipped_unknown_images: List[str] = []
+    unknown_labels: Set[str] = set()
+
+    for img_path in image_paths:
+        try:
+            labels = _read_labels_for_image(img_path)
+        except FileNotFoundError:
+            missing_files.append(img_path)
+            continue
+        except ValueError:
+            empty_or_invalid.append(img_path)
+            continue
+
+        filtered_labels = [label for label in labels if label in labels_map]
+        unknown = [label for label in labels if label not in labels_map]
+        if unknown:
+            unknown_labels.update(unknown)
+        if not filtered_labels:
+            skipped_unknown_images.append(img_path)
+            continue
+
+        cache[img_path] = filtered_labels
+
+    if missing_files:
+        warning(
+            f"Skipped {len(missing_files)} images missing annotation files (e.g., {_format_path_sample(missing_files)})."
+        )
+
+    if empty_or_invalid:
+        warning(
+            f"Skipped {len(empty_or_invalid)} annotation files because they were empty or malformed (e.g., {_format_path_sample(empty_or_invalid)})."
+        )
+
+    if skipped_unknown_images:
+        warning(
+            f"Skipped {len(skipped_unknown_images)} images referencing labels that are not registered in project metadata (e.g., {_format_path_sample(skipped_unknown_images)})."
+        )
+
+    if unknown_labels:
+        sample_labels = ', '.join(sorted(list(unknown_labels))[:5])
+        if len(unknown_labels) > 5:
+            sample_labels += ', ...'
+        warning(
+            f"Unknown labels detected: {sample_labels}. Refresh project statistics to sync the label space."
+        )
+
+    if not cache:
+        raise ValueError("No valid annotated samples remain after filtering invalid files.")
+
+    info(f"Using {len(cache)} of {len(image_paths)} images after removing invalid annotations.")
+
+    return cache
+
+
+class CustomImageDataset(Dataset):
+    """Dataset for single-label image classification."""
+    def __init__(self, image_paths: List[str], labels: List[int], transform=None):
+        self.image_paths = image_paths
+        self.labels = labels
+        self.transform = transform
+
+    def __len__(self) -> int:
+        return len(self.image_paths)
+
+    def __getitem__(self, idx: int):
+        p = self.image_paths[idx]
+        img = Image.open(p).convert('RGB')
+        label = self.labels[idx]
+        if self.transform:
+            img = self.transform(img)
+        return img, label
+
+
+class MultiLabelDataset(Dataset):
+    """Dataset for multi-label image classification."""
+    def __init__(self, paths: List[str], labels_map: Dict[str, int], label_count: int, transform=None):
+        self.paths = paths
+        self.labels_map = labels_map
+        self.label_count = label_count
+        self.transform = transform
+        self._label_cache = _build_label_cache(self.paths, labels_map)
+        self.paths = [p for p in self.paths if p in self._label_cache]
+
+    def __len__(self) -> int:
+        return len(self.paths)
+
+    def __getitem__(self, i: int):
+        p = self.paths[i]
+        img = Image.open(p).convert('RGB')
+        labs = self._label_cache[p]
+        target = torch.zeros(self.label_count, dtype=torch.float32)
+        for lab in labs:
+            if lab in self.labels_map:
+                target[self.labels_map[lab]] = 1.0
+        if self.transform:
+            img = self.transform(img)
+        return img, target
+
+
+class MultiLabelFolderDataset(Dataset):
+    """Dataset for multi-label classification with train/val folder structure."""
+    def __init__(self, root: str, labels_map: Dict[str, int], label_count: int, transform=None):
+        import glob
+        self.transform = transform
+        self.labels_map = labels_map
+        self.label_count = label_count
+        exts = ['*.jpg', '*.jpeg', '*.png', '*.bmp', '*.gif', '*.tiff', '*.webp']
+        self.images: List[str] = []
+        for ext in exts:
+            self.images.extend(glob.glob(os.path.join(root, '**', ext), recursive=True))
+        self.images = [p for p in self.images if os.path.isfile(p)]
+        self._label_cache = _build_label_cache(self.images, labels_map)
+        self.images = [p for p in self.images if p in self._label_cache]
+
+    def __len__(self) -> int:
+        return len(self.images)
+
+    def __getitem__(self, idx: int):
+        path = self.images[idx]
+        img = Image.open(path).convert('RGB')
+        labs = self._label_cache[path]
+        target = torch.zeros(self.label_count, dtype=torch.float32)
+        for lab in labs:
+            if lab in self.labels_map:
+                target[self.labels_map[lab]] = 1.0
+        if self.transform:
+            img = self.transform(img)
+        return img, target
 
 
 class TrainingCoordinator:
@@ -210,6 +389,9 @@ class TrainingCoordinator:
             info(f"Applied {len(db_overrides)} project overrides from characteristics.db")
             
             # Override model_type and model_name if specified in metadata
+            if 'training.model_type' in db_overrides:
+                self.model_type = db_overrides['training.model_type']
+                info(f"Using model type override from project settings: {self.model_type}")
             if 'training.model_name' in db_overrides:
                 self.model_name = db_overrides['training.model_name']
                 info(f"Using model from project settings: {self.model_name}")
@@ -401,10 +583,7 @@ class TrainingCoordinator:
 
     def _prepare_data_loaders(self) -> Tuple[DataLoader, DataLoader]:
         from torchvision import datasets, transforms
-        from torch.utils.data import random_split, Dataset
-        from PIL import Image
-        import glob, os
-        import torch
+        import glob
         import copy
 
         image_size = int(self.config['input']['image_size'])
@@ -473,50 +652,10 @@ class TrainingCoordinator:
                     train_dataset = datasets.ImageFolder(train_path, transform=train_transform)
                     val_dataset = datasets.ImageFolder(val_path, transform=val_transform)
                 else:
-                    def read_labels_for_image(img_path: str) -> List[str]:
-                        txt_path = os.path.splitext(img_path)[0] + '.txt'
-                        labels_for_img: List[str] = []
-                        if os.path.exists(txt_path):
-                            try:
-                                with open(txt_path, 'r', encoding='utf-8') as f:
-                                    for line in f:
-                                        line = line.strip()
-                                        if line:
-                                            parts = [p.strip() for p in line.split(',') if p.strip()]
-                                            labels_for_img.extend(parts)
-                            except Exception:
-                                pass
-                        if not labels_for_img:
-                            labels_for_img = [os.path.basename(os.path.dirname(img_path))]
-                        return labels_for_img
-
-                    class MultiLabelFolderDataset(Dataset):
-                        def __init__(self, root: str, transform=None):
-                            self.transform = transform
-                            exts = ['*.jpg','*.jpeg','*.png','*.bmp','*.gif','*.tiff','*.webp']
-                            self.images: List[str] = []
-                            for ext in exts:
-                                self.images.extend(glob.glob(os.path.join(root, '**', ext), recursive=True))
-                            self.images = [p for p in self.images if os.path.isfile(p)]
-                            self.labels_map = {name: idx for idx, name in enumerate(label_list)}
-
-                        def __len__(self) -> int:
-                            return len(self.images)
-
-                        def __getitem__(self, idx: int):
-                            path = self.images[idx]
-                            img = Image.open(path).convert('RGB')
-                            labs = read_labels_for_image(path)
-                            target = torch.zeros(len(label_list), dtype=torch.float32)
-                            for lab in labs:
-                                if lab in self.labels_map:
-                                    target[self.labels_map[lab]] = 1.0
-                            if self.transform:
-                                img = self.transform(img)
-                            return img, target
-
-                    train_dataset = MultiLabelFolderDataset(train_path, transform=train_transform)
-                    val_dataset = MultiLabelFolderDataset(val_path, transform=val_transform)
+                    labels_map = {name: idx for idx, name in enumerate(label_list)}
+                    label_count = len(label_list)
+                    train_dataset = MultiLabelFolderDataset(train_path, labels_map, label_count, transform=train_transform)
+                    val_dataset = MultiLabelFolderDataset(val_path, labels_map, label_count, transform=val_transform)
             else:
                 image_extensions = ['*.jpg', '*.jpeg', '*.png', '*.ppm', '*.bmp', '*.pgm', '*.tif', '*.tiff', '*.webp']
                 all_images: List[str] = []
@@ -539,21 +678,6 @@ class TrainingCoordinator:
                 if not valid_classes:
                     raise ValueError("No classes found with sufficient images (minimum 5 images per class)")
 
-                class CustomImageDataset(Dataset):
-                    def __init__(self, image_paths: List[str], labels: List[int], transform=None):
-                        self.image_paths = image_paths
-                        self.labels = labels
-                        self.transform = transform
-                    def __len__(self) -> int:
-                        return len(self.image_paths)
-                    def __getitem__(self, idx: int):
-                        p = self.image_paths[idx]
-                        img = Image.open(p).convert('RGB')
-                        label = self.labels[idx]
-                        if self.transform:
-                            img = self.transform(img)
-                        return img, label
-
                 all_image_paths: List[str] = []
                 all_labels: List[int] = []
                 class_to_idx: Dict[str, int] = {}
@@ -571,40 +695,9 @@ class TrainingCoordinator:
                     base_dataset_val = CustomImageDataset(all_image_paths, all_labels, val_transform)
                 else:
                     labels_map = {name: idx for idx, name in enumerate(label_list)}
-
-                    class MultiLabelDataset(Dataset):
-                        def __init__(self, paths: List[str], transform=None):
-                            self.paths = paths
-                            self.transform = transform
-                        def __len__(self) -> int:
-                            return len(self.paths)
-                        def __getitem__(self, i: int):
-                            p = self.paths[i]
-                            img = Image.open(p).convert('RGB')
-                            txt = os.path.splitext(p)[0] + '.txt'
-                            labs: List[str] = []
-                            if os.path.exists(txt):
-                                try:
-                                    with open(txt, 'r', encoding='utf-8') as f:
-                                        for line in f:
-                                            line = line.strip()
-                                            if line:
-                                                parts = [s.strip() for s in line.split(',') if s.strip()]
-                                                labs.extend(parts)
-                                except Exception:
-                                    pass
-                            if not labs:
-                                labs = [os.path.basename(os.path.dirname(p))]
-                            target = torch.zeros(len(label_list), dtype=torch.float32)
-                            for lab in labs:
-                                if lab in labels_map:
-                                    target[labels_map[lab]] = 1.0
-                            if self.transform:
-                                img = self.transform(img)
-                            return img, target
-
-                    base_dataset = MultiLabelDataset(all_image_paths, transform=train_transform)
-                    base_dataset_val = MultiLabelDataset(all_image_paths, transform=val_transform)
+                    label_count = len(label_list)
+                    base_dataset = MultiLabelDataset(all_image_paths, labels_map, label_count, transform=train_transform)
+                    base_dataset_val = MultiLabelDataset(all_image_paths, labels_map, label_count, transform=val_transform)
 
                 if 'split' not in self.config or 'val_ratio' not in self.config['split']:
                     raise ValueError("Missing required 'config.split.val_ratio' to split dataset. Ensure 'training.val_ratio' is provided in config/config.json")

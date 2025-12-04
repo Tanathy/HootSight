@@ -43,10 +43,14 @@ def build_step_metrics(
     # Accuracy (if provided)
     if accuracy is not None:
         metrics['epoch_accuracy'] = accuracy
+        metrics['step_accuracy'] = accuracy
+        metrics['running_accuracy'] = accuracy
         if phase == 'train':
             metrics['train_accuracy'] = accuracy
+            metrics['train_step_accuracy'] = accuracy
         else:
             metrics['val_accuracy'] = accuracy
+            metrics['val_step_accuracy'] = accuracy
     
     # Learning rate (train phase only, requires optimizer)
     if phase == 'train' and optimizer is not None:

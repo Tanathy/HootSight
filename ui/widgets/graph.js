@@ -467,12 +467,22 @@ class Graph {
     }
     
     _formatValue(value) {
+        // Use Format utility if available, otherwise fallback
+        if (typeof Format !== 'undefined' && Format.graphAxis) {
+            return Format.graphAxis(value);
+        }
+        
+        // Fallback implementation
         if (Math.abs(value) >= 1000000) {
             return (value / 1000000).toFixed(1) + 'M';
         } else if (Math.abs(value) >= 1000) {
             return (value / 1000).toFixed(1) + 'K';
+        } else if (Math.abs(value) < 0.001 && value !== 0) {
+            const exp = Math.floor(Math.log10(Math.abs(value)));
+            const mantissa = value / Math.pow(10, exp);
+            return `${mantissa.toFixed(1)}e${exp}`;
         } else if (Math.abs(value) < 1 && value !== 0) {
-            return value.toFixed(2);
+            return value.toFixed(3);
         } else {
             return Math.round(value).toString();
         }

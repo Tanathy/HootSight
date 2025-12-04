@@ -286,7 +286,8 @@ class MobileNetModel:
 
     def save_checkpoint(self, path: str, epoch: int, optimizer: optim.Optimizer,
                        scheduler: Optional[optim.lr_scheduler._LRScheduler] = None,
-                       metrics: Optional[Dict[str, float]] = None) -> None:
+                       metrics: Optional[Dict[str, float]] = None,
+                       labels: Optional[List[str]] = None) -> None:
         """Save model checkpoint.
 
         Args:
@@ -295,13 +296,15 @@ class MobileNetModel:
             optimizer: Optimizer state
             scheduler: Scheduler state (optional)
             metrics: Training metrics (optional)
+            labels: Class label names in index order (optional but recommended)
         """
         checkpoint = {
             'epoch': epoch,
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
             'model_name': self.model_name,
-            'num_classes': self.num_classes
+            'num_classes': self.num_classes,
+            'labels': labels or []
         }
 
         if scheduler:

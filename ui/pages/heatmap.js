@@ -15,7 +15,7 @@ const HeatmapPage = {
     _container: null,
 
     /**
-     * Current image path (from dataset)
+     * Current image path - full path for refresh functionality
      */
     _currentImagePath: null,
 
@@ -23,6 +23,11 @@ const HeatmapPage = {
      * Is a custom uploaded image
      */
     _isUploadedImage: false,
+
+    /**
+     * Use live model (skip cache) setting
+     */
+    _useLiveModel: false,
 
     /**
      * UI element references
@@ -36,7 +41,8 @@ const HeatmapPage = {
         imageInfo: null,
         alphaSlider: null,
         refreshBtn: null,
-        randomBtn: null
+        randomBtn: null,
+        liveModelSwitch: null
     },
 
     /**
@@ -48,6 +54,7 @@ const HeatmapPage = {
         this._container = container;
         this._currentImagePath = null;
         this._isUploadedImage = false;
+        this._useLiveModel = false;
 
         // Check if project is selected (use global active project)
         const projectName = Config.getActiveProject();
@@ -102,6 +109,14 @@ const HeatmapPage = {
             <div class="heatmap-header-left">
                 <span class="heatmap-project-label">${lang('common.project_label')}</span>
                 <span class="heatmap-project-name">${projectName}</span>
+            </div>
+            <div class="heatmap-header-center">
+                <div class="switch-container">
+                    <div class="switch-track" id="heatmap-live-model-switch" tabindex="0">
+                        <div class="switch-thumb"></div>
+                    </div>
+                    <span class="switch-text">${lang('heatmap_page.live_model_switch')}</span>
+                </div>
             </div>
             <div class="heatmap-header-actions">
                 <button class="btn btn-secondary" id="heatmap-random-btn">
@@ -184,6 +199,7 @@ const HeatmapPage = {
         this._elements.alphaSlider = document.getElementById('heatmap-alpha');
         this._elements.refreshBtn = document.getElementById('heatmap-refresh-btn');
         this._elements.randomBtn = document.getElementById('heatmap-random-btn');
+        this._elements.liveModelSwitch = document.getElementById('heatmap-live-model-switch');
 
         // Setup event listeners
         this._setupEventListeners();
@@ -244,32 +260,53 @@ const HeatmapPage = {
 
         this._elements.alphaSlider?.addEventListener('change', async () => {
             if (this._currentImagePath && !this._isUploadedImage) {
-                await this._generateHeatmap(this._currentImagePath);
+                await this._refreshCurrentImage();
             }
         });
 
-        // Random button
+        // Live model switch (click toggles)
+        if (this._elements.liveModelSwitch) {
+            const switchEl = this._elements.liveModelSwitch;
+            const toggle = () => {
+                this._useLiveModel = !this._useLiveModel;
+                switchEl.classList.toggle('active', this._useLiveModel);
+            };
+            switchEl.addEventListener('click', toggle);
+            switchEl.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggle();
+                }
+            });
+        }
+
+        // Random button - loads new random image
         this._elements.randomBtn?.addEventListener('click', async () => {
             await this._loadRandomImage();
         });
 
-        // Refresh button
+        // Refresh button - re-evaluates current image
         this._elements.refreshBtn?.addEventListener('click', async () => {
-            if (this._currentImagePath) {
-                if (this._isUploadedImage) {
-                    // Re-evaluate the uploaded image using stored path
-                    await this._evaluateImage(this._currentImagePath);
-                } else {
-                    await this._generateHeatmap(this._currentImagePath);
-                }
-            } else {
-                await this._loadRandomImage();
-            }
+            await this._refreshCurrentImage();
         });
     },
 
     /**
-     * Load a random image from validation or dataset
+     * Refresh/re-evaluate current image
+     */
+    _refreshCurrentImage: async function() {
+        if (!this._currentImagePath) {
+            // No image loaded, get a random one
+            await this._loadRandomImage();
+            return;
+        }
+        
+        // Re-evaluate with the stored full image path
+        await this._evaluateImage(this._currentImagePath);
+    },
+
+    /**
+     * Load a random image from validation or data_source
      */
     _loadRandomImage: async function() {
         const projectName = Config.getActiveProject();
@@ -277,14 +314,21 @@ const HeatmapPage = {
 
         this._showLoading(true);
         this._isUploadedImage = false;
+        this._currentImagePath = null;
 
         try {
             // Use evaluate endpoint without image_path to get random
-            const result = await API.heatmap.evaluate(projectName);
+            // Pass useLiveModel to skip cache if enabled
+            const result = await API.heatmap.evaluate(projectName, null, null, this._useLiveModel);
             
             if (result.error) {
                 this._showError(result.error);
                 return;
+            }
+
+            // Store the full path for refresh functionality
+            if (result.full_image_path) {
+                this._currentImagePath = result.full_image_path;
             }
 
             this._displayResults(result);
@@ -296,24 +340,28 @@ const HeatmapPage = {
     },
 
     /**
-     * Generate heatmap for a specific image path
+     * Evaluate image with given path
      */
-    _generateHeatmap: async function(imagePath) {
+    _evaluateImage: async function(imagePath) {
         const projectName = Config.getActiveProject();
         if (!projectName) return;
 
         this._showLoading(true);
 
         try {
-            const alpha = (this._elements.alphaSlider?.value || 50) / 100;
-            const result = await API.heatmap.evaluate(projectName, imagePath);
+            // Pass useLiveModel to skip cache if enabled
+            const result = await API.heatmap.evaluate(projectName, imagePath, null, this._useLiveModel);
             
             if (result.error) {
                 this._showError(result.error);
                 return;
             }
 
-            this._currentImagePath = imagePath;
+            // Update stored path from response (in case it was normalized)
+            if (result.full_image_path) {
+                this._currentImagePath = result.full_image_path;
+            }
+
             this._displayResults(result);
         } catch (err) {
             this._showError(err.message);
@@ -331,6 +379,7 @@ const HeatmapPage = {
 
         this._showLoading(true);
         this._isUploadedImage = true;
+        this._currentImagePath = null;
 
         try {
             const result = await API.heatmap.evaluateUpload(projectName, file);
@@ -340,29 +389,9 @@ const HeatmapPage = {
                 return;
             }
 
-            this._displayResults(result);
-        } catch (err) {
-            this._showError(err.message);
-        } finally {
-            this._showLoading(false);
-        }
-    },
-
-    /**
-     * Evaluate image (for re-evaluation)
-     */
-    _evaluateImage: async function(imagePath) {
-        const projectName = Config.getActiveProject();
-        if (!projectName) return;
-
-        this._showLoading(true);
-
-        try {
-            const result = await API.heatmap.evaluate(projectName, imagePath);
-            
-            if (result.error) {
-                this._showError(result.error);
-                return;
+            // Store path for refresh (uploaded images get saved to validation folder)
+            if (result.full_image_path) {
+                this._currentImagePath = result.full_image_path;
             }
 
             this._displayResults(result);
@@ -473,6 +502,7 @@ const HeatmapPage = {
     cleanup: function() {
         this._currentImagePath = null;
         this._isUploadedImage = false;
+        this._useLiveModel = false;
         this._elements = {
             imageContainer: null,
             resultsContainer: null,
@@ -482,7 +512,8 @@ const HeatmapPage = {
             imageInfo: null,
             alphaSlider: null,
             refreshBtn: null,
-            randomBtn: null
+            randomBtn: null,
+            liveModelSwitch: null
         };
     }
 };

@@ -238,7 +238,7 @@ const TrainingController = {
             }
             
             if (metrics && metrics.loss !== null && metrics.loss !== undefined) {
-                text += ` - Loss: ${metrics.loss.toFixed(4)}`;
+                text += ` - Loss: ${Format.loss(metrics.loss)}`;
             }
             
             progressText.textContent = text;

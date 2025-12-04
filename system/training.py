@@ -178,6 +178,10 @@ class TrainingManager:
             proj_name = Path(ds_path).parts[-2] if ds_path else "unknown"
             prog = self.progress.get(training_id, {})
             updates = self._consume_updates(training_id)
+            best_accuracy = training_info.get('best_accuracy')
+            if best_accuracy is None:
+                best_accuracy = 0.0
+            best_val_loss = training_info.get('best_val_loss')
             try:
                 train_loader = training_info['config']['train_loader']
                 val_loader = training_info['config']['val_loader']
@@ -209,7 +213,8 @@ class TrainingManager:
                 "val_steps_per_epoch": val_steps,
                 "train_samples": train_samples,
                 "val_samples": val_samples,
-                "best_accuracy": 0.0,
+                "best_accuracy": best_accuracy,
+                "best_val_loss": best_val_loss,
                 "latest_metrics": latest_metrics,
                 "updates": updates
             }
@@ -409,28 +414,19 @@ class TrainingManager:
                     if 'best_model_filename' not in checkpoint_config:
                         raise ValueError("training.checkpoint.best_model_filename must be defined in config/config.json")
                     checkpoint_path = output_dir / checkpoint_config['best_model_filename']
+                    label_list = config.get('labels', [])
                     model.save_checkpoint(
                         str(checkpoint_path),
                         epoch + 1,
                         optimizer,
                         scheduler,
-                        epoch_metrics
+                        epoch_metrics,
+                        labels=label_list
                     )
                     info(f"New best model by {save_reason} -> checkpoint saved")
 
                 if callback:
                     callback(epoch + 1, num_epochs, epoch_metrics)
-
-            try:
-                checkpoint_config = SETTINGS['training']['checkpoint']
-            except Exception:
-                raise ValueError("Missing required 'training.checkpoint' section in config/config.json")
-            if 'training_history_filename' not in checkpoint_config:
-                raise ValueError("training.checkpoint.training_history_filename must be defined in config/config.json")
-            history_filename = checkpoint_config['training_history_filename']
-            history_path = output_dir / history_filename
-            with open(history_path, 'w') as f:
-                json.dump(training_history, f, indent=2)
 
             finished_normally = not stopped_early and not stop_signal.is_set()
 

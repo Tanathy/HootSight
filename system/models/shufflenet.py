@@ -275,13 +275,15 @@ class ShuffleNetModel:
         accuracy = 100. * correct / total if total > 0 else 0.0
         return build_epoch_result(avg_loss=avg_loss, phase='val', accuracy=accuracy)
 
-    def save_checkpoint(self, path: str, epoch: int, best_accuracy: float):
+    def save_checkpoint(self, path: str, epoch: int, best_accuracy: float,
+                       labels: Optional[List[str]] = None):
         """Save model checkpoint.
 
         Args:
             path: Path to save checkpoint
             epoch: Current epoch
             best_accuracy: Best validation accuracy achieved
+            labels: Class label names in index order (optional but recommended)
         """
         checkpoint = {
             'epoch': epoch,
@@ -289,7 +291,8 @@ class ShuffleNetModel:
             'best_accuracy': best_accuracy,
             'model_name': self.model_name,
             'num_classes': self.num_classes,
-            'task': self.task
+            'task': self.task,
+            'labels': labels or []
         }
         torch.save(checkpoint, path)
         info(f"Checkpoint saved to {path}")

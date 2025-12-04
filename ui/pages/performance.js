@@ -32,7 +32,9 @@ const PerformancePage = {
      * Training monitoring graphs
      */
     _trainingGraphs: {
-        stepLoss: null,
+        trainStepLoss: null,
+        valStepLoss: null,
+        stepAccuracy: null,
         learningRate: null,
         epochLoss: null,
         epochAccuracy: null
@@ -152,7 +154,9 @@ const PerformancePage = {
 
         container.innerHTML = '';
         this._trainingGraphs = {
-            stepLoss: null,
+            trainStepLoss: null,
+            valStepLoss: null,
+            stepAccuracy: null,
             learningRate: null,
             epochLoss: null,
             epochAccuracy: null
@@ -202,50 +206,92 @@ const PerformancePage = {
      * Create training graphs
      */
     _createTrainingGraphs: function(container, history, state) {
-        // Step Loss graph - max 100 points for performance
-        this._trainingGraphs.stepLoss = new Graph('step-loss', {
-            title: lang('performance_page.training.step_loss'),
+        // Train Step Loss graph - separate from validation
+        this._trainingGraphs.trainStepLoss = new Graph('train-step-loss', {
+            title: lang('performance_page.training.train_step_loss'),
             height: 180,
             unit: '',
-            yMin: null,  // Auto-scale
+            yMin: null,
             yMax: null,
-            maxPoints: 100,  // Limited for performance
-            colors: ['#ef4444', '#3b82f6'],
-            showLegend: true,
-            smooth: false,  // Disable animation for performance
+            maxPoints: 2000,
+            colors: ['#ef4444'],
+            showLegend: false,
+            smooth: false,
             animationDuration: 0
         });
-        this._trainingGraphs.stepLoss.addSeries('train', { label: lang('performance_page.training.train'), color: '#ef4444' });
-        this._trainingGraphs.stepLoss.addSeries('val', { label: lang('performance_page.training.validation'), color: '#3b82f6' });
+        this._trainingGraphs.trainStepLoss.addSeries('train', { label: lang('performance_page.training.train'), color: '#ef4444' });
         
-        // Restore step loss history (only last 100)
-        const stepLossToRestore = history.stepLoss.slice(-100);
-        stepLossToRestore.forEach(item => {
-            const series = item.phase === 'val' ? 'val' : 'train';
-            this._trainingGraphs.stepLoss.append(series, item.value);
+        history.stepLoss.filter(item => item.phase !== 'val').forEach(item => {
+            this._trainingGraphs.trainStepLoss.append('train', item.value);
         });
         
-        const stepLossCard = this._createGraphCard(this._trainingGraphs.stepLoss, 'step-loss-info');
-        container.appendChild(stepLossCard.card);
+        const trainStepLossCard = this._createGraphCard(this._trainingGraphs.trainStepLoss, 'train-step-loss-info');
+        container.appendChild(trainStepLossCard.card);
 
-        // Learning Rate graph
+        // Validation Step Loss graph - separate from training
+        this._trainingGraphs.valStepLoss = new Graph('val-step-loss', {
+            title: lang('performance_page.training.val_step_loss'),
+            height: 180,
+            unit: '',
+            yMin: null,
+            yMax: null,
+            maxPoints: 2000,
+            colors: ['#3b82f6'],
+            showLegend: false,
+            smooth: false,
+            animationDuration: 0
+        });
+        this._trainingGraphs.valStepLoss.addSeries('val', { label: lang('performance_page.training.validation'), color: '#3b82f6' });
+        
+        history.stepLoss.filter(item => item.phase === 'val').forEach(item => {
+            this._trainingGraphs.valStepLoss.append('val', item.value);
+        });
+        
+        const valStepLossCard = this._createGraphCard(this._trainingGraphs.valStepLoss, 'val-step-loss-info');
+        container.appendChild(valStepLossCard.card);
+
+        // Step Accuracy graph - mirrors TensorBoard scalars
+        this._trainingGraphs.stepAccuracy = new Graph('step-accuracy', {
+            title: lang('performance_page.training.step_accuracy'),
+            height: 160,
+            unit: '%',
+            yMin: 0,
+            yMax: 100,
+            maxPoints: 2000,
+            colors: ['#14b8a6', '#8b5cf6'],
+            showLegend: true,
+            smooth: false,
+            animationDuration: 0
+        });
+        this._trainingGraphs.stepAccuracy.addSeries('train', { label: lang('performance_page.training.train'), color: '#14b8a6' });
+        this._trainingGraphs.stepAccuracy.addSeries('val', { label: lang('performance_page.training.validation'), color: '#8b5cf6' });
+
+        history.stepAccuracy.forEach(item => {
+            const series = item.phase === 'val' ? 'val' : 'train';
+            this._trainingGraphs.stepAccuracy.append(series, item.value);
+        });
+
+        const stepAccuracyCard = this._createGraphCard(this._trainingGraphs.stepAccuracy, 'step-accuracy-info');
+        container.appendChild(stepAccuracyCard.card);
+
+        // Learning Rate graph - one point per epoch (TensorBoard standard)
         this._trainingGraphs.learningRate = new Graph('learning-rate', {
             title: lang('performance_page.training.learning_rate'),
             height: 140,
             unit: '',
             yMin: null,
             yMax: null,
-            maxPoints: 100,  // Limited for performance
+            maxPoints: 500,  // One per epoch, plenty of room
             colors: ['#22c55e'],
             showLegend: false,
-            smooth: false,  // Disable animation
+            smooth: false,
             animationDuration: 0
         });
         this._trainingGraphs.learningRate.addSeries('lr', { label: 'LR', color: '#22c55e' });
         
-        // Restore LR history (only last 100)
-        const lrToRestore = history.learningRate.slice(-100);
-        lrToRestore.forEach(item => {
+        // Restore LR history - only epoch-level entries (step === 0)
+        const epochLrEntries = history.learningRate.filter(item => item.step === 0);
+        epochLrEntries.forEach(item => {
             this._trainingGraphs.learningRate.append('lr', item.value);
         });
         
@@ -350,27 +396,62 @@ const PerformancePage = {
      * Update training info panels
      */
     _updateTrainingInfoPanels: function(metrics, state) {
-        // Step Loss info
-        const stepLossInfo = document.getElementById('step-loss-info');
-        if (stepLossInfo && metrics) {
-            const lossText = this._formatValue(metrics.loss, '', v => v.toFixed(4));
-            const phaseText = state.phase === 'val' ? lang('performance_page.training.validation') : lang('performance_page.training.train');
-            const stepText = state.currentStep && state.totalSteps 
-                ? `${state.currentStep}/${state.totalSteps}` 
-                : 'N/A';
+        // Train Step Loss info
+        const trainStepLossInfo = document.getElementById('train-step-loss-info');
+        if (trainStepLossInfo && metrics) {
+            const trainLossText = this._formatValue(metrics.trainStepLoss, '', v => Format.loss(v));
+            let stepText = 'N/A';
+            if (state.currentStep && state.totalSteps && state.phase !== 'val') {
+                stepText = `${state.currentStep}/${state.totalSteps}`;
+            }
             
-            stepLossInfo.innerHTML = `
+            trainStepLossInfo.innerHTML = `
                 <div class="info-row">
-                    <span class="info-label">${lang('performance_page.training.current_loss')}:</span>
-                    <span class="info-value">${lossText}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">${lang('performance_page.training.phase')}:</span>
-                    <span class="info-value">${phaseText}</span>
+                    <span class="info-label">${lang('performance_page.training.current')}:</span>
+                    <span class="info-value">${trainLossText}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">${lang('performance_page.training.step')}:</span>
                     <span class="info-value">${stepText}</span>
+                </div>
+            `;
+        }
+
+        // Validation Step Loss info
+        const valStepLossInfo = document.getElementById('val-step-loss-info');
+        if (valStepLossInfo && metrics) {
+            const valLossText = this._formatValue(metrics.valStepLoss, '', v => Format.loss(v));
+            let stepText = 'N/A';
+            if (state.currentStep && state.totalSteps && state.phase === 'val') {
+                stepText = `${state.currentStep}/${state.totalSteps}`;
+            }
+            
+            valStepLossInfo.innerHTML = `
+                <div class="info-row">
+                    <span class="info-label">${lang('performance_page.training.current')}:</span>
+                    <span class="info-value">${valLossText}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">${lang('performance_page.training.step')}:</span>
+                    <span class="info-value">${stepText}</span>
+                </div>
+            `;
+        }
+
+        // Step Accuracy info
+        const stepAccuracyInfo = document.getElementById('step-accuracy-info');
+        if (stepAccuracyInfo && metrics) {
+            const trainAccText = this._formatValue(metrics.trainStepAccuracy, '%', v => v.toFixed(2));
+            const valAccText = this._formatValue(metrics.valStepAccuracy, '%', v => v.toFixed(2));
+
+            stepAccuracyInfo.innerHTML = `
+                <div class="info-row">
+                    <span class="info-label">${lang('performance_page.training.train_step_accuracy')}:</span>
+                    <span class="info-value">${trainAccText}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">${lang('performance_page.training.val_step_accuracy')}:</span>
+                    <span class="info-value">${valAccText}</span>
                 </div>
             `;
         }
@@ -391,8 +472,8 @@ const PerformancePage = {
         // Epoch Loss info
         const epochLossInfo = document.getElementById('epoch-loss-info');
         if (epochLossInfo && metrics) {
-            const trainLoss = this._formatValue(metrics.epochLoss, '', v => v.toFixed(4));
-            const valLoss = this._formatValue(metrics.valLoss, '', v => v.toFixed(4));
+            const trainLoss = this._formatValue(metrics.epochLoss, '', v => Format.loss(v));
+            const valLoss = this._formatValue(metrics.valLoss, '', v => Format.loss(v));
             
             epochLossInfo.innerHTML = `
                 <div class="info-row">
@@ -409,8 +490,8 @@ const PerformancePage = {
         // Epoch Accuracy info
         const epochAccInfo = document.getElementById('epoch-accuracy-info');
         if (epochAccInfo && metrics) {
-            const trainAcc = this._formatValue(metrics.epochAccuracy, '%', v => v.toFixed(2));
-            const valAcc = this._formatValue(metrics.valAccuracy, '%', v => v.toFixed(2));
+            const trainAcc = this._formatValue(metrics.epochAccuracy, '%', v => Format.percent(v, 2));
+            const valAcc = this._formatValue(metrics.valAccuracy, '%', v => Format.percent(v, 2));
             
             epochAccInfo.innerHTML = `
                 <div class="info-row">
@@ -439,15 +520,17 @@ const PerformancePage = {
             const eventMetrics = event.metrics || {};
             
             if (event.type === 'step') {
-                // Step loss
-                if (eventMetrics.step_loss !== undefined && this._trainingGraphs.stepLoss) {
-                    const series = event.phase === 'val' ? 'val' : 'train';
-                    this._trainingGraphs.stepLoss.append(series, eventMetrics.step_loss);
+                // Step loss - route to separate graphs based on phase
+                if (eventMetrics.step_loss !== undefined) {
+                    if (event.phase === 'val' && this._trainingGraphs.valStepLoss) {
+                        this._trainingGraphs.valStepLoss.append('val', eventMetrics.step_loss);
+                    } else if (this._trainingGraphs.trainStepLoss) {
+                        this._trainingGraphs.trainStepLoss.append('train', eventMetrics.step_loss);
+                    }
                 }
-                
-                // Learning rate
-                if (eventMetrics.learning_rate !== undefined && this._trainingGraphs.learningRate) {
-                    this._trainingGraphs.learningRate.append('lr', eventMetrics.learning_rate);
+                if (eventMetrics.step_accuracy !== undefined && this._trainingGraphs.stepAccuracy) {
+                    const series = event.phase === 'val' ? 'val' : 'train';
+                    this._trainingGraphs.stepAccuracy.append(series, eventMetrics.step_accuracy);
                 }
                 
             } else if (event.type === 'epoch') {
@@ -467,6 +550,11 @@ const PerformancePage = {
                     } else if (event.phase === 'val' && (eventMetrics.epoch_accuracy !== undefined || eventMetrics.val_accuracy !== undefined)) {
                         this._trainingGraphs.epochAccuracy.append('val', eventMetrics.epoch_accuracy ?? eventMetrics.val_accuracy);
                     }
+                }
+                
+                // Learning rate - one point per epoch at train phase end (TensorBoard standard)
+                if (event.phase === 'train' && eventMetrics.learning_rate !== undefined && this._trainingGraphs.learningRate) {
+                    this._trainingGraphs.learningRate.append('lr', eventMetrics.learning_rate);
                 }
             }
         });

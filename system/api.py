@@ -1130,10 +1130,16 @@ def create_app() -> FastAPI:
     def project_evaluate(
         project_name: str,
         image_path: Optional[str] = Query(None),
-        checkpoint_path: Optional[str] = Query(None)
+        checkpoint_path: Optional[str] = Query(None),
+        use_live_model: bool = Query(False)
     ):
         try:
-            result = evaluate_with_heatmap(project_name, image_path=image_path, checkpoint_path=checkpoint_path)
+            result = evaluate_with_heatmap(
+                project_name, 
+                image_path=image_path, 
+                checkpoint_path=checkpoint_path,
+                use_live_model=use_live_model
+            )
             return result
         except Exception as ex:
             error(f"Evaluation failed for {project_name}: {ex}")

@@ -5,7 +5,8 @@ import io
 import random
 import base64
 import time
-from typing import Optional, Tuple, Any, cast
+import copy
+from typing import Optional, Tuple, Any, cast, Dict
 
 import torch
 import torch.nn as nn
@@ -21,7 +22,21 @@ from system.dataset_discovery import get_project_info
 from system.models.resnet import ResNetModel
 
 
-def _get_project_paths(project_name: str) -> Tuple[str, str]:
+# Model cache: stores loaded models to avoid redundant loading
+# Key: (project_name, checkpoint_path, checkpoint_mtime)
+# Value: (wrapper, checkpoint_path, checkpoint_data)
+_model_cache: Dict[Tuple[str, str, float], Tuple[Any, str, dict]] = {}
+
+
+def clear_model_cache() -> None:
+    """Clear the model cache to force reload on next evaluation."""
+    global _model_cache
+    _model_cache.clear()
+    info("Heatmap model cache cleared")
+
+
+def _get_project_paths(project_name: str) -> Tuple[str, str, str, str]:
+    """Get project paths: (dataset_path, model_dir, validation_path, data_source_path)"""
     try:
         paths_cfg = SETTINGS['paths']
     except Exception:
@@ -34,7 +49,9 @@ def _get_project_paths(project_name: str) -> Tuple[str, str]:
     project_root = os.path.join(base_projects, project_name)
     dataset_path = os.path.join(project_root, 'dataset')
     model_dir = os.path.join(project_root, 'model')
-    return dataset_path, model_dir
+    validation_path = os.path.join(project_root, 'validation')
+    data_source_path = os.path.join(project_root, 'data_source')
+    return dataset_path, model_dir, validation_path, data_source_path
 
 
 def _collect_images(folder: str) -> list[str]:
@@ -56,22 +73,30 @@ def _collect_images(folder: str) -> list[str]:
 
 
 def pick_sample_image(project_name: str, preferred_split: str = 'validation') -> Optional[str]:
-    dataset_path, _model_dir = _get_project_paths(project_name)
-    raw_splits = [preferred_split, 'validation', 'val']
-    seen = set()
-    split_candidates = [s for s in raw_splits if not (s in seen or seen.add(s))]
-    candidates: list[str] = []
-    for split in split_candidates:
-        split_dir = os.path.join(dataset_path, split)
-        candidates = _collect_images(split_dir)
-        if candidates:
-            break
-    if not candidates:
-        candidates = _collect_images(dataset_path)
-    if not candidates:
-        warning(f"No images found for project {project_name}")
-        return None
-    return random.choice(candidates)
+    """Pick a random sample image from project folders.
+    
+    Priority: validation > data_source > dataset
+    Returns the full absolute path to the image file.
+    """
+    _dataset_path, _model_dir, validation_path, data_source_path = _get_project_paths(project_name)
+    
+    # Try validation folder first
+    candidates = _collect_images(validation_path)
+    if candidates:
+        return random.choice(candidates)
+    
+    # Fallback to data_source
+    candidates = _collect_images(data_source_path)
+    if candidates:
+        return random.choice(candidates)
+    
+    # Final fallback to dataset
+    candidates = _collect_images(_dataset_path)
+    if candidates:
+        return random.choice(candidates)
+    
+    warning(f"No images found for project {project_name}")
+    return None
 
 
 def _build_preprocess() -> transforms.Compose:
@@ -135,7 +160,7 @@ def _create_model_from_checkpoint(checkpoint_path: str, map_location: Optional[s
 
     wrapper.load_checkpoint(checkpoint_path)
     wrapper.model.eval()
-    return wrapper, checkpoint_path
+    return wrapper, checkpoint_path, checkpoint
 
 
 def _infer_model_type(model_name: str) -> str:
@@ -156,26 +181,52 @@ def _infer_model_type(model_name: str) -> str:
         return 'resnet'  # default
 
 
-def _load_model_from_checkpoint(project_name: str, map_location: Optional[str] = None):
-    _dataset_path, model_dir = _get_project_paths(project_name)
+def _load_model_from_checkpoint(project_name: str, map_location: Optional[str] = None, use_cache: bool = True):
+    """Load checkpoint from project model directory using config filename.
+    
+    Uses caching to avoid redundant model loads when the checkpoint file hasn't changed.
+    Set use_cache=False to force a fresh load (for live model updates).
+    """
+    global _model_cache
+    
+    _dataset_path, model_dir, _validation_path, _data_source_path = _get_project_paths(project_name)
+    
+    if not os.path.isdir(model_dir):
+        raise FileNotFoundError(f"Model directory not found: {model_dir}")
+    
     try:
         checkpoint_cfg = SETTINGS['training']['checkpoint']
     except Exception:
         raise ValueError("Missing required 'training.checkpoint' section in config/config.json")
-    best_name = checkpoint_cfg.get('best_model_filename')
-    if not best_name:
-        raise ValueError("training.checkpoint.best_model_filename must be defined in config/config.json")
+    
+    best_name = checkpoint_cfg.get('best_model_filename', 'best_model.pth')
     ckpt_path = os.path.join(model_dir, best_name)
+    
     if not os.path.isfile(ckpt_path):
-        if os.path.isdir(model_dir):
-            for f in sorted(os.listdir(model_dir)):
-                if f.lower().endswith('.pth'):
-                    ckpt_path = os.path.join(model_dir, f)
-                    break
-    if not os.path.isfile(ckpt_path):
-        raise FileNotFoundError(f"Model checkpoint not found in directory: {model_dir}")
-
-    return _create_model_from_checkpoint(ckpt_path, map_location)
+        raise FileNotFoundError(f"Checkpoint not found: {ckpt_path}")
+    
+    # Get file modification time for cache validation
+    ckpt_mtime = os.path.getmtime(ckpt_path)
+    cache_key = (project_name, ckpt_path, ckpt_mtime)
+    
+    # Check cache if enabled
+    if use_cache and cache_key in _model_cache:
+        info(f"Using cached model for {project_name}")
+        return _model_cache[cache_key]
+    
+    # Load fresh model
+    result = _create_model_from_checkpoint(ckpt_path, map_location)
+    
+    # Cache the loaded model (only if caching is enabled)
+    if use_cache:
+        # Clear old cache entries for this project to prevent memory bloat
+        keys_to_remove = [k for k in _model_cache if k[0] == project_name]
+        for k in keys_to_remove:
+            del _model_cache[k]
+        _model_cache[cache_key] = result
+        info(f"Cached model for {project_name}")
+    
+    return result
 
 
 def _find_target_layer(module: nn.Module) -> nn.Module:
@@ -279,7 +330,7 @@ def overlay_heatmap_on_image(heatmap: torch.Tensor, image_rgb: Image.Image, alph
 
 def generate_heatmap(project_name: str, image_path: Optional[str] = None,
                      target_class: Optional[int] = None, alpha: float = 0.5) -> Tuple[bytes, dict]:
-    proj = get_project_info(project_name)
+    proj = get_project_info(project_name, compute_stats=True)
     if not proj or not proj.has_dataset:
         raise FileNotFoundError(f"Project {project_name} or its dataset not found")
 
@@ -292,7 +343,7 @@ def generate_heatmap(project_name: str, image_path: Optional[str] = None,
     preprocess = _build_preprocess()
     x = cast(torch.Tensor, preprocess(pil_img)).unsqueeze(0)
 
-    wrapper, ckpt_path = _load_model_from_checkpoint(project_name)
+    wrapper, ckpt_path, _ckpt_data = _load_model_from_checkpoint(project_name)
 
     with torch.no_grad():
         pred_class, _ = predict(wrapper.model, x.clone())
@@ -319,8 +370,20 @@ def generate_heatmap(project_name: str, image_path: Optional[str] = None,
 
 
 def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
-                          checkpoint_path: Optional[str] = None) -> dict:
-    proj = get_project_info(project_name)
+                          checkpoint_path: Optional[str] = None,
+                          use_live_model: bool = False) -> dict:
+    """Evaluate an image with Grad-CAM heatmap visualization.
+    
+    Args:
+        project_name: Name of the project
+        image_path: Full path to image, or None to pick random from validation/data_source
+        checkpoint_path: Optional specific checkpoint path (overrides project default)
+        use_live_model: If True, skip cache and always load fresh model from disk
+    
+    Returns:
+        Dict with heatmap (base64), predictions, and image/checkpoint info
+    """
+    proj = get_project_info(project_name, compute_stats=True)
     if not proj or not proj.has_dataset:
         raise FileNotFoundError(f"Project {project_name} or its dataset not found")
 
@@ -334,9 +397,10 @@ def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
     x = cast(torch.Tensor, preprocess(pil_img)).unsqueeze(0)
 
     if checkpoint_path:
-        wrapper, ckpt_path = _create_model_from_checkpoint(checkpoint_path)
+        wrapper, ckpt_path, ckpt_data = _create_model_from_checkpoint(checkpoint_path)
     else:
-        wrapper, ckpt_path = _load_model_from_checkpoint(project_name)
+        # use_cache=False when live model is requested (forces fresh load)
+        wrapper, ckpt_path, ckpt_data = _load_model_from_checkpoint(project_name, use_cache=not use_live_model)
 
     with torch.no_grad():
         pred_class, logits = predict(wrapper.model, x.clone())
@@ -347,21 +411,34 @@ def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
         raise ValueError("Missing required 'training.task' in config/config.json")
     if not task:
         raise ValueError("training.task must be defined in config/config.json")
-    labels = proj.labels
+
+    # Prefer labels from checkpoint (embedded during training), fallback to discovery
+    labels = ckpt_data.get('labels') or []
+    if not labels:
+        labels = proj.labels or []
 
     if task == 'multi_label':
         probabilities = torch.sigmoid(logits)
-        threshold = 0.25
-        predictions = (probabilities > threshold).float()
-        predicted_classes = torch.nonzero(predictions[0]).flatten().tolist()
-        class_names = [labels[idx] for idx in predicted_classes if idx < len(labels)]
-        confidence_values = [probabilities[0, idx].item() for idx in predicted_classes if idx < len(labels)]
+        # Show top 5 predictions regardless of threshold (more useful for debugging)
+        top_k = min(5, len(labels)) if labels else 0
+        if top_k > 0:
+            top_values, top_indices = torch.topk(probabilities[0], top_k)
+            class_names = [labels[idx] for idx in top_indices.tolist() if idx < len(labels)]
+            confidence_values = top_values.tolist()
+        else:
+            class_names = []
+            confidence_values = []
     else:
         probabilities = F.softmax(logits, dim=1)[0]
-        high_conf_mask = probabilities > 0.25
-        predicted_indices = torch.nonzero(high_conf_mask).flatten().tolist()
-        class_names = [labels[idx] for idx in predicted_indices if idx < len(labels)]
-        confidence_values = [probabilities[idx].item() for idx in predicted_indices]
+        # Show top 5 predictions regardless of threshold
+        top_k = min(5, len(labels)) if labels else 0
+        if top_k > 0:
+            top_values, top_indices = torch.topk(probabilities, top_k)
+            class_names = [labels[idx] for idx in top_indices.tolist() if idx < len(labels)]
+            confidence_values = top_values.tolist()
+        else:
+            class_names = []
+            confidence_values = []
 
     x_grad = x.clone().requires_grad_(True)
     heat = compute_gradcam(wrapper.model, x_grad, target_class=pred_class, target_layer=None)
@@ -391,6 +468,7 @@ def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
         "heatmap": heatmap_b64,
         "predictions": predictions,
         "image_path": os.path.basename(image_path),
+        "full_image_path": image_path,  # Full path for Refresh functionality
         "checkpoint": os.path.basename(ckpt_path)
     }
 

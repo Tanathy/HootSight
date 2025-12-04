@@ -546,12 +546,14 @@ const API = {
          * @param {string} projectName - Project name
          * @param {string|null} imagePath - Optional image path (uses random if not provided)
          * @param {string|null} checkpointPath - Optional specific checkpoint path
+         * @param {boolean} useLiveModel - If true, skip cache and load fresh model
          * @returns {Promise<Object>} - Evaluation results with heatmap (base64) and predictions
          */
-        evaluate: async function(projectName, imagePath = null, checkpointPath = null) {
+        evaluate: async function(projectName, imagePath = null, checkpointPath = null, useLiveModel = false) {
             const params = new URLSearchParams();
             if (imagePath) params.append('image_path', imagePath);
             if (checkpointPath) params.append('checkpoint_path', checkpointPath);
+            if (useLiveModel) params.append('use_live_model', 'true');
             
             const url = `${API.baseUrl}/projects/${encodeURIComponent(projectName)}/evaluate?${params}`;
             const response = await fetch(url);

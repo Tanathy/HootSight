@@ -54,7 +54,7 @@
                         "train": [],
                         "val": []
                     },
-                    "loss_type": "cross_entropy",
+                    "loss_type": "bce_with_logits",
                     "loss_reduction": "mean",
                     "optimizer_type": "adamw",
                     "optimizer_lr": 5e-05,
@@ -126,7 +126,7 @@
                         "train": [],
                         "val": []
                     },
-                    "loss_type": "cross_entropy",
+                    "loss_type": "bce_with_logits",
                     "loss_reduction": "mean",
                     "optimizer_type": "adamw",
                     "optimizer_lr": 5e-05,
@@ -198,7 +198,7 @@
                         "train": [],
                         "val": []
                     },
-                    "loss_type": "cross_entropy",
+                    "loss_type": "bce_with_logits",
                     "loss_reduction": "mean",
                     "optimizer_type": "adamw",
                     "optimizer_lr": 5e-05,
@@ -270,7 +270,7 @@
                         "train": [],
                         "val": []
                     },
-                    "loss_type": "cross_entropy",
+                    "loss_type": "bce_with_logits",
                     "loss_reduction": "mean",
                     "optimizer_type": "adamw",
                     "optimizer_lr": 0.001,
@@ -342,7 +342,7 @@
                         "train": [],
                         "val": []
                     },
-                    "loss_type": "cross_entropy",
+                    "loss_type": "bce_with_logits",
                     "loss_reduction": "mean",
                     "optimizer_type": "adamw",
                     "optimizer_lr": 0.002,
@@ -414,7 +414,7 @@
                         "train": [],
                         "val": []
                     },
-                    "loss_type": "cross_entropy",
+                    "loss_type": "bce_with_logits",
                     "loss_reduction": "mean",
                     "optimizer_type": "adamw",
                     "optimizer_lr": 0.003,
@@ -486,7 +486,7 @@
                         "train": [],
                         "val": []
                     },
-                    "loss_type": "cross_entropy",
+                    "loss_type": "bce_with_logits",
                     "loss_reduction": "mean",
                     "optimizer_type": "adamw",
                     "optimizer_lr": 0.005,
