@@ -212,6 +212,7 @@ const PerformancePage = {
         // Train Step Loss graph - separate from validation
         this._trainingGraphs.trainStepLoss = new Graph('train-step-loss', {
             title: lang('performance_page.training.train_step_loss'),
+            titleLangKey: 'performance_page.training.train_step_loss',
             height: 180,
             unit: '',
             yMin: null,
@@ -234,6 +235,7 @@ const PerformancePage = {
         // Validation Step Loss graph - separate from training
         this._trainingGraphs.valStepLoss = new Graph('val-step-loss', {
             title: lang('performance_page.training.val_step_loss'),
+            titleLangKey: 'performance_page.training.val_step_loss',
             height: 180,
             unit: '',
             yMin: null,
@@ -256,6 +258,7 @@ const PerformancePage = {
         // Step Accuracy graph - mirrors TensorBoard scalars
         this._trainingGraphs.stepAccuracy = new Graph('step-accuracy', {
             title: lang('performance_page.training.step_accuracy'),
+            titleLangKey: 'performance_page.training.step_accuracy',
             height: 160,
             unit: '%',
             yMin: 0,
@@ -280,6 +283,7 @@ const PerformancePage = {
         // Learning Rate graph - one point per epoch (TensorBoard standard)
         this._trainingGraphs.learningRate = new Graph('learning-rate', {
             title: lang('performance_page.training.learning_rate'),
+            titleLangKey: 'performance_page.training.learning_rate',
             height: 140,
             unit: '',
             yMin: null,
@@ -304,6 +308,7 @@ const PerformancePage = {
         // Epoch Loss graph - keep more points (one per epoch)
         this._trainingGraphs.epochLoss = new Graph('epoch-loss', {
             title: lang('performance_page.training.epoch_loss'),
+            titleLangKey: 'performance_page.training.epoch_loss',
             height: 180,
             unit: '',
             yMin: null,
@@ -331,6 +336,7 @@ const PerformancePage = {
         // Epoch Accuracy graph
         this._trainingGraphs.epochAccuracy = new Graph('epoch-accuracy', {
             title: lang('performance_page.training.epoch_accuracy'),
+            titleLangKey: 'performance_page.training.epoch_accuracy',
             height: 180,
             unit: '%',
             yMin: 0,
@@ -379,19 +385,22 @@ const PerformancePage = {
         }
         
         if (statusEl.get(0)) {
+            let langKey;
             if (state.status === 'running') {
-                statusEl.text(lang('performance_page.training.running'));
+                langKey = 'performance_page.training.running';
                 statusEl.addClass('active');
             } else if (state.status === 'completed') {
-                statusEl.text(lang('performance_page.training.completed'));
+                langKey = 'performance_page.training.completed';
                 statusEl.removeClass('active');
             } else if (state.status === 'stopped') {
-                statusEl.text(lang('performance_page.training.stopped'));
+                langKey = 'performance_page.training.stopped';
                 statusEl.removeClass('active');
             } else {
-                statusEl.text(lang('performance_page.training.no_active'));
+                langKey = 'performance_page.training.no_active';
                 statusEl.removeClass('active');
             }
+            statusEl.text(lang(langKey));
+            statusEl.get(0).setAttribute('data-lang-key', langKey);
         }
     },
 
@@ -644,6 +653,7 @@ const PerformancePage = {
         const status = Q('#performance-status');
         if (status.get(0)) {
             status.text(lang('performance_page.system.monitoring_active'));
+            status.get(0).setAttribute('data-lang-key', 'performance_page.system.monitoring_active');
             status.addClass('active');
         }
     },
@@ -705,6 +715,7 @@ const PerformancePage = {
         // CPU Usage graph - max 50 points (from SystemMonitor)
         this._systemGraphs.cpu = new Graph('cpu-usage', {
             title: lang('performance_page.system.cpu_usage'),
+            titleLangKey: 'performance_page.system.cpu_usage',
             height: 160,
             unit: '%',
             yMin: 0,
@@ -729,6 +740,7 @@ const PerformancePage = {
         // System Memory graph
         this._systemGraphs.memory = new Graph('system-memory', {
             title: lang('performance_page.system.system_memory'),
+            titleLangKey: 'performance_page.system.system_memory',
             height: 160,
             unit: '%',
             yMin: 0,

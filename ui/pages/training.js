@@ -296,6 +296,7 @@ const TrainingPage = {
                 class: 'text-muted',
                 text: lang('training_page.no_settings')
             }).get(0);
+            emptyMsg.setAttribute('data-lang-key', 'training_page.no_settings');
             Q(content).append(emptyMsg);
             return content;
         }
@@ -355,14 +356,12 @@ const TrainingPage = {
         const widgetType = field.ui?.widget;
         const configValue = Config.get(field.path, field.default);
 
-        // Generate a human-readable label from the key (e.g., "model_type" -> "Model Type")
-        const label = field.key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-
         // Common options - include lang keys for live translation
         const options = {
-            label: label,
+            label: field.title ? lang(field.title) : '',
+            labelLangKey: field.title || null,
             description: field.description ? lang(field.description) : '',
-            descriptionLangKey: field.description || null, // Store the lang key for live refresh
+            descriptionLangKey: field.description || null,
             default: field.default,
             disabled: field.ui?.disabled || false,
             visible: field.ui?.visible !== false
@@ -1127,6 +1126,7 @@ const TrainingPage = {
         previewImage.src = ''; // Empty initially
         const previewPlaceholder = Q('<div>', { class: 'augmentation-preview-placeholder' }).get(0);
         const placeholderSpan = Q('<span>', { text: lang('training_page.augmentation.preview_placeholder') }).get(0);
+        placeholderSpan.setAttribute('data-lang-key', 'training_page.augmentation.preview_placeholder');
         Q(previewPlaceholder).append(placeholderSpan);
         Q(previewBox).append(previewImage);
         Q(previewBox).append(previewPlaceholder);
@@ -1349,12 +1349,14 @@ const TrainingPage = {
         if (!projectName) {
             Q(container).empty();
             const errorMsg = Q('<p>', { class: 'error-message', text: lang('training_page.no_project.description') }).get(0);
+            errorMsg.setAttribute('data-lang-key', 'training_page.no_project.description');
             Q(container).append(errorMsg);
             return;
         }
 
         Q(container).empty();
         const loadingMsg = Q('<p>', { class: 'loading-message', text: lang('training_page.presets.loading') }).get(0);
+        loadingMsg.setAttribute('data-lang-key', 'training_page.presets.loading');
         Q(container).append(loadingMsg);
 
         try {
@@ -1373,6 +1375,7 @@ const TrainingPage = {
             if (!data.presets || data.presets.length === 0) {
                 Q(container).empty();
                 const infoMsg = Q('<p>', { class: 'info-message', text: lang('training_page.presets.no_presets') }).get(0);
+                infoMsg.setAttribute('data-lang-key', 'training_page.presets.no_presets');
                 Q(container).append(infoMsg);
                 return;
             }
@@ -1395,6 +1398,7 @@ const TrainingPage = {
             console.error('Failed to load presets:', error);
             Q(container).empty();
             const errorMsg = Q('<p>', { class: 'error-message', text: lang('training_page.presets.apply_error') }).get(0);
+            errorMsg.setAttribute('data-lang-key', 'training_page.presets.apply_error');
             Q(container).append(errorMsg);
         }
     },

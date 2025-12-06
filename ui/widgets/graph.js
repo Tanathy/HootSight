@@ -16,6 +16,7 @@ class Graph {
         this.id = id;
         this.options = {
             title: options.title || '',
+            titleLangKey: options.titleLangKey || null,
             maxPoints: options.maxPoints || 500,
             height: options.height || 200,
             showGrid: options.showGrid !== false,
@@ -61,6 +62,9 @@ class Graph {
             
             if (this.options.title) {
                 const title = Q('<div>', { class: 'graph-title', text: this.options.title }).get();
+                if (this.options.titleLangKey) {
+                    title.setAttribute('data-lang-key', this.options.titleLangKey);
+                }
                 Q(header).append(title);
             }
             

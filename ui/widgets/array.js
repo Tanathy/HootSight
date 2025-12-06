@@ -30,7 +30,10 @@ class ArrayInput {
         this.id = id;
         this.options = {
             label: options.label || '',
+            labelLangKey: options.labelLangKey || null,
             description: options.description || '',
+            descriptionLangKey: options.descriptionLangKey || null,
+            placeholderLangKey: options.placeholderLangKey || null,
             default: options.default || [],
             placeholder: options.placeholder || 'Add item...',
             disabled: options.disabled || false,
@@ -56,6 +59,9 @@ class ArrayInput {
         // Label
         if (this.options.label) {
             this.labelEl = Q('<label>', { class: 'widget-label', text: this.options.label }).get(0);
+            if (this.options.labelLangKey) {
+                this.labelEl.setAttribute('data-lang-key', this.options.labelLangKey);
+            }
             Q(this.element).append(this.labelEl);
         }
         
@@ -67,6 +73,10 @@ class ArrayInput {
         this.inputRow = Q('<div>', { class: 'array-input-row' }).get(0);
         
         this.input = Q('<input>', { type: 'text', class: 'array-input', placeholder: this.options.placeholder }).get(0);
+        if (this.options.placeholderLangKey) {
+            this.input.setAttribute('data-lang-key', this.options.placeholderLangKey);
+            this.input.setAttribute('data-lang-placeholder', 'true');
+        }
         this.addBtn = Q('<button>', { type: 'button', class: 'array-add-btn', text: '+' }).get(0);
         
         Q(this.inputRow).append(this.input);
@@ -76,6 +86,9 @@ class ArrayInput {
         // Description
         if (this.options.description) {
             this.descEl = Q('<div>', { class: 'widget-description', text: this.options.description }).get(0);
+            if (this.options.descriptionLangKey) {
+                this.descEl.setAttribute('data-lang-key', this.options.descriptionLangKey);
+            }
             Q(this.element).append(this.descEl);
         }
         

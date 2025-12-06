@@ -55,7 +55,9 @@ const ProjectsPage = {
             if (projects.length === 0) {
                 const emptyCard = this._cardSection.addCard({
                     title: lang('projects_page.empty.title'),
-                    subtitle: lang('projects_page.empty.description')
+                    titleLangKey: 'projects_page.empty.title',
+                    subtitle: lang('projects_page.empty.description'),
+                    subtitleLangKey: 'projects_page.empty.description'
                 });
                 return;
             }
@@ -70,6 +72,7 @@ const ProjectsPage = {
             this._cardSection.clear();
             const errorCard = this._cardSection.addCard({
                 title: lang('projects_page.error.title'),
+                titleLangKey: 'projects_page.error.title',
                 subtitle: err.message
             });
         }

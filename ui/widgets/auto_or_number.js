@@ -30,7 +30,9 @@ class AutoOrNumber {
         this.id = id;
         this.options = {
             label: options.label || '',
+            labelLangKey: options.labelLangKey || null,
             description: options.description || '',
+            descriptionLangKey: options.descriptionLangKey || null,
             min: options.min ?? 1,
             max: options.max ?? 100,
             step: options.step ?? 1,
@@ -72,7 +74,7 @@ class AutoOrNumber {
             if (this.options.labelLangKey) {
                 this.labelEl.setAttribute('data-lang-key', this.options.labelLangKey);
             }
-            Q(this.element).append(this.labelEl);
+            this.element.appendChild(this.labelEl);
         }
         
         // Controls container
@@ -89,14 +91,14 @@ class AutoOrNumber {
         // Build switch using standard classes
         this.switchTrack = Q('<div>', { class: 'switch-track' }).get(0);
         this.switchThumb = Q('<div>', { class: 'switch-thumb' }).get(0);
-        Q(this.switchTrack).append(this.switchThumb);
+        this.switchTrack.appendChild(this.switchThumb);
         
         if (this._isAuto) {
             Q(this.switchTrack).addClass('active');
         }
         
-        Q(this.autoSwitchContainer).append(this.autoLabel);
-        Q(this.autoSwitchContainer).append(this.switchTrack);
+        this.autoSwitchContainer.appendChild(this.autoLabel);
+        this.autoSwitchContainer.appendChild(this.switchTrack);
         
         // Number input section
         this.numberContainer = Q('<div>', { class: 'number-section' }).get(0);
@@ -126,14 +128,14 @@ class AutoOrNumber {
             text: '+'
         }).get(0);
         
-        Q(this.numberContainer).append(this.decreaseBtn);
-        Q(this.numberContainer).append(this.numberInput);
-        Q(this.numberContainer).append(this.increaseBtn);
+        this.numberContainer.appendChild(this.decreaseBtn);
+        this.numberContainer.appendChild(this.numberInput);
+        this.numberContainer.appendChild(this.increaseBtn);
         
         // Assemble controls
-        Q(this.controlsContainer).append(this.autoSwitchContainer);
-        Q(this.controlsContainer).append(this.numberContainer);
-        Q(this.element).append(this.controlsContainer);
+        this.controlsContainer.appendChild(this.autoSwitchContainer);
+        this.controlsContainer.appendChild(this.numberContainer);
+        this.element.appendChild(this.controlsContainer);
         
         // Description
         if (this.options.description) {
@@ -145,7 +147,7 @@ class AutoOrNumber {
             if (this.options.descriptionLangKey) {
                 this.descEl.setAttribute('data-lang-key', this.options.descriptionLangKey);
             }
-            Q(this.element).append(this.descEl);
+            this.element.appendChild(this.descEl);
         }
         
         this._updateState();

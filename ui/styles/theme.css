@@ -5,11 +5,11 @@
 
 :root {
     /* Background colors - semi-transparent for waves effect */
-    --bg-primary: rgba(26, 26, 30, 0.95);
-    --bg-secondary: rgba(34, 34, 40, 0.95);
-    --bg-tertiary: rgba(42, 42, 50, 0.95);
-    --bg-hover: rgba(50, 50, 60, 0.95);
-    --bg-active: rgba(58, 58, 70, 0.95);
+    --bg-primary: rgba(25, 25, 25, 0.92);
+    --bg-secondary: rgba(25, 25, 25, 1);
+    --bg-tertiary: rgba(25, 25, 25, 0.90);
+    --bg-hover: rgba(25, 25, 25, 0.90);
+    --bg-active: rgba(25, 25, 25, 0.90);
     
     /* Solid backgrounds for elements that shouldn't be transparent */
     --bg-solid-primary: #1a1a1e;
@@ -25,7 +25,7 @@
     --accent-primary: #6366f1;
     --accent-secondary: #4f46e5;
     --accent-success: #22c55e;
-    --accent-warning: #f59e0b;
+    --accent-warning: #f59f0b4d;
     --accent-error: #ef4444;
     
     /* Button colors */
@@ -46,9 +46,9 @@
     --btn-danger-hover: #dc3030;
     
     /* Border colors */
-    --border-color: #3a3a44;
-    --border-light: #2a2a34;
-    --border-hover: #5a5a66;
+    --border-color: #ffffff1c;
+    --border-light: #ffffff1c;
+    --border-hover: #ffffff1c;
     
     /* Shadows */
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);

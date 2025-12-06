@@ -651,6 +651,7 @@ const DatasetPage = {
 
         // Right section - pagination and status
         this._statusCount = Q('<span>', { class: 'status-count' }).get(0);
+        this._statusCount.setAttribute('data-lang-key', 'dataset_page.status_count');
         this._totalPagesLabel = Q('<span>', { class: 'total-pages', text: '/ 1' }).get(0);
         
         // Pagination buttons
@@ -1802,6 +1803,7 @@ const DatasetPage = {
      */
     _updateStatusBar: function(totalItems) {
         Q(this._statusCount).text(lang('dataset_page.status_count', { count: totalItems }));
+        this._statusCount.setAttribute('data-lang-params', JSON.stringify({ count: totalItems }));
     },
 
     /**
@@ -1844,16 +1846,19 @@ const DatasetPage = {
     _buildBulkActionsBar: function() {
         // Selection count
         this._bulkSelectionCount = Q('<span>', { class: 'selection-count' }).get(0);
+        this._bulkSelectionCount.setAttribute('data-lang-key', 'dataset_page.selected_count');
         
         // Selection action buttons
         this._clearSelectionBtn = new ActionButton('bulk-clear', {
             label: lang('dataset_page.clear_selection'),
+            labelLangKey: 'dataset_page.clear_selection',
             className: 'btn btn-secondary btn-sm',
             onClick: () => this._clearSelection()
         });
         
         this._selectAllBtn = new ActionButton('bulk-select-all', {
             label: lang('dataset_page.select_all'),
+            labelLangKey: 'dataset_page.select_all',
             className: 'btn btn-secondary btn-sm',
             onClick: () => this._selectAll()
         });
@@ -1929,6 +1934,7 @@ const DatasetPage = {
         
         if (count > 0) {
             Q(this._bulkSelectionCount).text(lang('dataset_page.selected_count', { count }));
+            this._bulkSelectionCount.setAttribute('data-lang-params', JSON.stringify({ count }));
             Q(this._bulkActionsBar).removeClass('hidden');
         } else {
             Q(this._bulkActionsBar).addClass('hidden');

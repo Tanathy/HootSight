@@ -32,7 +32,9 @@ class NumberInput {
         this.id = id;
         this.options = {
             label: options.label || '',
+            labelLangKey: options.labelLangKey || null,
             description: options.description || '',
+            descriptionLangKey: options.descriptionLangKey || null,
             min: options.min ?? null,
             max: options.max ?? null,
             step: options.step ?? 1,

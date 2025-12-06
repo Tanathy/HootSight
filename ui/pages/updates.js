@@ -296,6 +296,7 @@ const UpdatesPage = {
                 class: 'status-badge status-orphaned',
                 text: lang('updates.status.orphaned')
             }).get(0);
+            statusBadge.setAttribute('data-lang-key', 'updates.status.orphaned');
             Q(tdStatus).append(statusBadge);
             Q(row).append(tdStatus);
 

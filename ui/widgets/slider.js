@@ -12,7 +12,9 @@ class Slider {
         this.id = id;
         this.options = {
             label: options.label || '',
+            labelLangKey: options.labelLangKey || null,
             description: options.description || '',
+            descriptionLangKey: options.descriptionLangKey || null,
             min: options.min ?? 0,
             max: options.max ?? 100,
             step: options.step ?? 1,
@@ -135,7 +137,11 @@ class Slider {
         
         // Description
         if (this.options.description) {
-            const desc = Q('<div>', { class: 'slider-description', text: this.options.description }).get();
+            const descAttrs = { class: 'slider-description', text: this.options.description };
+            if (this.options.descriptionLangKey) {
+                descAttrs['data-lang-key'] = this.options.descriptionLangKey;
+            }
+            const desc = Q('<div>', descAttrs).get();
             Q(this._element).append(desc);
         }
         

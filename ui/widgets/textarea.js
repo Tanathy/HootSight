@@ -31,9 +31,12 @@ class Textarea {
         this.id = id;
         this.options = {
             label: options.label || '',
+            labelLangKey: options.labelLangKey || null,
             description: options.description || '',
+            descriptionLangKey: options.descriptionLangKey || null,
             default: options.default || '',
             placeholder: options.placeholder || '',
+            placeholderLangKey: options.placeholderLangKey || null,
             disabled: options.disabled || false,
             visible: options.visible !== false,
             rows: options.rows || 3,

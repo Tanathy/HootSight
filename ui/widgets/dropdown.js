@@ -33,7 +33,9 @@ class Dropdown {
         this.id = id;
         this.options = {
             label: options.label || '',
+            labelLangKey: options.labelLangKey || null,
             description: options.description || '',
+            descriptionLangKey: options.descriptionLangKey || null,
             options: options.options || [],
             optionLabels: options.optionLabels || {},
             enumDescriptor: options.enumDescriptor || null,

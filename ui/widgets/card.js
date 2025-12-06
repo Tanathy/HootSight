@@ -6,9 +6,13 @@ class Card {
         this.id = id;
         this.options = {
             title: options.title || '',
+            titleLangKey: options.titleLangKey || null,
             subtitle: options.subtitle || '',
+            subtitleLangKey: options.subtitleLangKey || null,
             description: options.description || '',
+            descriptionLangKey: options.descriptionLangKey || null,
             footer: options.footer || '',
+            footerLangKey: options.footerLangKey || null,
             actions: options.actions || [],
             content: options.content || null
         };
@@ -24,12 +28,18 @@ class Card {
             const titleGroup = Q('<div>', { class: 'card-title-group' }).get();
             
             this._titleEl = Q('<div>', { class: 'card-title', text: this.options.title }).get();
+            if (this.options.titleLangKey) {
+                this._titleEl.setAttribute('data-lang-key', this.options.titleLangKey);
+            }
             if (this.options.title) {
                 Q(titleGroup).append(this._titleEl);
             }
             
             if (this.options.subtitle) {
                 this._subtitleEl = Q('<div>', { class: 'card-subtitle', text: this.options.subtitle }).get();
+                if (this.options.subtitleLangKey) {
+                    this._subtitleEl.setAttribute('data-lang-key', this.options.subtitleLangKey);
+                }
                 Q(titleGroup).append(this._subtitleEl);
             }
             
@@ -54,6 +64,9 @@ class Card {
         }
         
         this._footer = Q('<div>', { class: 'card-footer' }).get();
+        if (this.options.footerLangKey) {
+            this._footer.setAttribute('data-lang-key', this.options.footerLangKey);
+        }
         Q(this._footer).hide();
         if (this.options.footer) {
             this.setFooter(this.options.footer);

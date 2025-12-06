@@ -115,7 +115,6 @@
 
 /* Incompatible preset card styling */
 .preset-card-incompatible {
-    opacity: 0.6;
     border-color: var(--accent-warning, #f0a020);
 }
 
@@ -361,6 +360,7 @@
 
 .presets-container .preset-card {
     flex: 0 0 calc(33.333% - var(--spacing-xl));
+    background-color: var(--bg-secondary);
     min-width: 320px;
     max-width: 100%;
 }

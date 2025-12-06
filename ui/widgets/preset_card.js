@@ -73,6 +73,8 @@ const PresetCard = {
                     'data-size': variant.key,
                     title: translatedDesc
                 }).get(0);
+                btn.setAttribute('data-lang-title', 'true');
+                btn.setAttribute('data-lang-key', variant.description);
                 
                 Q(btn).on('click', (e) => {
                     // Update active state
@@ -82,6 +84,7 @@ const PresetCard = {
                     
                     // Update description
                     Q(sizeDescription).text(lang(variant.description));
+                    sizeDescription.setAttribute('data-lang-key', variant.description);
                 });
                 
                 Q(sizeButtons).append(btn);
@@ -89,6 +92,7 @@ const PresetCard = {
                 // Set initial description for medium
                 if (variant.key === 'medium') {
                     Q(sizeDescription).text(translatedDesc);
+                    sizeDescription.setAttribute('data-lang-key', variant.description);
                 }
             });
             

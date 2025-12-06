@@ -6,7 +6,9 @@ class ListWidget {
         this.id = id;
         this.options = {
             label: options.label || '',
+            labelLangKey: options.labelLangKey || null,
             description: options.description || '',
+            descriptionLangKey: options.descriptionLangKey || null,
             data: typeof options.data !== 'undefined' ? options.data : null,
             emptyText: options.emptyText || 'No data'
         };
@@ -15,11 +17,17 @@ class ListWidget {
         
         if (this.options.label) {
             this._labelEl = Q('<label>', { class: 'widget-label', text: this.options.label }).get();
+            if (this.options.labelLangKey) {
+                this._labelEl.setAttribute('data-lang-key', this.options.labelLangKey);
+            }
             Q(this._element).append(this._labelEl);
         }
         
         if (this.options.description) {
             this._descriptionEl = Q('<div>', { class: 'widget-description', text: this.options.description }).get();
+            if (this.options.descriptionLangKey) {
+                this._descriptionEl.setAttribute('data-lang-key', this.options.descriptionLangKey);
+            }
             Q(this._element).append(this._descriptionEl);
         }
         

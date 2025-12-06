@@ -28,7 +28,9 @@ class Switch {
         this.id = id;
         this.options = {
             label: options.label || '',
+            labelLangKey: options.labelLangKey || null,
             description: options.description || '',
+            descriptionLangKey: options.descriptionLangKey || null,
             default: options.default || false,
             disabled: options.disabled || false,
             visible: options.visible !== false

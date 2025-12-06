@@ -28,8 +28,11 @@ class TagInput {
         this.id = id;
         this.options = {
             label: options.label || '',
+            labelLangKey: options.labelLangKey || null,
             description: options.description || '',
+            descriptionLangKey: options.descriptionLangKey || null,
             placeholder: options.placeholder || '+ tag',
+            placeholderLangKey: options.placeholderLangKey || null,
             disabled: options.disabled || false,
             visible: options.visible !== false,
             suggestions: options.suggestions || [],      // All available tags
@@ -57,6 +60,9 @@ class TagInput {
         // Label
         if (this.options.label) {
             this.labelEl = Q('<label>', { class: 'widget-label', text: this.options.label }).get(0);
+            if (this.options.labelLangKey) {
+                this.labelEl.setAttribute('data-lang-key', this.options.labelLangKey);
+            }
             Q(this.element).append(this.labelEl);
         }
         
@@ -76,6 +82,10 @@ class TagInput {
             class: 'tag-input-field',
             placeholder: this.options.placeholder
         }).get(0);
+        if (this.options.placeholderLangKey) {
+            this.input.setAttribute('data-lang-key', this.options.placeholderLangKey);
+            this.input.setAttribute('data-lang-placeholder', 'true');
+        }
         Q(this.inputWrapper).append(this.input);
         
         // Suggestions dropdown
@@ -88,6 +98,9 @@ class TagInput {
         // Description
         if (this.options.description) {
             this.descEl = Q('<div>', { class: 'widget-description', text: this.options.description }).get(0);
+            if (this.options.descriptionLangKey) {
+                this.descEl.setAttribute('data-lang-key', this.options.descriptionLangKey);
+            }
             Q(this.element).append(this.descEl);
         }
         

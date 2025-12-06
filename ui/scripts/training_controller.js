@@ -83,6 +83,7 @@ const TrainingController = {
             id: 'training-stop-btn',
             text: lang('training_controller.stop')
         }).get();
+        stopBtn.setAttribute('data-lang-key', 'training_controller.stop');
         Q(stopBtn).on('click', () => this.stopTraining());
         Q(this._headerElement).append(stopBtn);
 
@@ -275,19 +276,23 @@ const TrainingController = {
         // Update UI to show completion
         const progressText = Q('#training-progress-text');
         if (progressText.get()) {
+            let langKey;
             if (status === 'completed') {
-                progressText.text(lang('training_controller.completed'));
+                langKey = 'training_controller.completed';
             } else if (status === 'stopped') {
-                progressText.text(lang('training_controller.stopped'));
+                langKey = 'training_controller.stopped';
             } else {
-                progressText.text(lang('training_controller.error'));
+                langKey = 'training_controller.error';
             }
+            progressText.text(lang(langKey));
+            progressText.get().setAttribute('data-lang-key', langKey);
         }
 
         // Change stop button to "Clear"
         const stopBtn = Q('#training-stop-btn');
         if (stopBtn.get()) {
             stopBtn.text(lang('training_controller.clear'));
+            stopBtn.get().setAttribute('data-lang-key', 'training_controller.clear');
             stopBtn.off('click').on('click', () => this._clearProgress());
         }
 
@@ -306,6 +311,7 @@ const TrainingController = {
         const stopBtn = Q('#training-stop-btn');
         if (stopBtn.get()) {
             stopBtn.text(lang('training_controller.stop'));
+            stopBtn.get().setAttribute('data-lang-key', 'training_controller.stop');
             stopBtn.off('click').on('click', () => this.stopTraining());
         }
     },
