@@ -56,12 +56,12 @@ class ArrayInput {
         // Label
         if (this.options.label) {
             this.labelEl = Q('<label>', { class: 'widget-label', text: this.options.label }).get(0);
-            this.element.appendChild(this.labelEl);
+            Q(this.element).append(this.labelEl);
         }
         
         // Tags container
         this.tagsContainer = Q('<div>', { class: 'array-tags' }).get(0);
-        this.element.appendChild(this.tagsContainer);
+        Q(this.element).append(this.tagsContainer);
         
         // Input row
         this.inputRow = Q('<div>', { class: 'array-input-row' }).get(0);
@@ -69,14 +69,14 @@ class ArrayInput {
         this.input = Q('<input>', { type: 'text', class: 'array-input', placeholder: this.options.placeholder }).get(0);
         this.addBtn = Q('<button>', { type: 'button', class: 'array-add-btn', text: '+' }).get(0);
         
-        this.inputRow.appendChild(this.input);
-        this.inputRow.appendChild(this.addBtn);
-        this.element.appendChild(this.inputRow);
+        Q(this.inputRow).append(this.input);
+        Q(this.inputRow).append(this.addBtn);
+        Q(this.element).append(this.inputRow);
         
         // Description
         if (this.options.description) {
             this.descEl = Q('<div>', { class: 'widget-description', text: this.options.description }).get(0);
-            this.element.appendChild(this.descEl);
+            Q(this.element).append(this.descEl);
         }
         
         // Render initial tags
@@ -92,7 +92,7 @@ class ArrayInput {
     }
     
     _renderTags() {
-        this.tagsContainer.innerHTML = '';
+        Q(this.tagsContainer).empty();
         
         this._value.forEach((item, index) => {
             const tag = Q('<div>', { class: 'array-tag' }).get(0);
@@ -100,7 +100,7 @@ class ArrayInput {
             if (this._editingIndex === index) {
                 // Edit mode
                 const editInput = Q('<input>', { type: 'text', class: 'array-tag-edit', value: item }).get(0);
-                tag.appendChild(editInput);
+                Q(tag).append(editInput);
                 
                 Q(editInput).on('blur', () => {
                     this._finishEdit(index, editInput.value);
@@ -122,8 +122,8 @@ class ArrayInput {
                 const text = Q('<span>', { class: 'array-tag-text', text: item }).get(0);
                 const deleteBtn = Q('<span>', { class: 'array-tag-delete', text: '\u00D7' }).get(0);
                 
-                tag.appendChild(text);
-                tag.appendChild(deleteBtn);
+                Q(tag).append(text);
+                Q(tag).append(deleteBtn);
                 
                 // Double-click to edit
                 Q(text).on('dblclick', () => {
@@ -141,7 +141,7 @@ class ArrayInput {
                 });
             }
             
-            this.tagsContainer.appendChild(tag);
+            Q(this.tagsContainer).append(tag);
         });
     }
     

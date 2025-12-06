@@ -237,28 +237,6 @@
     filter: brightness(0);
 }
 
-/* Icon button */
-.btn-icon {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-}
-
-.btn-icon-img {
-    width: 16px;
-    height: 16px;
-    filter: brightness(0) invert(1);
-}
-
-.btn.loading .btn-icon-img {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
 /* ============================================================================
    Folder Browser
    ============================================================================ */

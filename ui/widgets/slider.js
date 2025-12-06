@@ -86,71 +86,57 @@ class Slider {
     
     _build() {
         // Container
-        this._element = document.createElement('div');
-        this._element.className = 'slider-container';
-        this._element.id = `slider-${this.id}`;
+        this._element = Q('<div>', { class: 'slider-container', id: `slider-${this.id}` }).get();
         
         // Label row
         if (this.options.label) {
-            const labelRow = document.createElement('div');
-            labelRow.className = 'slider-label-row';
+            const labelRow = Q('<div>', { class: 'slider-label-row' });
             
-            const label = document.createElement('label');
-            label.className = 'slider-label';
-            label.textContent = this.options.label;
-            // Add lang key attribute for live translation
+            const labelAttrs = { class: 'slider-label', text: this.options.label };
             if (this.options.labelLangKey) {
-                label.setAttribute('data-lang-key', this.options.labelLangKey);
+                labelAttrs['data-lang-key'] = this.options.labelLangKey;
             }
-            labelRow.appendChild(label);
+            const label = Q('<label>', labelAttrs).get();
+            labelRow.append(label);
             
-            this._element.appendChild(labelRow);
+            Q(this._element).append(labelRow.get());
         }
         
         // Control row (slider + input)
-        const controlRow = document.createElement('div');
-        controlRow.className = 'slider-control-row';
+        const controlRow = Q('<div>', { class: 'slider-control-row' });
         
         // Slider wrapper
-        const sliderWrapper = document.createElement('div');
-        sliderWrapper.className = 'slider-wrapper';
+        const sliderWrapper = Q('<div>', { class: 'slider-wrapper' });
         
         // Track
-        this._track = document.createElement('div');
-        this._track.className = 'slider-track';
+        this._track = Q('<div>', { class: 'slider-track' }).get();
         
         // Fill
-        this._fill = document.createElement('div');
-        this._fill.className = 'slider-fill';
-        this._track.appendChild(this._fill);
+        this._fill = Q('<div>', { class: 'slider-fill' }).get();
+        Q(this._track).append(this._fill);
         
         // Thumb
-        this._thumb = document.createElement('div');
-        this._thumb.className = 'slider-thumb';
-        this._track.appendChild(this._thumb);
+        this._thumb = Q('<div>', { class: 'slider-thumb' }).get();
+        Q(this._track).append(this._thumb);
         
-        sliderWrapper.appendChild(this._track);
-        controlRow.appendChild(sliderWrapper);
+        sliderWrapper.append(this._track);
+        controlRow.append(sliderWrapper.get());
         
         // Number input
-        this._input = document.createElement('input');
-        this._input.type = 'text';
-        this._input.className = 'slider-input';
+        this._input = Q('<input>', { type: 'text', class: 'slider-input' }).get();
         this._input.value = this._formatValue(this._value);
         
         if (this.options.disabled) {
             this._input.disabled = true;
         }
         
-        controlRow.appendChild(this._input);
-        this._element.appendChild(controlRow);
+        controlRow.append(this._input);
+        Q(this._element).append(controlRow.get());
         
         // Description
         if (this.options.description) {
-            const desc = document.createElement('div');
-            desc.className = 'slider-description';
-            desc.textContent = this.options.description;
-            this._element.appendChild(desc);
+            const desc = Q('<div>', { class: 'slider-description', text: this.options.description }).get();
+            Q(this._element).append(desc);
         }
         
         // Update visual
@@ -161,7 +147,7 @@ class Slider {
         
         // Disabled state
         if (this.options.disabled) {
-            this._element.classList.add('disabled');
+            Q(this._element).addClass('disabled');
         }
     }
     
@@ -191,14 +177,14 @@ class Slider {
     
     _bindEvents() {
         // Track click/drag
-        this._track.addEventListener('mousedown', (e) => this._onTrackMouseDown(e));
-        document.addEventListener('mousemove', (e) => this._onDocumentMouseMove(e));
-        document.addEventListener('mouseup', () => this._onDocumentMouseUp());
+        Q(this._track).on('mousedown', (e) => this._onTrackMouseDown(e));
+        Q(document).on('mousemove', (e) => this._onDocumentMouseMove(e));
+        Q(document).on('mouseup', () => this._onDocumentMouseUp());
         
         // Input events
-        this._input.addEventListener('input', () => this._onInputChange());
-        this._input.addEventListener('blur', () => this._onInputBlur());
-        this._input.addEventListener('keydown', (e) => {
+        Q(this._input).on('input', () => this._onInputChange());
+        Q(this._input).on('blur', () => this._onInputBlur());
+        Q(this._input).on('keydown', (e) => {
             if (e.key === 'Enter') {
                 this._onInputBlur();
                 this._input.blur();
@@ -207,7 +193,7 @@ class Slider {
         
         // Keyboard on track
         this._track.tabIndex = 0;
-        this._track.addEventListener('keydown', (e) => this._onTrackKeyDown(e));
+        Q(this._track).on('keydown', (e) => this._onTrackKeyDown(e));
     }
     
     _onTrackMouseDown(e) {
@@ -215,7 +201,7 @@ class Slider {
         
         e.preventDefault();
         this._isDragging = true;
-        this._element.classList.add('dragging');
+        Q(this._element).addClass('dragging');
         this._updateFromMouse(e);
     }
     
@@ -227,7 +213,7 @@ class Slider {
     _onDocumentMouseUp() {
         if (!this._isDragging) return;
         this._isDragging = false;
-        this._element.classList.remove('dragging');
+        Q(this._element).removeClass('dragging');
     }
     
     _updateFromMouse(e) {
@@ -368,7 +354,7 @@ class Slider {
     setDisabled(disabled) {
         this.options.disabled = disabled;
         this._input.disabled = disabled;
-        this._element.classList.toggle('disabled', disabled);
+        Q(this._element).toggleClass('disabled', disabled);
     }
     
     // Schema compatibility

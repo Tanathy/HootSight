@@ -28,12 +28,12 @@ const LayoutBuilder = {
         if (options.title) {
             const header = Q('<div>', { class: 'card-header' }).get(0);
             const title = Q('<span>', { class: 'card-title', text: options.title }).get(0);
-            header.appendChild(title);
-            card.appendChild(header);
+            Q(header).append(title);
+            Q(card).append(header);
         }
         
         const body = Q('<div>', { class: 'card-body' }).get(0);
-        card.appendChild(body);
+        Q(card).append(body);
         
         return card;
     },
@@ -49,12 +49,12 @@ const LayoutBuilder = {
         
         if (title) {
             const h2 = Q('<h2>', { class: 'heading-title', text: title }).get(0);
-            heading.appendChild(h2);
+            Q(heading).append(h2);
         }
         
         if (description) {
             const desc = Q('<div>', { class: 'heading-description', text: description }).get(0);
-            heading.appendChild(desc);
+            Q(heading).append(desc);
         }
         
         return heading;
@@ -74,14 +74,14 @@ const LayoutBuilder = {
             const valueSpan = Q('<span>', { class: 'list-value' }).get(0);
             
             if (typeof value === 'object' && value !== null) {
-                valueSpan.appendChild(this.list(value));
+                Q(valueSpan).append(this.list(value));
             } else {
-                valueSpan.textContent = String(value);
+                Q(valueSpan).text(String(value));
             }
             
-            li.appendChild(keySpan);
-            li.appendChild(valueSpan);
-            ul.appendChild(li);
+            Q(li).append(keySpan);
+            Q(li).append(valueSpan);
+            Q(ul).append(li);
         }
         
         return ul;
@@ -100,9 +100,9 @@ const LayoutBuilder = {
             const keyTd = Q('<td>', { class: 'table-key', text: key }).get(0);
             const valueTd = Q('<td>', { class: 'table-value', text: String(value) }).get(0);
             
-            tr.appendChild(keyTd);
-            tr.appendChild(valueTd);
-            table.appendChild(tr);
+            Q(tr).append(keyTd);
+            Q(tr).append(valueTd);
+            Q(table).append(tr);
         }
         
         return table;

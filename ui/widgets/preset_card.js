@@ -22,15 +22,17 @@ const PresetCard = {
         let selectedSize = 'medium'; // Default
 
         const header = Q('<div>', { class: 'preset-card-header' }).get(0);
-        const name = Q('<h3>', { class: 'preset-card-name', text: preset.name }).get(0);
+        const name = Q('<h3>', { class: 'preset-card-name', text: lang(preset.name) }).get(0);
+        name.setAttribute('data-lang-key', preset.name);
         const task = Q('<span>', { class: 'preset-card-task', text: preset.task }).get(0);
         
         Q(header).append(name, task);
 
         const description = Q('<p>', { 
             class: 'preset-card-description', 
-            text: preset.description 
+            text: lang(preset.description) 
         }).get(0);
+        description.setAttribute('data-lang-key', preset.description);
 
         // Incompatibility warning
         let warning = null;
@@ -41,6 +43,7 @@ const PresetCard = {
                 class: 'preset-card-warning-text', 
                 text: lang('training_page.presets.incompatible_dataset') 
             }).get(0);
+            warningText.setAttribute('data-lang-key', 'training_page.presets.incompatible_dataset');
             Q(warning).append(warningIcon, warningText);
         }
 
@@ -54,6 +57,7 @@ const PresetCard = {
                 class: 'preset-card-size-label', 
                 text: lang('training_page.presets.dataset_size') 
             }).get(0);
+            sizeLabel.setAttribute('data-lang-key', 'training_page.presets.dataset_size');
             
             const sizeButtons = Q('<div>', { class: 'preset-card-size-buttons' }).get(0);
             
@@ -62,11 +66,12 @@ const PresetCard = {
             
             preset.size_variants.forEach(variant => {
                 const rangeText = this._formatRange(variant.range);
+                const translatedDesc = lang(variant.description);
                 const btn = Q('<button>', { 
                     class: 'preset-card-size-btn' + (variant.key === 'medium' ? ' active' : ''),
                     text: rangeText,
                     'data-size': variant.key,
-                    title: variant.description
+                    title: translatedDesc
                 }).get(0);
                 
                 Q(btn).on('click', (e) => {
@@ -76,14 +81,14 @@ const PresetCard = {
                     selectedSize = variant.key;
                     
                     // Update description
-                    sizeDescription.textContent = variant.description;
+                    Q(sizeDescription).text(lang(variant.description));
                 });
                 
                 Q(sizeButtons).append(btn);
                 
                 // Set initial description for medium
                 if (variant.key === 'medium') {
-                    sizeDescription.textContent = variant.description;
+                    Q(sizeDescription).text(translatedDesc);
                 }
             });
             
@@ -97,6 +102,7 @@ const PresetCard = {
                 class: 'preset-card-models-label', 
                 text: lang('training_page.presets.recommended') 
             }).get(0);
+            modelsLabel.setAttribute('data-lang-key', 'training_page.presets.recommended');
             Q(models).append(modelsLabel);
 
             preset.recommended_models.forEach(model => {
@@ -112,6 +118,7 @@ const PresetCard = {
             class: 'preset-card-apply-button btn btn-primary',
             text: lang('training_page.presets.apply_button')
         }).get(0);
+        applyButton.setAttribute('data-lang-key', 'training_page.presets.apply_button');
 
         Q(applyButton).on('click', () => {
             if (onApply) {

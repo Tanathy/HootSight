@@ -11,27 +11,20 @@ class ListWidget {
             emptyText: options.emptyText || 'No data'
         };
         
-        this._element = document.createElement('div');
-        this._element.className = 'widget list-widget';
-        this._element.id = `list-${this.id}`;
+        this._element = Q('<div>', { class: 'widget list-widget', id: `list-${this.id}` }).get();
         
         if (this.options.label) {
-            this._labelEl = document.createElement('label');
-            this._labelEl.className = 'widget-label';
-            this._labelEl.textContent = this.options.label;
-            this._element.appendChild(this._labelEl);
+            this._labelEl = Q('<label>', { class: 'widget-label', text: this.options.label }).get();
+            Q(this._element).append(this._labelEl);
         }
         
         if (this.options.description) {
-            this._descriptionEl = document.createElement('div');
-            this._descriptionEl.className = 'widget-description';
-            this._descriptionEl.textContent = this.options.description;
-            this._element.appendChild(this._descriptionEl);
+            this._descriptionEl = Q('<div>', { class: 'widget-description', text: this.options.description }).get();
+            Q(this._element).append(this._descriptionEl);
         }
         
-        this._listEl = document.createElement('ul');
-        this._listEl.className = 'list';
-        this._element.appendChild(this._listEl);
+        this._listEl = Q('<ul>', { class: 'list' }).get();
+        Q(this._element).append(this._listEl);
         
         this._render();
     }
@@ -42,20 +35,14 @@ class ListWidget {
     }
     
     _render() {
-        this._listEl.innerHTML = '';
+        Q(this._listEl).empty();
         const data = this.options.data;
         if (data === null || typeof data === 'undefined') {
-            const placeholder = document.createElement('li');
-            placeholder.className = 'list-item';
-            const keyEl = document.createElement('span');
-            keyEl.className = 'list-key';
-            keyEl.textContent = '-';
-            const valueEl = document.createElement('div');
-            valueEl.className = 'list-value';
-            valueEl.textContent = this.options.emptyText;
-            placeholder.appendChild(keyEl);
-            placeholder.appendChild(valueEl);
-            this._listEl.appendChild(placeholder);
+            const placeholder = Q('<li>', { class: 'list-item' });
+            const keyEl = Q('<span>', { class: 'list-key', text: '-' }).get();
+            const valueEl = Q('<div>', { class: 'list-value', text: this.options.emptyText }).get();
+            placeholder.append(keyEl).append(valueEl);
+            Q(this._listEl).append(placeholder.get());
             return;
         }
         this._buildList(this._listEl, data);
@@ -76,32 +63,25 @@ class ListWidget {
     }
     
     _appendItem(container, key, value) {
-        const li = document.createElement('li');
-        li.className = 'list-item';
+        const li = Q('<li>', { class: 'list-item' });
         
-        const keyEl = document.createElement('span');
-        keyEl.className = 'list-key';
-        keyEl.textContent = key === null || typeof key === 'undefined'
-            ? '-'
-            : key.toString();
-        li.appendChild(keyEl);
+        const keyText = key === null || typeof key === 'undefined' ? '-' : key.toString();
+        const keyEl = Q('<span>', { class: 'list-key', text: keyText }).get();
+        li.append(keyEl);
         
-        const valueEl = document.createElement('div');
-        valueEl.className = 'list-value';
+        const valueEl = Q('<div>', { class: 'list-value' });
         
         if (value !== null && typeof value === 'object') {
-            const nestedList = document.createElement('ul');
-            nestedList.className = 'list';
+            const nestedList = Q('<ul>', { class: 'list' }).get();
             this._buildList(nestedList, value);
-            valueEl.appendChild(nestedList);
+            valueEl.append(nestedList);
         } else {
-            valueEl.textContent = value === null || typeof value === 'undefined'
-                ? '—'
-                : value.toString();
+            const text = value === null || typeof value === 'undefined' ? '—' : value.toString();
+            valueEl.text(text);
         }
         
-        li.appendChild(valueEl);
-        container.appendChild(li);
+        li.append(valueEl.get());
+        Q(container).append(li.get());
     }
     
     getElement() {

@@ -100,7 +100,7 @@ const Lang = {
      */
     refresh: function() {
         // Find all elements with data-lang-key
-        const elements = document.querySelectorAll('[data-lang-key]');
+        const elements = Q('[data-lang-key]').getAll();
         
         elements.forEach(el => {
             const key = el.getAttribute('data-lang-key');

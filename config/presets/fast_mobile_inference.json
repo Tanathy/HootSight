@@ -1,6 +1,6 @@
 {
-    "name": "Fast Mobile Inference",
-    "description": "Lightweight models optimized for maximum inference speed and minimal resource usage. Trades some accuracy for 3-10x faster predictions and smaller model files. USE CASES: Mobile apps (iOS/Android), embedded systems (Raspberry Pi, Jetson Nano), real-time video processing, edge AI devices, IoT sensors, smart cameras, drone vision, AR/VR applications, browser-based inference, batch processing millions of images, latency-critical applications (<10ms response). SUPPORTED MODELS: MobileNetV3 (best speed/accuracy), ShuffleNet (very fast), SqueezeNet (smallest file size ~5MB), avoid ResNet/EfficientNet for speed-critical deployment. OUTPUT: Same classification results but optimized for deployment - smaller model files, faster inference, lower memory usage. Ideal for production systems with hardware constraints.",
+    "name": "presets.fast_mobile_inference.name",
+    "description": "presets.fast_mobile_inference.description",
     "task": "classification",
     "dataset_types": [
         "folder_classification",
@@ -16,7 +16,7 @@
     ],
     "configs": {
         "tiny": {
-            "description": "Very small datasets (50-500 images). Heavy regularization, aggressive augmentation, smaller models. High risk of overfitting - early stopping essential.",
+            "description": "presets.configs.tiny",
             "range": [
                 50,
                 500
@@ -88,7 +88,7 @@
             }
         },
         "small": {
-            "description": "Small datasets (500-2.5k images). Moderate regularization with pretrained weights. Balance between learning capacity and overfitting prevention.",
+            "description": "presets.configs.small",
             "range": [
                 500,
                 2500
@@ -160,7 +160,7 @@
             }
         },
         "medium": {
-            "description": "Medium datasets (2.5k-10k images). Standard hyperparameters with good augmentation. Balanced training approach works well.",
+            "description": "presets.configs.medium",
             "range": [
                 2500,
                 10000
@@ -232,7 +232,7 @@
             }
         },
         "large": {
-            "description": "Large datasets (10k-30k images). Reduced regularization, larger models viable. Higher learning rates and bigger batches effective.",
+            "description": "presets.configs.large",
             "range": [
                 10000,
                 30000
@@ -304,7 +304,7 @@
             }
         },
         "huge": {
-            "description": "Huge datasets (30k-50k images). Minimal regularization needed. Deep networks train effectively with standard augmentation.",
+            "description": "presets.configs.huge",
             "range": [
                 30000,
                 50000
@@ -376,7 +376,7 @@
             }
         },
         "massive": {
-            "description": "Massive datasets (50k-100k images). Very deep networks fully supported. Fast learning rates, large batches, minimal regularization.",
+            "description": "presets.configs.massive",
             "range": [
                 50000,
                 100000
@@ -448,7 +448,7 @@
             }
         },
         "giant": {
-            "description": "Giant datasets (100k+ images). Maximum model capacity utilized. Can train from scratch or fine-tune with aggressive settings.",
+            "description": "presets.configs.giant",
             "range": [
                 100000,
                 null

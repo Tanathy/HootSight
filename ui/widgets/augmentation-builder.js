@@ -69,16 +69,16 @@ class AugmentationBuilder {
         
         if (this.options.label) {
             const labelEl = Q('<div>', { class: 'augmentation-builder-label', text: this.options.label }).get(0);
-            this.element.appendChild(labelEl);
+            Q(this.element).append(labelEl);
         }
         
         if (this.options.description) {
             const descEl = Q('<div>', { class: 'widget-description', text: this.options.description }).get(0);
-            this.element.appendChild(descEl);
+            Q(this.element).append(descEl);
         }
         
         this.listContainer = Q('<div>', { class: 'augmentation-list' }).get(0);
-        this.element.appendChild(this.listContainer);
+        Q(this.element).append(this.listContainer);
         
         this._buildAugmentationItems();
     }
@@ -91,7 +91,7 @@ class AugmentationBuilder {
         
         sortedAugs.forEach(augName => {
             const item = this._buildAugmentationItem(augName);
-            this.listContainer.appendChild(item);
+            Q(this.listContainer).append(item);
         });
     }
     
@@ -102,10 +102,10 @@ class AugmentationBuilder {
         const state = this._augmentationStates[augName];
         const defaults = this.options.augmentationDefaults[augName] || {};
         
-        const item = Q('<div>', { class: 'augmentation-item' }).get(0);
-        item.dataset.augmentation = augName;
+        const item = Q('<div>', { class: 'augmentation-item' });
+        item.get().dataset.augmentation = augName;
         if (state.enabled) {
-            item.classList.add('enabled');
+            item.addClass('enabled');
         }
         
         // Header with toggle switch using Switch widget pattern
@@ -115,25 +115,27 @@ class AugmentationBuilder {
         const switchContainer = Q('<div>', { class: 'switch-container augmentation-switch' }).get(0);
         const checkbox = Q('<input>', { type: 'checkbox', class: 'switch-input' }).get(0);
         checkbox.checked = state.enabled;
-        const track = Q('<div>', { class: 'switch-track' }).get(0);
+        const track = Q('<div>', { class: 'switch-track' });
         const thumb = Q('<div>', { class: 'switch-thumb' }).get(0);
-        track.appendChild(thumb);
-        switchContainer.appendChild(checkbox);
-        switchContainer.appendChild(track);
+        Q(track.get()).append(thumb);
+        Q(switchContainer).append(checkbox);
+        Q(switchContainer).append(track.get());
         
         // Update visual state
         if (state.enabled) {
-            track.classList.add('active');
+            track.addClass('active');
         }
         
-        header.appendChild(switchContainer);
+        Q(header).append(switchContainer);
         
         // Title
-        const title = Q('<span>', { class: 'augmentation-item-title' }).get(0);
-        title.textContent = this._formatAugmentationName(augName);
-        header.appendChild(title);
+        const title = Q('<span>', { 
+            class: 'augmentation-item-title',
+            text: this._formatAugmentationName(augName)
+        }).get(0);
+        Q(header).append(title);
         
-        item.appendChild(header);
+        Q(item.get()).append(header);
         
         // Parameters container
         const paramsContainer = Q('<div>', { class: 'augmentation-item-params' }).get(0);
@@ -145,19 +147,19 @@ class AugmentationBuilder {
         this._paramWidgets[augName] = {};
         this._buildParamWidgets(augName, defaults, state.params, paramsContainer);
         
-        item.appendChild(paramsContainer);
+        Q(item.get()).append(paramsContainer);
         
         // Toggle event
         Q(checkbox).on('change', () => {
             state.enabled = checkbox.checked;
-            item.classList.toggle('enabled', state.enabled);
-            track.classList.toggle('active', state.enabled);
+            item.toggleClass('enabled', state.enabled);
+            track.toggleClass('active', state.enabled);
             paramsContainer.style.display = state.enabled ? '' : 'none';
             this._notifyChange();
         });
         
         // Click on track toggles
-        Q(track).on('click', (e) => {
+        track.on('click', (e) => {
             e.preventDefault();
             checkbox.checked = !checkbox.checked;
             checkbox.dispatchEvent(new Event('change'));
@@ -169,7 +171,7 @@ class AugmentationBuilder {
             checkbox.dispatchEvent(new Event('change'));
         });
         
-        return item;
+        return item.get();
     }
     
     /**
@@ -180,7 +182,8 @@ class AugmentationBuilder {
         
         if (paramKeys.length === 0) {
             const noParams = Q('<div>', { class: 'augmentation-no-params', text: lang('training_page.augmentation.no_params') }).get(0);
-            container.appendChild(noParams);
+            noParams.setAttribute('data-lang-key', 'training_page.augmentation.no_params');
+            Q(container).append(noParams);
             return;
         }
         
@@ -191,7 +194,7 @@ class AugmentationBuilder {
             const widget = this._createParamWidget(augName, paramKey, defaultValue, currentValue);
             if (widget) {
                 this._paramWidgets[augName][paramKey] = widget;
-                container.appendChild(widget.getElement());
+                Q(container).append(widget.getElement());
             }
         });
     }
@@ -337,7 +340,7 @@ class AugmentationBuilder {
         
         // Label
         const labelEl = Q('<label>', { class: 'widget-label', text: label }).get(0);
-        wrapper.element.appendChild(labelEl);
+        Q(wrapper.element).append(labelEl);
         
         // Inputs container
         const inputsRow = Q('<div>', { class: 'array-inputs-row' }).get(0);
@@ -361,11 +364,11 @@ class AugmentationBuilder {
             
             // Get just the input part, not the whole widget
             const el = itemWidget.getElement();
-            el.classList.add('array-item');
-            inputsRow.appendChild(el);
+            Q(el).addClass('array-item');
+            Q(inputsRow).append(el);
         });
         
-        wrapper.element.appendChild(inputsRow);
+        Q(wrapper.element).append(inputsRow);
         
         return wrapper;
     }
@@ -489,7 +492,7 @@ class AugmentationBuilder {
         this.options.currentPipeline = pipeline;
         this._initializeStates();
         this._paramWidgets = {};
-        this.listContainer.innerHTML = '';
+        Q(this.listContainer).empty();
         this._buildAugmentationItems();
     }
     

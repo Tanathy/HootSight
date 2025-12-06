@@ -69,9 +69,35 @@
     font-size: var(--font-description);
 }
 
+/* Icon-only button */
 .btn-icon {
     width: 32px;
     height: 32px;
+    min-width: 32px;
     padding: 0;
     border-radius: var(--radius-sm);
+    background: var(--btn-secondary-bg);
+    color: var(--btn-secondary-text);
+}
+
+.btn-icon:hover:not(:disabled) {
+    background: var(--btn-secondary-hover);
+}
+
+/* Icon image inside buttons */
+.btn-icon-img {
+    width: 20px;
+    height: 20px;
+    filter: brightness(0) invert(1);
+    transition: transform 0.15s;
+}
+
+/* Spinning animation for loading state */
+.btn.loading .btn-icon-img {
+    animation: btn-spin 1s linear infinite;
+}
+
+@keyframes btn-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }

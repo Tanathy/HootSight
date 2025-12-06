@@ -65,7 +65,7 @@ class TextInput {
             if (this.options.labelLangKey) {
                 this.labelEl.setAttribute('data-lang-key', this.options.labelLangKey);
             }
-            this.element.appendChild(this.labelEl);
+            Q(this.element).append(this.labelEl);
         }
         
         // Input
@@ -90,7 +90,7 @@ class TextInput {
             this.input.pattern = this.options.pattern;
         }
         
-        this.element.appendChild(this.input);
+        Q(this.element).append(this.input);
         
         // Description
         if (this.options.description) {
@@ -99,7 +99,7 @@ class TextInput {
             if (this.options.descriptionLangKey) {
                 this.descEl.setAttribute('data-lang-key', this.options.descriptionLangKey);
             }
-            this.element.appendChild(this.descEl);
+            Q(this.element).append(this.descEl);
         }
         
         // Event listeners

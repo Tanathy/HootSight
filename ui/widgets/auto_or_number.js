@@ -72,7 +72,7 @@ class AutoOrNumber {
             if (this.options.labelLangKey) {
                 this.labelEl.setAttribute('data-lang-key', this.options.labelLangKey);
             }
-            this.element.appendChild(this.labelEl);
+            Q(this.element).append(this.labelEl);
         }
         
         // Controls container
@@ -89,14 +89,14 @@ class AutoOrNumber {
         // Build switch using standard classes
         this.switchTrack = Q('<div>', { class: 'switch-track' }).get(0);
         this.switchThumb = Q('<div>', { class: 'switch-thumb' }).get(0);
-        this.switchTrack.appendChild(this.switchThumb);
+        Q(this.switchTrack).append(this.switchThumb);
         
         if (this._isAuto) {
             Q(this.switchTrack).addClass('active');
         }
         
-        this.autoSwitchContainer.appendChild(this.autoLabel);
-        this.autoSwitchContainer.appendChild(this.switchTrack);
+        Q(this.autoSwitchContainer).append(this.autoLabel);
+        Q(this.autoSwitchContainer).append(this.switchTrack);
         
         // Number input section
         this.numberContainer = Q('<div>', { class: 'number-section' }).get(0);
@@ -126,14 +126,14 @@ class AutoOrNumber {
             text: '+'
         }).get(0);
         
-        this.numberContainer.appendChild(this.decreaseBtn);
-        this.numberContainer.appendChild(this.numberInput);
-        this.numberContainer.appendChild(this.increaseBtn);
+        Q(this.numberContainer).append(this.decreaseBtn);
+        Q(this.numberContainer).append(this.numberInput);
+        Q(this.numberContainer).append(this.increaseBtn);
         
         // Assemble controls
-        this.controlsContainer.appendChild(this.autoSwitchContainer);
-        this.controlsContainer.appendChild(this.numberContainer);
-        this.element.appendChild(this.controlsContainer);
+        Q(this.controlsContainer).append(this.autoSwitchContainer);
+        Q(this.controlsContainer).append(this.numberContainer);
+        Q(this.element).append(this.controlsContainer);
         
         // Description
         if (this.options.description) {
@@ -145,7 +145,7 @@ class AutoOrNumber {
             if (this.options.descriptionLangKey) {
                 this.descEl.setAttribute('data-lang-key', this.options.descriptionLangKey);
             }
-            this.element.appendChild(this.descEl);
+            Q(this.element).append(this.descEl);
         }
         
         this._updateState();

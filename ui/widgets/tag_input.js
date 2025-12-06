@@ -57,7 +57,7 @@ class TagInput {
         // Label
         if (this.options.label) {
             this.labelEl = Q('<label>', { class: 'widget-label', text: this.options.label }).get(0);
-            this.element.appendChild(this.labelEl);
+            Q(this.element).append(this.labelEl);
         }
         
         // Tags container (holds tags + input)
@@ -65,7 +65,7 @@ class TagInput {
         
         // Tags wrapper
         this.tagsWrapper = Q('<div>', { class: 'tag-input-tags' }).get(0);
-        this.tagsContainer.appendChild(this.tagsWrapper);
+        Q(this.tagsContainer).append(this.tagsWrapper);
         
         // Input wrapper (for positioning suggestions)
         this.inputWrapper = Q('<div>', { class: 'tag-input-wrapper' }).get(0);
@@ -76,19 +76,19 @@ class TagInput {
             class: 'tag-input-field',
             placeholder: this.options.placeholder
         }).get(0);
-        this.inputWrapper.appendChild(this.input);
+        Q(this.inputWrapper).append(this.input);
         
         // Suggestions dropdown
         this.suggestionsEl = Q('<div>', { class: 'tag-input-suggestions hidden' }).get(0);
-        this.inputWrapper.appendChild(this.suggestionsEl);
+        Q(this.inputWrapper).append(this.suggestionsEl);
         
-        this.tagsContainer.appendChild(this.inputWrapper);
-        this.element.appendChild(this.tagsContainer);
+        Q(this.tagsContainer).append(this.inputWrapper);
+        Q(this.element).append(this.tagsContainer);
         
         // Description
         if (this.options.description) {
             this.descEl = Q('<div>', { class: 'widget-description', text: this.options.description }).get(0);
-            this.element.appendChild(this.descEl);
+            Q(this.element).append(this.descEl);
         }
         
         // Event listeners
@@ -139,7 +139,7 @@ class TagInput {
         switch (e.key) {
             case 'Enter':
                 e.preventDefault();
-                const selected = this.suggestionsEl.querySelector('.selected');
+                const selected = Q(this.suggestionsEl).find('.selected').get(0);
                 if (selected) {
                     this._addTagInternal(selected.dataset.tag);
                 } else {
@@ -191,7 +191,7 @@ class TagInput {
     
     _showSuggestions() {
         const query = this.input.value.trim().toLowerCase();
-        this.suggestionsEl.innerHTML = '';
+        Q(this.suggestionsEl).empty();
         
         let suggestions = [];
         
@@ -246,7 +246,7 @@ class TagInput {
                 this.input.focus();
             });
             
-            this.suggestionsEl.appendChild(item);
+            Q(this.suggestionsEl).append(item);
         });
         
         Q(this.suggestionsEl).removeClass('hidden');
@@ -257,7 +257,7 @@ class TagInput {
     }
     
     _navigateSuggestions(direction) {
-        const items = this.suggestionsEl.querySelectorAll('.tag-suggestion-item');
+        const items = Q(this.suggestionsEl).find('.tag-suggestion-item').getAll();
         if (items.length === 0) return;
         
         let currentIndex = -1;
@@ -276,26 +276,25 @@ class TagInput {
     }
     
     _createTagElement(tag) {
-        const tagEl = Q('<span>', { class: 'tag-input-tag', 'data-tag': tag }).get(0);
+        const tagEl = Q('<span>', { class: 'tag-input-tag', 'data-tag': tag });
         
         const text = Q('<span>', { class: 'tag-input-tag-text', text: tag }).get(0);
-        tagEl.appendChild(text);
+        tagEl.append(text);
         
-        const removeBtn = Q('<span>', { class: 'tag-input-tag-remove' }).get(0);
-        removeBtn.innerHTML = '&times;';
+        const removeBtn = Q('<span>', { class: 'tag-input-tag-remove', text: '\u00D7' }).get(0);
         Q(removeBtn).on('click', (e) => {
             e.stopPropagation();
             this._removeTagInternal(tag);
         });
-        tagEl.appendChild(removeBtn);
+        tagEl.append(removeBtn);
         
-        return tagEl;
+        return tagEl.get();
     }
     
     _renderTags() {
-        this.tagsWrapper.innerHTML = '';
+        Q(this.tagsWrapper).empty();
         this._tags.forEach(tag => {
-            this.tagsWrapper.appendChild(this._createTagElement(tag));
+            Q(this.tagsWrapper).append(this._createTagElement(tag));
         });
     }
     

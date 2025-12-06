@@ -22,8 +22,8 @@ class Tabs {
         this.header = Q('<div>', { class: 'tabs-header' }).get(0);
         this.content = Q('<div>', { class: 'tabs-content' }).get(0);
         
-        this.element.appendChild(this.header);
-        this.element.appendChild(this.content);
+        Q(this.element).append(this.header);
+        Q(this.element).append(this.content);
     }
     
     /**
@@ -53,9 +53,9 @@ class Tabs {
         
         if (content) {
             if (content instanceof HTMLElement) {
-                panel.appendChild(content);
+                Q(panel).append(content);
             } else if (typeof content === 'string') {
-                panel.innerHTML = content;
+                Q(panel).html(content);
             }
         }
         
@@ -66,8 +66,8 @@ class Tabs {
         this.tabs.push({ id: tabId, label, button, panel, langKey: options.langKey });
         
         // Add to DOM
-        this.header.appendChild(button);
-        this.content.appendChild(panel);
+        Q(this.header).append(button);
+        Q(this.content).append(panel);
         
         // Activate first tab by default
         if (this.tabs.length === 1) {
@@ -157,16 +157,16 @@ class Tabs {
         const panel = this.getPanel(tabId);
         if (!panel) return this;
         
-        panel.innerHTML = '';
+        Q(panel).empty();
         if (content instanceof HTMLElement) {
-            panel.appendChild(content);
+            Q(panel).append(content);
         } else if (typeof content === 'string') {
-            panel.innerHTML = content;
+            Q(panel).html(content);
         }
         
         return this;
     }
-    
+
     /**
      * Update tab label
      * @param {string} tabId - Tab identifier
@@ -177,7 +177,7 @@ class Tabs {
         const tab = this.tabs.find(t => t.id === tabId);
         if (tab) {
             tab.label = label;
-            tab.button.textContent = label;
+            Q(tab.button).text(label);
         }
         return this;
     }

@@ -60,7 +60,7 @@ class Switch {
             if (this.options.labelLangKey) {
                 this.labelEl.setAttribute('data-lang-key', this.options.labelLangKey);
             }
-            this.switchRow.appendChild(this.labelEl);
+            Q(this.switchRow).append(this.labelEl);
         }
         
         // Switch container
@@ -75,13 +75,12 @@ class Switch {
         
         // Switch thumb
         this.thumb = Q('<div>', { class: 'switch-thumb' }).get(0);
-        this.track.appendChild(this.thumb);
+        Q(this.track).append(this.thumb);
         
         // Assemble switch
-        this.switchContainer.appendChild(this.checkbox);
-        this.switchContainer.appendChild(this.track);
-        this.switchRow.appendChild(this.switchContainer);
-        this.element.appendChild(this.switchRow);
+        Q(this.switchContainer).append(this.checkbox).append(this.track);
+        Q(this.switchRow).append(this.switchContainer);
+        Q(this.element).append(this.switchRow);
         
         // Description
         if (this.options.description) {
@@ -90,7 +89,7 @@ class Switch {
             if (this.options.descriptionLangKey) {
                 this.descEl.setAttribute('data-lang-key', this.options.descriptionLangKey);
             }
-            this.element.appendChild(this.descEl);
+            Q(this.element).append(this.descEl);
         }
         
         // Update visual state

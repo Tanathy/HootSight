@@ -99,6 +99,11 @@
     border-top: 1px solid var(--border-light);
 }
 
+.card-button-row {
+    display: flex;
+    gap: 2px;
+}
+
 /* ============================================================================
    Heading - Title + Description pair
    ============================================================================ */
@@ -267,21 +272,6 @@
     text-align: center;
     padding: var(--spacing-xxl) var(--spacing-lg);
     min-height: 400px;
-}
-
-.no-project-icon {
-    width: 64px;
-    height: 64px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: var(--font-title);
-    font-weight: 700;
-    color: var(--accent-warning);
-    background: var(--bg-tertiary);
-    border: 2px solid var(--accent-warning);
-    border-radius: 50%;
-    margin-bottom: var(--spacing-lg);
 }
 
 .no-project-message h2 {

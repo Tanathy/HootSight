@@ -53,61 +53,48 @@ class Graph {
     
     _build() {
         // Main container
-        this._element = document.createElement('div');
-        this._element.className = 'graph-widget';
-        this._element.id = `graph-${this.id}`;
+        this._element = Q('<div>', { class: 'graph-widget', id: `graph-${this.id}` }).get();
         
         // Header with title and current values
         if (this.options.title || this.options.showLegend) {
-            const header = document.createElement('div');
-            header.className = 'graph-header';
+            const header = Q('<div>', { class: 'graph-header' }).get();
             
             if (this.options.title) {
-                const title = document.createElement('div');
-                title.className = 'graph-title';
-                title.textContent = this.options.title;
-                header.appendChild(title);
+                const title = Q('<div>', { class: 'graph-title', text: this.options.title }).get();
+                Q(header).append(title);
             }
             
             // Value display area
-            this._valueDisplay = document.createElement('div');
-            this._valueDisplay.className = 'graph-values';
-            header.appendChild(this._valueDisplay);
+            this._valueDisplay = Q('<div>', { class: 'graph-values' }).get();
+            Q(header).append(this._valueDisplay);
             
-            this._element.appendChild(header);
+            Q(this._element).append(header);
         }
         
         // SVG container
-        const svgContainer = document.createElement('div');
-        svgContainer.className = 'graph-svg-container';
+        const svgContainer = Q('<div>', { class: 'graph-svg-container' }).get();
         
-        this._svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        this._svg.setAttribute('class', 'graph-svg');
-        this._svg.setAttribute('preserveAspectRatio', 'none');
+        this._svg = Q('<svg>', { class: 'graph-svg', preserveAspectRatio: 'none' }).get();
         
         // Grid group (behind paths)
-        this._gridGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        this._gridGroup.setAttribute('class', 'graph-grid');
-        this._svg.appendChild(this._gridGroup);
+        this._gridGroup = Q('<g>', { class: 'graph-grid' }).get();
+        Q(this._svg).append(this._gridGroup);
         
         // Path group
-        this._pathGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        this._pathGroup.setAttribute('class', 'graph-paths');
-        this._svg.appendChild(this._pathGroup);
+        this._pathGroup = Q('<g>', { class: 'graph-paths' }).get();
+        Q(this._svg).append(this._pathGroup);
         
         // Y-axis labels group
-        this._yLabels = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        this._yLabels.setAttribute('class', 'graph-y-labels');
-        this._svg.appendChild(this._yLabels);
+        this._yLabels = Q('<g>', { class: 'graph-y-labels' }).get();
+        Q(this._svg).append(this._yLabels);
         
-        svgContainer.appendChild(this._svg);
-        this._element.appendChild(svgContainer);
+        Q(svgContainer).append(this._svg);
+        Q(this._element).append(svgContainer);
         
         // Legend
         if (this.options.showLegend) {
-            this._legendContainer = document.createElement('div');
-            this._legendContainer.className = 'graph-legend';
-            this._element.appendChild(this._legendContainer);
+            this._legendContainer = Q('<div>', { class: 'graph-legend' }).get();
+            Q(this._element).append(this._legendContainer);
         }
     }
     
@@ -125,7 +112,7 @@ class Graph {
         
         // Observe after element is in DOM
         requestAnimationFrame(() => {
-            const container = this._element.querySelector('.graph-svg-container');
+            const container = Q(this._element).find('.graph-svg-container').get(0);
             if (container) {
                 resizeObserver.observe(container);
                 this._width = container.clientWidth || 400;
@@ -158,21 +145,23 @@ class Graph {
         };
         
         // Create path element
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('class', 'graph-line');
-        path.setAttribute('stroke', color);
-        path.setAttribute('fill', 'none');
-        path.setAttribute('stroke-width', '2');
-        path.setAttribute('stroke-linecap', 'round');
-        path.setAttribute('stroke-linejoin', 'round');
-        this._pathGroup.appendChild(path);
+        const path = Q('<path>', { 
+            class: 'graph-line',
+            stroke: color,
+            fill: 'none',
+            'stroke-width': '2',
+            'stroke-linecap': 'round',
+            'stroke-linejoin': 'round'
+        }).get();
+        Q(this._pathGroup).append(path);
         this._series[name].path = path;
         
         // Create area fill
-        const area = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        area.setAttribute('class', 'graph-area');
-        area.setAttribute('fill', color);
-        area.setAttribute('opacity', '0.1');
+        const area = Q('<path>', {
+            class: 'graph-area',
+            fill: color,
+            opacity: '0.1'
+        }).get();
         this._pathGroup.insertBefore(area, path);
         this._series[name].area = area;
         
@@ -369,8 +358,8 @@ class Graph {
     
     _renderGrid(bounds, chartWidth, chartHeight) {
         // Clear existing grid
-        this._gridGroup.innerHTML = '';
-        this._yLabels.innerHTML = '';
+        Q(this._gridGroup).empty();
+        Q(this._yLabels).empty();
         
         if (!this.options.showGrid) return;
         
@@ -384,23 +373,25 @@ class Graph {
             const value = min + range * ratio;
             
             // Grid line
-            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            line.setAttribute('x1', this._padding.left);
-            line.setAttribute('y1', y);
-            line.setAttribute('x2', this._width - this._padding.right);
-            line.setAttribute('y2', y);
-            line.setAttribute('class', 'graph-grid-line');
-            this._gridGroup.appendChild(line);
+            const line = Q('<line>', {
+                x1: this._padding.left,
+                y1: y,
+                x2: this._width - this._padding.right,
+                y2: y,
+                class: 'graph-grid-line'
+            }).get();
+            Q(this._gridGroup).append(line);
             
             // Y-axis label
-            const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            label.setAttribute('x', this._padding.left - 8);
-            label.setAttribute('y', y);
-            label.setAttribute('class', 'graph-label');
-            label.setAttribute('text-anchor', 'end');
-            label.setAttribute('dominant-baseline', 'middle');
-            label.textContent = this._formatValue(value);
-            this._yLabels.appendChild(label);
+            const label = Q('<text>', {
+                x: this._padding.left - 8,
+                y: y,
+                class: 'graph-label',
+                'text-anchor': 'end',
+                'dominant-baseline': 'middle',
+                text: this._formatValue(value)
+            }).get();
+            Q(this._yLabels).append(label);
         }
     }
     
@@ -491,40 +482,37 @@ class Graph {
     _updateLegend() {
         if (!this._legendContainer) return;
         
-        this._legendContainer.innerHTML = '';
+        Q(this._legendContainer).empty();
         
         Object.entries(this._series).forEach(([name, series]) => {
-            const item = document.createElement('div');
-            item.className = 'graph-legend-item';
+            const item = Q('<div>', { class: 'graph-legend-item' }).get();
             
-            const dot = document.createElement('span');
-            dot.className = 'graph-legend-dot';
+            const dot = Q('<span>', { class: 'graph-legend-dot' }).get();
             dot.style.backgroundColor = series.color;
             
-            const label = document.createElement('span');
-            label.className = 'graph-legend-label';
-            label.textContent = series.label;
+            const label = Q('<span>', { class: 'graph-legend-label', text: series.label }).get();
             
-            item.appendChild(dot);
-            item.appendChild(label);
-            this._legendContainer.appendChild(item);
+            Q(item).append(dot);
+            Q(item).append(label);
+            Q(this._legendContainer).append(item);
         });
     }
     
     _updateValueDisplay() {
         if (!this._valueDisplay) return;
         
-        this._valueDisplay.innerHTML = '';
+        Q(this._valueDisplay).empty();
         
         Object.entries(this._series).forEach(([name, series]) => {
             const lastValue = series.data[series.data.length - 1];
             if (lastValue === undefined) return;
             
-            const item = document.createElement('span');
-            item.className = 'graph-value-item';
+            const item = Q('<span>', { 
+                class: 'graph-value-item',
+                text: `${this._formatValue(lastValue)}${this.options.unit}`
+            }).get();
             item.style.color = series.color;
-            item.textContent = `${this._formatValue(lastValue)}${this.options.unit}`;
-            this._valueDisplay.appendChild(item);
+            Q(this._valueDisplay).append(item);
         });
     }
     

@@ -36,12 +36,12 @@ const Pages = {
     render(name, container) {
         const page = this.get(name);
         if (!page) {
-            container.innerHTML = '<div class="heading"><h2 class="heading-title">Page Not Found</h2></div>';
+            Q(container).html('<div class="heading"><h2 class="heading-title">Page Not Found</h2></div>');
             return;
         }
         
         // Clear container
-        container.innerHTML = '';
+        Q(container).empty();
         
         // Build page content
         if (page.build && typeof page.build === 'function') {

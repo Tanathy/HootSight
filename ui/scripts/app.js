@@ -10,14 +10,40 @@
      * Current active page
      */
     let currentPage = 'main';
+    
+    /**
+     * Waves background instance
+     */
+    let wavesInstance = null;
+
+    /**
+     * Initialize animated background
+     */
+    function initWavesBackground() {
+        if (typeof Waves === 'undefined') return;
+        
+        wavesInstance = new Waves('#waves-bg', {
+            resize: true,
+            waves: 2,
+            width: 200,
+            hue: [11, 30],
+            amplitude: 0.2,
+            background: false,
+            preload: true,
+            fps: 15,
+            speed: [0.004, 0.008]
+        });
+        
+        wavesInstance.animate();
+    }
 
     /**
      * Clear header actions when switching tabs
      */
     function clearHeaderActions() {
-        const headerActions = document.getElementById('header-actions');
+        const headerActions = Q('#header-actions').get();
         if (headerActions) {
-            headerActions.innerHTML = '';
+            Q(headerActions).empty();
         }
     }
 
@@ -26,7 +52,7 @@
      * @param {string} pageName - Page identifier
      */
     async function navigateTo(pageName) {
-        const container = document.getElementById('page-content');
+        const container = Q('#page-content').get();
         if (!container) return;
 
         // Cleanup previous page if it has a cleanup method
@@ -59,14 +85,14 @@
                 page.setupHeaderActions();
             }
         } else {
-            container.innerHTML = '';
+            Q(container).empty();
             const heading = new Heading('not_found', {
                 title: 'Page Not Found',
                 description: `The page "${pageName}" does not exist`,
                 titleLangKey: 'app.page_not_found.title',
                 descriptionLangKey: 'app.page_not_found.description'
             });
-            container.appendChild(heading.getElement());
+            Q(container).append(heading.getElement());
         }
     }
 
@@ -90,6 +116,9 @@
      * Initialize the application
      */
     async function init() {
+        // Initialize animated background
+        initWavesBackground();
+        
         // Load config and schema first (parallel)
         await Promise.all([
             Config.load(),
@@ -118,7 +147,7 @@
 
     // Wait for DOM
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+        Q(document).on('DOMContentLoaded', init);
     } else {
         init();
     }

@@ -13,115 +13,98 @@ class Card {
             content: options.content || null
         };
         
-        this._element = document.createElement('div');
-        this._element.className = 'card';
-        this._element.id = `card-${this.id}`;
-        
+        this._element = Q('<div>', { class: 'card', id: `card-${this.id}` }).get();
         this._build();
     }
     
     _build() {
         if (this.options.title || this.options.subtitle || this.options.actions.length) {
-            this._header = document.createElement('div');
-            this._header.className = 'card-header';
+            this._header = Q('<div>', { class: 'card-header' }).get();
             
-            const titleGroup = document.createElement('div');
-            titleGroup.className = 'card-title-group';
+            const titleGroup = Q('<div>', { class: 'card-title-group' }).get();
             
-            this._titleEl = document.createElement('div');
-            this._titleEl.className = 'card-title';
-            this._titleEl.textContent = this.options.title;
+            this._titleEl = Q('<div>', { class: 'card-title', text: this.options.title }).get();
             if (this.options.title) {
-                titleGroup.appendChild(this._titleEl);
+                Q(titleGroup).append(this._titleEl);
             }
             
             if (this.options.subtitle) {
-                this._subtitleEl = document.createElement('div');
-                this._subtitleEl.className = 'card-subtitle';
-                this._subtitleEl.textContent = this.options.subtitle;
-                titleGroup.appendChild(this._subtitleEl);
+                this._subtitleEl = Q('<div>', { class: 'card-subtitle', text: this.options.subtitle }).get();
+                Q(titleGroup).append(this._subtitleEl);
             }
             
             if (titleGroup.children.length) {
-                this._header.appendChild(titleGroup);
+                Q(this._header).append(titleGroup);
             }
             
             if (this.options.actions.length) {
-                this._actionsEl = document.createElement('div');
-                this._actionsEl.className = 'card-actions';
+                this._actionsEl = Q('<div>', { class: 'card-actions' }).get();
                 this.options.actions.forEach(action => this.addAction(action));
-                this._header.appendChild(this._actionsEl);
+                Q(this._header).append(this._actionsEl);
             }
             
-            this._element.appendChild(this._header);
+            Q(this._element).append(this._header);
         }
         
-        this._body = document.createElement('div');
-        this._body.className = 'card-body';
-        this._element.appendChild(this._body);
+        this._body = Q('<div>', { class: 'card-body' }).get();
+        Q(this._element).append(this._body);
         
         if (this.options.content) {
             this.addContent(this.options.content);
         }
         
-        this._footer = document.createElement('div');
-        this._footer.className = 'card-footer';
-        this._footer.style.display = 'none';
+        this._footer = Q('<div>', { class: 'card-footer' }).get();
+        Q(this._footer).hide();
         if (this.options.footer) {
             this.setFooter(this.options.footer);
         }
-        this._element.appendChild(this._footer);
+        Q(this._element).append(this._footer);
     }
     
     addContent(content) {
         if (!content) return;
         if (content instanceof Node) {
-            this._body.appendChild(content);
+            Q(this._body).append(content);
         } else if (typeof content === 'string') {
-            const paragraph = document.createElement('div');
-            paragraph.textContent = content;
-            this._body.appendChild(paragraph);
+            Q(this._body).append(Q('<div>', { text: content }).get());
         } else if (content.getElement) {
-            this._body.appendChild(content.getElement());
+            Q(this._body).append(content.getElement());
         }
     }
     
     addWidget(widgetInstance) {
         if (widgetInstance && widgetInstance.getElement) {
-            this._body.appendChild(widgetInstance.getElement());
+            Q(this._body).append(widgetInstance.getElement());
         }
         return this;
     }
     
     setTitle(title = '') {
         if (!this._titleEl) {
-            this._titleEl = document.createElement('div');
-            this._titleEl.className = 'card-title';
+            this._titleEl = Q('<div>', { class: 'card-title' }).get();
             this._header = this._header || this._createHeader();
             this._header.insertBefore(this._titleEl, this._header.firstChild);
         }
-        this._titleEl.textContent = title;
+        Q(this._titleEl).text(title);
     }
     
     setSubtitle(subtitle = '') {
         if (!this._subtitleEl) {
-            this._subtitleEl = document.createElement('div');
-            this._subtitleEl.className = 'card-subtitle';
+            this._subtitleEl = Q('<div>', { class: 'card-subtitle' }).get();
             this._header = this._header || this._createHeader();
             this._header.insertBefore(this._subtitleEl, this._header.firstChild.nextSibling);
         }
-        this._subtitleEl.textContent = subtitle;
+        Q(this._subtitleEl).text(subtitle);
     }
     
     _createHeader() {
-        const header = document.createElement('div');
-        header.className = 'card-header';
+        const header = Q('<div>', { class: 'card-header' }).get();
         this._element.insertBefore(header, this._body);
         return header;
     }
     
     clearBody() {
-        this._body.innerHTML = '';
+        Q(this._body).empty();
     }
     
     getBodyElement() {
@@ -130,30 +113,32 @@ class Card {
     
     setFooter(content) {
         if (content instanceof Node) {
-            this._footer.innerHTML = '';
-            this._footer.appendChild(content);
+            Q(this._footer).empty();
+            Q(this._footer).append(content);
         } else {
-            this._footer.textContent = content;
+            Q(this._footer).text(content);
         }
-        this._footer.style.display = content ? '' : 'none';
+        Q(this._footer).css('display', content ? '' : 'none');
     }
     
     addAction(action) {
-        this._actionsEl = this._actionsEl || document.createElement('div');
-        this._actionsEl.className = 'card-actions';
+        if (!this._actionsEl) {
+            this._actionsEl = Q('<div>', { class: 'card-actions' }).get();
+        }
         if (!this._header) {
             this._header = this._createHeader();
         }
         if (!this._actionsEl.isConnected) {
-            this._header.appendChild(this._actionsEl);
+            Q(this._header).append(this._actionsEl);
         }
-        const button = document.createElement('button');
-        button.className = action.className || 'btn btn-secondary';
-        button.textContent = action.label || 'Action';
+        const button = Q('<button>', {
+            class: action.className || 'btn btn-secondary',
+            text: action.label || 'Action'
+        }).get();
         if (typeof action.onClick === 'function') {
-            button.addEventListener('click', action.onClick);
+            Q(button).on('click', action.onClick);
         }
-        this._actionsEl.appendChild(button);
+        Q(this._actionsEl).append(button);
     }
     
     getElement() {

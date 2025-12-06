@@ -1,6 +1,6 @@
 {
-    "name": "Medical / Scientific Image Analysis",
-    "description": "High-precision classification for medical, scientific, and diagnostic imaging where accuracy and reliability are paramount. Conservative training settings with extensive validation. USE CASES: X-ray analysis (pneumonia, fractures, tuberculosis), CT/MRI scan classification, histopathology slide screening, retinal disease detection, skin lesion classification, cell type identification, microscopy analysis, satellite imagery classification, materials science imaging, pharmaceutical quality control. SUPPORTED MODELS: EfficientNet (best accuracy, well-calibrated), ResNeXt (complex pattern recognition), ResNet (proven medical imaging backbone). Always validate with domain experts. OUTPUT: Diagnostic classification with high reliability - intended as decision SUPPORT, not replacement for professional judgment. Requires extensive validation before clinical use.",
+    "name": "presets.medical_scientific_analysis.name",
+    "description": "presets.medical_scientific_analysis.description",
     "task": "classification",
     "dataset_types": [
         "folder_classification",
@@ -16,7 +16,7 @@
     ],
     "configs": {
         "tiny": {
-            "description": "Very small datasets (50-500 images). Heavy regularization, aggressive augmentation, smaller models. High risk of overfitting - early stopping essential.",
+            "description": "presets.configs.tiny",
             "range": [
                 50,
                 500
@@ -88,7 +88,7 @@
             }
         },
         "small": {
-            "description": "Small datasets (500-2.5k images). Moderate regularization with pretrained weights. Balance between learning capacity and overfitting prevention.",
+            "description": "presets.configs.small",
             "range": [
                 500,
                 2500
@@ -160,7 +160,7 @@
             }
         },
         "medium": {
-            "description": "Medium datasets (2.5k-10k images). Standard hyperparameters with good augmentation. Balanced training approach works well.",
+            "description": "presets.configs.medium",
             "range": [
                 2500,
                 10000
@@ -232,7 +232,7 @@
             }
         },
         "large": {
-            "description": "Large datasets (10k-30k images). Reduced regularization, larger models viable. Higher learning rates and bigger batches effective.",
+            "description": "presets.configs.large",
             "range": [
                 10000,
                 30000
@@ -304,7 +304,7 @@
             }
         },
         "huge": {
-            "description": "Huge datasets (30k-50k images). Minimal regularization needed. Deep networks train effectively with standard augmentation.",
+            "description": "presets.configs.huge",
             "range": [
                 30000,
                 50000
@@ -376,7 +376,7 @@
             }
         },
         "massive": {
-            "description": "Massive datasets (50k-100k images). Very deep networks fully supported. Fast learning rates, large batches, minimal regularization.",
+            "description": "presets.configs.massive",
             "range": [
                 50000,
                 100000
@@ -448,7 +448,7 @@
             }
         },
         "giant": {
-            "description": "Giant datasets (100k+ images). Maximum model capacity utilized. Can train from scratch or fine-tune with aggressive settings.",
+            "description": "presets.configs.giant",
             "range": [
                 100000,
                 null

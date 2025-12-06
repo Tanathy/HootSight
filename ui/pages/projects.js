@@ -21,7 +21,7 @@ const ProjectsPage = {
      */
     build: async function(container) {
         // Clear container
-        container.innerHTML = '';
+        Q(container).empty();
 
         // Page heading with lang keys for live translation
         const heading = new Heading('projects_heading', {
@@ -30,11 +30,11 @@ const ProjectsPage = {
             description: lang('projects_page.description'),
             descriptionLangKey: 'projects_page.description'
         });
-        container.appendChild(heading.getElement());
+        Q(container).append(heading.getElement());
 
         // Card section for projects
         this._cardSection = new CardSection('projects_section');
-        container.appendChild(this._cardSection.getElement());
+        Q(container).append(this._cardSection.getElement());
 
         // Load projects
         await this.loadProjects();
@@ -96,7 +96,7 @@ const ProjectsPage = {
 
         // Mark as active if this is the loaded project
         if (isActive) {
-            card.getElement().classList.add('card-active');
+            Q(card.getElement()).addClass('card-active');
         }
 
         // Store reference
@@ -114,30 +114,30 @@ const ProjectsPage = {
         this._projectCards[name].tableWidget = statsTable;
 
         // Button container
-        const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'card-button-row';
-        buttonContainer.style.display = 'flex';
-        buttonContainer.style.gap = 'var(--spacing-sm)';
-        buttonContainer.style.marginTop = 'var(--spacing-md)';
+        const buttonContainer = Q('<div>', { class: 'card-button-row' })
+            .css({ display: 'flex', gap: 'var(--spacing-sm)', marginTop: 'var(--spacing-md)' })
+            .get();
 
         // Refresh button
         const refreshBtn = new ActionButton(`${name}_refresh`, {
             label: lang('projects_page.buttons.refresh'),
+            labelLangKey: 'projects_page.buttons.refresh',
             className: 'btn btn-secondary',
             onClick: () => this._refreshStats(name)
         });
-        buttonContainer.appendChild(refreshBtn.getElement());
+        Q(buttonContainer).append(refreshBtn.getElement());
 
         // Load button
         const loadBtn = new ActionButton(`${name}_load`, {
             label: isActive ? lang('projects_page.buttons.loaded') : lang('projects_page.buttons.load'),
+            labelLangKey: isActive ? 'projects_page.buttons.loaded' : 'projects_page.buttons.load',
             className: isActive ? 'btn btn-primary' : 'btn btn-secondary',
             onClick: () => this._loadProject(name)
         });
         if (isActive) {
             loadBtn.setDisabled(true);
         }
-        buttonContainer.appendChild(loadBtn.getElement());
+        Q(buttonContainer).append(loadBtn.getElement());
         this._projectCards[name].loadBtn = loadBtn;
 
         card.addContent(buttonContainer);
@@ -232,25 +232,25 @@ const ProjectsPage = {
     _updateActiveProjectVisuals: function(activeName) {
         for (const [name, data] of Object.entries(this._projectCards)) {
             const isActive = name === activeName;
-            const cardEl = data.card.getElement();
+            const cardEl = Q(data.card.getElement());
             
             // Update card active class
             if (isActive) {
-                cardEl.classList.add('card-active');
+                cardEl.addClass('card-active');
             } else {
-                cardEl.classList.remove('card-active');
+                cardEl.removeClass('card-active');
             }
             
             // Update load button
             if (data.loadBtn) {
                 if (isActive) {
-                    data.loadBtn.setLabel(lang('projects_page.buttons.loaded'));
+                    data.loadBtn.setLabel(lang('projects_page.buttons.loaded'), 'projects_page.buttons.loaded');
                     data.loadBtn.setDisabled(true);
-                    data.loadBtn.getElement().className = 'btn btn-primary disabled';
+                    Q(data.loadBtn.getElement()).removeClass('btn-secondary').addClass('btn-primary');
                 } else {
-                    data.loadBtn.setLabel(lang('projects_page.buttons.load'));
+                    data.loadBtn.setLabel(lang('projects_page.buttons.load'), 'projects_page.buttons.load');
                     data.loadBtn.setDisabled(false);
-                    data.loadBtn.getElement().className = 'btn btn-secondary';
+                    Q(data.loadBtn.getElement()).removeClass('btn-primary').addClass('btn-secondary');
                 }
             }
         }
@@ -260,51 +260,48 @@ const ProjectsPage = {
      * Setup header action buttons (called by app.js after page build)
      */
     setupHeaderActions: function() {
-        const headerActions = document.getElementById('header-actions');
-        if (!headerActions) return;
-
-        // Start/Stop Training button
         const isTraining = TrainingController.isTraining();
         const hasProject = !!Config.getActiveProject();
-        
-        this._trainingBtn = new ActionButton('projects-training', {
-            label: isTraining ? lang('projects_page.buttons.stop_training') : lang('projects_page.buttons.start_training'),
-            className: 'btn btn-primary',
-            onClick: () => this._toggleTraining()
-        });
-        
-        // Disable if no project loaded and not training
-        if (!hasProject && !isTraining) {
-            this._trainingBtn.setDisabled(true);
-        }
-        
-        headerActions.appendChild(this._trainingBtn.getElement());
 
-        // New Project button
-        this._newProjectBtn = new ActionButton('projects-new', {
-            label: lang('projects_page.buttons.new_project'),
-            className: 'btn btn-secondary',
-            onClick: () => this._createNewProject()
-        });
-        headerActions.appendChild(this._newProjectBtn.getElement());
+        HeaderActions.clear().add([
+            {
+                id: 'projects-training',
+                label: isTraining ? lang('projects_page.buttons.stop_training') : lang('projects_page.buttons.start_training'),
+                labelLangKey: isTraining ? 'projects_page.buttons.stop_training' : 'projects_page.buttons.start_training',
+                type: 'primary',
+                disabled: !hasProject && !isTraining,
+                onClick: () => this._toggleTraining()
+            },
+            {
+                id: 'projects-new',
+                label: lang('projects_page.buttons.new_project'),
+                labelLangKey: 'projects_page.buttons.new_project',
+                type: 'secondary',
+                onClick: () => this._createNewProject()
+            },
+            {
+                id: 'projects-rename',
+                label: lang('projects_page.buttons.rename_project'),
+                labelLangKey: 'projects_page.buttons.rename_project',
+                type: 'secondary',
+                disabled: !hasProject,
+                onClick: () => this._renameSelectedProject()
+            },
+            {
+                id: 'projects-delete',
+                label: lang('projects_page.buttons.delete_project'),
+                labelLangKey: 'projects_page.buttons.delete_project',
+                type: 'secondary',
+                disabled: !hasProject,
+                onClick: () => this._deleteSelectedProject()
+            }
+        ]);
 
-        // Rename Project button
-        this._renameProjectBtn = new ActionButton('projects-rename', {
-            label: lang('projects_page.buttons.rename_project'),
-            className: 'btn btn-secondary',
-            onClick: () => this._renameSelectedProject()
-        });
-        this._renameProjectBtn.setDisabled(!hasProject);
-        headerActions.appendChild(this._renameProjectBtn.getElement());
-
-        // Delete Selected Project button
-        this._deleteProjectBtn = new ActionButton('projects-delete', {
-            label: lang('projects_page.buttons.delete_project'),
-            className: 'btn btn-secondary',
-            onClick: () => this._deleteSelectedProject()
-        });
-        this._deleteProjectBtn.setDisabled(!hasProject);
-        headerActions.appendChild(this._deleteProjectBtn.getElement());
+        // Store references for later updates
+        this._trainingBtn = HeaderActions.get('projects-training');
+        this._newProjectBtn = HeaderActions.get('projects-new');
+        this._renameProjectBtn = HeaderActions.get('projects-rename');
+        this._deleteProjectBtn = HeaderActions.get('projects-delete');
     },
 
     /**
@@ -353,11 +350,9 @@ const ProjectsPage = {
         
         if (isTraining) {
             this._trainingBtn.setLabel(lang('projects_page.buttons.stop_training'));
-            this._trainingBtn.getElement().className = 'btn btn-primary';
             this._trainingBtn.setDisabled(false);
         } else {
             this._trainingBtn.setLabel(lang('projects_page.buttons.start_training'));
-            this._trainingBtn.getElement().className = 'btn btn-primary';
             this._trainingBtn.setDisabled(!hasProject);
         }
     },

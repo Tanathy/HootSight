@@ -69,7 +69,7 @@ class NumberInput {
             if (this.options.labelLangKey) {
                 this.labelEl.setAttribute('data-lang-key', this.options.labelLangKey);
             }
-            this.element.appendChild(this.labelEl);
+            Q(this.element).append(this.labelEl);
         }
         
         // Input container (controls wrapper)
@@ -102,10 +102,8 @@ class NumberInput {
         }).get(0);
         
         // Assemble
-        this.inputContainer.appendChild(this.decreaseBtn);
-        this.inputContainer.appendChild(this.input);
-        this.inputContainer.appendChild(this.increaseBtn);
-        this.element.appendChild(this.inputContainer);
+        Q(this.inputContainer).append(this.decreaseBtn).append(this.input).append(this.increaseBtn);
+        Q(this.element).append(this.inputContainer);
         
         // Description
         if (this.options.description) {
@@ -117,7 +115,7 @@ class NumberInput {
             if (this.options.descriptionLangKey) {
                 this.descEl.setAttribute('data-lang-key', this.options.descriptionLangKey);
             }
-            this.element.appendChild(this.descEl);
+            Q(this.element).append(this.descEl);
         }
         
         this._setupEvents();

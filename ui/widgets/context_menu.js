@@ -36,31 +36,31 @@ const ContextMenu = {
 
         // Create main menu container
         this._container = Q('<div>', { class: 'context-menu' }).get(0);
-        document.body.appendChild(this._container);
+        Q(document.body).append(this._container);
 
         // Create submenu container
         this._submenuContainer = Q('<div>', { class: 'context-menu context-submenu' }).get(0);
-        document.body.appendChild(this._submenuContainer);
+        Q(document.body).append(this._submenuContainer);
 
         // Global click handler to close menu
-        document.addEventListener('click', (e) => {
+        Q(document).on('click', (e) => {
             if (!this._container.contains(e.target) && !this._submenuContainer.contains(e.target)) {
                 this.hide();
             }
         });
 
         // Global right-click handler
-        document.addEventListener('contextmenu', (e) => this._handleContextMenu(e));
+        Q(document).on('contextmenu', (e) => this._handleContextMenu(e));
 
         // Close on escape
-        document.addEventListener('keydown', (e) => {
+        Q(document).on('keydown', (e) => {
             if (e.key === 'Escape' && this._isVisible) {
                 this.hide();
             }
         });
 
         // Close on scroll
-        document.addEventListener('scroll', () => this.hide(), true);
+        Q(document).on('scroll', () => this.hide(), true);
     },
 
     /**
@@ -109,13 +109,13 @@ const ContextMenu = {
     show: function(x, y, items) {
         if (!this._container) this.init();
 
-        this._container.innerHTML = '';
-        this._submenuContainer.innerHTML = '';
+        Q(this._container).empty();
+        Q(this._submenuContainer).empty();
         this._submenuContainer.style.display = 'none';
 
         items.forEach((item, index) => {
             const menuItem = this._createMenuItem(item, index);
-            this._container.appendChild(menuItem);
+            Q(this._container).append(menuItem);
         });
 
         // Position menu
@@ -167,16 +167,16 @@ const ContextMenu = {
             return Q('<div>', { class: 'context-menu-separator' }).get(0);
         }
 
-        const menuItem = Q('<div>', { class: 'context-menu-item' }).get(0);
+        const menuItem = Q('<div>', { class: 'context-menu-item' });
 
         // Disabled state
         if (item.disabled) {
-            menuItem.classList.add('disabled');
+            menuItem.addClass('disabled');
         }
 
         // Danger state (red color)
         if (item.danger) {
-            menuItem.classList.add('danger');
+            menuItem.addClass('danger');
         }
 
         // Icon
@@ -186,45 +186,45 @@ const ContextMenu = {
                 class: 'context-menu-icon',
                 alt: ''
             }).get(0);
-            menuItem.appendChild(icon);
+            Q(menuItem.get()).append(icon);
         } else {
             // Spacer for alignment when no icon
             const spacer = Q('<span>', { class: 'context-menu-icon-spacer' }).get(0);
-            menuItem.appendChild(spacer);
+            Q(menuItem.get()).append(spacer);
         }
 
         // Label
         const label = Q('<span>', { class: 'context-menu-label', text: item.label }).get(0);
-        menuItem.appendChild(label);
+        Q(menuItem.get()).append(label);
 
         // Shortcut hint
         if (item.shortcut) {
             const shortcut = Q('<span>', { class: 'context-menu-shortcut', text: item.shortcut }).get(0);
-            menuItem.appendChild(shortcut);
+            Q(menuItem.get()).append(shortcut);
         }
 
         // Submenu arrow
         if (item.children && item.children.length > 0) {
             const arrow = Q('<span>', { class: 'context-menu-arrow', text: '\u25B6' }).get(0);
-            menuItem.appendChild(arrow);
-            menuItem.classList.add('has-submenu');
+            Q(menuItem.get()).append(arrow);
+            menuItem.addClass('has-submenu');
 
             // Show submenu on hover
-            Q(menuItem).on('mouseenter', () => {
-                this._showSubmenu(menuItem, item.children);
+            menuItem.on('mouseenter', () => {
+                this._showSubmenu(menuItem.get(), item.children);
             });
         }
 
         // Click handler
         if (item.action && !item.disabled) {
-            Q(menuItem).on('click', (e) => {
+            menuItem.on('click', (e) => {
                 e.stopPropagation();
                 this.hide();
                 item.action(this._activeElement);
             });
         }
 
-        return menuItem;
+        return menuItem.get();
     },
 
     /**
@@ -233,11 +233,11 @@ const ContextMenu = {
      * @param {Array} items - Submenu items
      */
     _showSubmenu: function(parentItem, items) {
-        this._submenuContainer.innerHTML = '';
+        Q(this._submenuContainer).empty();
 
         items.forEach((item, index) => {
             const menuItem = this._createMenuItem(item, index);
-            this._submenuContainer.appendChild(menuItem);
+            Q(this._submenuContainer).append(menuItem);
         });
 
         // Position submenu
@@ -278,7 +278,7 @@ const ContextMenu = {
 
 // Auto-initialize on DOM ready
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => ContextMenu.init());
+    Q(document).on('DOMContentLoaded', () => ContextMenu.init());
 } else {
     ContextMenu.init();
 }

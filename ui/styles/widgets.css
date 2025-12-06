@@ -301,6 +301,83 @@ body > .dropdown-options {
 }
 
 /* ============================================================================
+   Checkbox Widget
+   ============================================================================ */
+
+.checkbox-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    cursor: pointer;
+    user-select: none;
+}
+
+.checkbox-wrapper.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.checkbox-input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.checkbox-checkmark {
+    width: 18px;
+    height: 18px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+}
+
+.checkbox-wrapper:hover .checkbox-checkmark {
+    border-color: var(--accent-primary);
+}
+
+.checkbox-input:checked + .checkbox-checkmark {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.checkbox-input:checked + .checkbox-checkmark::after {
+    content: '';
+    width: 5px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    margin-bottom: 2px;
+}
+
+.checkbox-input:indeterminate + .checkbox-checkmark {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.checkbox-input:indeterminate + .checkbox-checkmark::after {
+    content: '';
+    width: 10px;
+    height: 2px;
+    background: white;
+}
+
+.checkbox-input:focus + .checkbox-checkmark {
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.checkbox-label {
+    font-size: var(--font-normal);
+    color: var(--text-primary);
+}
+
+/* ============================================================================
    Text Input Widget
    ============================================================================ */
 
@@ -1491,13 +1568,6 @@ body > .dropdown-options {
 .augmentation-preview-buttons {
     display: flex;
     gap: var(--spacing-sm);
-}
-
-.augmentation-preview-buttons .btn {
-    flex: 1;
-    padding: var(--spacing-sm) var(--spacing-xs);
-    font-size: var(--font-normal);
-    white-space: nowrap;
 }
 
 .augmentation-section-title {

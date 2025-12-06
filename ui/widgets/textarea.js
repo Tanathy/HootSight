@@ -65,7 +65,7 @@ class Textarea {
             if (this.options.labelLangKey) {
                 this.labelEl.setAttribute('data-lang-key', this.options.labelLangKey);
             }
-            this.element.appendChild(this.labelEl);
+            Q(this.element).append(this.labelEl);
         }
         
         // Textarea
@@ -91,7 +91,7 @@ class Textarea {
             this.textarea.style.resize = 'none';
         }
         
-        this.element.appendChild(this.textarea);
+        Q(this.element).append(this.textarea);
         
         // Description
         if (this.options.description) {
@@ -100,7 +100,7 @@ class Textarea {
             if (this.options.descriptionLangKey) {
                 this.descEl.setAttribute('data-lang-key', this.options.descriptionLangKey);
             }
-            this.element.appendChild(this.descEl);
+            Q(this.element).append(this.descEl);
         }
         
         // Event listeners

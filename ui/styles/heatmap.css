@@ -37,59 +37,6 @@
 }
 
 /* ============================================================================
-   Header
-   ============================================================================ */
-
-.heatmap-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--spacing-sm) var(--spacing-md);
-    background: var(--bg-secondary);
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border-color);
-}
-
-.heatmap-header-left {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-}
-
-.heatmap-header-center {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-}
-
-.heatmap-header-center .switch-container {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-}
-
-.heatmap-header-center .switch-text {
-    color: var(--text-secondary);
-    font-size: var(--font-normal);
-    white-space: nowrap;
-}
-
-.heatmap-project-label {
-    color: var(--text-secondary);
-    font-size: var(--font-normal);
-}
-
-.heatmap-project-name {
-    color: var(--text-primary);
-    font-weight: 600;
-}
-
-.heatmap-header-actions {
-    display: flex;
-    gap: var(--spacing-sm);
-}
-
-/* ============================================================================
    Content - Split View
    ============================================================================ */
 

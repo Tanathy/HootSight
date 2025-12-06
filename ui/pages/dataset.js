@@ -50,7 +50,7 @@ const DatasetPage = {
      * @param {HTMLElement} container
      */
     build: async function(container) {
-        container.innerHTML = '';
+        Q(container).empty();
         this._container = container;
         this._selectedImages.clear();
 
@@ -89,11 +89,17 @@ const DatasetPage = {
                 Navigation.navigateTo('projects');
             }
         }).get(0);
+        btn.setAttribute('data-lang-key', 'dataset_page.no_project.button');
+        
+        const title = Q('<h2>', { text: lang('dataset_page.no_project.title') }).get(0);
+        title.setAttribute('data-lang-key', 'dataset_page.no_project.title');
+        
+        const desc = Q('<p>', { text: lang('dataset_page.no_project.description') }).get(0);
+        desc.setAttribute('data-lang-key', 'dataset_page.no_project.description');
         
         Q('<div>', { class: 'no-project-message' })
-            .append(Q('<div>', { class: 'no-project-icon', text: '!' }).get(0))
-            .append(Q('<h2>', { text: lang('dataset_page.no_project.title') }).get(0))
-            .append(Q('<p>', { text: lang('dataset_page.no_project.description') }).get(0))
+            .append(title)
+            .append(desc)
             .append(btn)
             .appendTo(this._container);
     },
@@ -266,7 +272,7 @@ const DatasetPage = {
         // Context menu for folder tree items
         ContextMenu.register('.folder-item', (element, event) => {
             const folderPath = element.dataset.path;
-            const folderName = element.querySelector('.folder-name')?.textContent || '';
+            const folderName = Q(element).find('.folder-name').text() || '';
             
             // Root folder: only show "New Folder" option
             if (!folderPath) {
@@ -474,8 +480,8 @@ const DatasetPage = {
             this._activeZoom = null;
         };
 
-        document.addEventListener('mousemove', this._panMoveHandler);
-        document.addEventListener('mouseup', this._panUpHandler);
+        Q(document).on('mousemove', this._panMoveHandler);
+        Q(document).on('mouseup', this._panUpHandler);
     },
 
     /**
@@ -490,33 +496,30 @@ const DatasetPage = {
      * Setup header action buttons (called by app.js after page build)
      */
     setupHeaderActions: function() {
-        const headerActions = Q('#header-actions').get(0);
-        if (!headerActions) return;
+        HeaderActions.clear().add([
+            {
+                id: 'dataset-sync',
+                label: '',
+                type: 'icon',
+                icon: '/static/icons/sync.svg',
+                title: lang('dataset_page.sync_button'),
+                titleLangKey: 'dataset_page.sync_button',
+                onClick: () => this._startSync()
+            },
+            {
+                id: 'dataset-build',
+                label: lang('dataset_page.build_button'),
+                labelLangKey: 'dataset_page.build_button',
+                type: 'primary',
+                onClick: () => this._startBuild()
+            }
+        ]);
 
-        // Sync button using ActionButton widget (icon only)
-        this._syncBtnWidget = new ActionButton('dataset-sync', {
-            label: '',
-            className: 'btn btn-secondary btn-icon',
-            onClick: () => this._startSync()
-        });
-        this._syncBtn = this._syncBtnWidget.getElement();
-        this._syncBtn.title = lang('dataset_page.sync_button');
-        Q(this._syncBtn).append(
-            Q('<img>', { src: '/static/icons/sync.svg', alt: 'Sync', class: 'btn-icon-img' }).get(0)
-        );
-
-        // Build button using ActionButton widget
-        this._buildBtnWidget = new ActionButton('dataset-build', {
-            label: lang('dataset_page.build_button'),
-            className: 'btn btn-primary',
-            onClick: () => this._startBuild()
-        });
-        this._buildBtn = this._buildBtnWidget.getElement();
-        
-        // Add buttons to header
-        Q(headerActions)
-            .append(this._syncBtn)
-            .append(this._buildBtn);
+        // Store references for later use
+        this._syncBtnWidget = HeaderActions.get('dataset-sync');
+        this._syncBtn = this._syncBtnWidget?.getElement();
+        this._buildBtnWidget = HeaderActions.get('dataset-build');
+        this._buildBtn = this._buildBtnWidget?.getElement();
     },
 
     /**
@@ -618,7 +621,7 @@ const DatasetPage = {
             }
         };
 
-        document.addEventListener('keydown', this._keyboardHandler);
+        Q(document).on('keydown', this._keyboardHandler);
     },
 
     /**
@@ -671,7 +674,7 @@ const DatasetPage = {
         });
         this._pageDropdown.onChange((value) => this._goToPage(parseInt(value, 10)));
         const pageDropdownEl = this._pageDropdown.getElement();
-        pageDropdownEl.classList.add('pagination-dropdown');
+        Q(pageDropdownEl).addClass('pagination-dropdown');
 
         const paginationControls = Q('<div>', { class: 'pagination-controls' })
             .append(this._prevBtn.getElement())
@@ -696,10 +699,13 @@ const DatasetPage = {
             this._loadImages();
         });
         const pageSizeEl = this._pageSizeDropdown.getElement();
-        pageSizeEl.classList.add('page-size-dropdown');
+        Q(pageSizeEl).addClass('page-size-dropdown');
 
+        const perPageLabel = Q('<span>', { class: 'page-size-label', text: lang('dataset_page.per_page') }).get(0);
+        perPageLabel.setAttribute('data-lang-key', 'dataset_page.per_page');
+        
         const pageSizeGroup = Q('<div>', { class: 'page-size-group' })
-            .append(Q('<span>', { class: 'page-size-label', text: lang('dataset_page.per_page') }).get(0))
+            .append(perPageLabel)
             .append(pageSizeEl)
             .get(0);
 
@@ -731,6 +737,7 @@ const DatasetPage = {
 
         this._typeDropdown = new Dropdown('dataset-type', {
             label: lang('dataset_page.type_label'),
+            labelLangKey: 'dataset_page.type_label',
             options: types,
             optionLabels: optionLabels,
             default: 'unknown'
@@ -773,11 +780,12 @@ const DatasetPage = {
         });
 
         const dropdownEl = this._searchModeDropdown.getElement();
-        dropdownEl.classList.add('search-mode-widget');
+        Q(dropdownEl).addClass('search-mode-widget');
 
         // Search input widget
         this._searchInput = new TextInput('search-query', {
-            placeholder: lang('dataset_page.search_placeholder')
+            placeholder: lang('dataset_page.search_placeholder'),
+            placeholderLangKey: 'dataset_page.search_placeholder'
         });
 
         let searchTimeout = null;
@@ -791,10 +799,10 @@ const DatasetPage = {
         });
 
         const inputEl = this._searchInput.getElement();
-        inputEl.classList.add('search-input-widget');
+        Q(inputEl).addClass('search-input-widget');
 
         // Show Duplicates toggle button
-        this._dupToggleBtn = Q('<button>', { 
+        const dupBtnEl = Q('<button>', { 
             class: 'btn btn-secondary btn-icon duplicate-toggle',
             title: lang('dataset_page.show_duplicates')
         }).on('click', async () => {
@@ -802,7 +810,7 @@ const DatasetPage = {
                 // Turn off duplicate filter
                 this._showDuplicatesOnly = false;
                 this._duplicateIds.clear();
-                this._dupToggleBtn.classList.remove('active');
+                Q(this._dupToggleBtn).removeClass('active');
                 this._currentPage = 1;
                 await this._loadImages();
             } else {
@@ -810,7 +818,10 @@ const DatasetPage = {
                 await this._loadDuplicatesFilter();
             }
         }).get(0);
-        this._dupToggleBtn.innerHTML = '<img src="/static/icons/copy.svg" alt="Duplicates" class="btn-icon-img">';
+        const dupIcon = Q('<img>', { src: '/static/icons/copy.svg', alt: 'Duplicates', class: 'btn-icon-img' }).get(0);
+        Q(dupBtnEl).append(dupIcon);
+        dupBtnEl.setAttribute('data-lang-title', 'dataset_page.show_duplicates');
+        this._dupToggleBtn = dupBtnEl;
 
         return Q('<div>', { class: 'search-container' })
             .append(dropdownEl)
@@ -824,7 +835,7 @@ const DatasetPage = {
      */
     _loadDuplicatesFilter: async function() {
         this._dupToggleBtn.disabled = true;
-        this._dupToggleBtn.classList.add('loading');
+        Q(this._dupToggleBtn).addClass('loading');
         
         try {
             const result = await API.datasetEditor.scanDuplicates(this._projectName);
@@ -849,7 +860,7 @@ const DatasetPage = {
             });
             
             this._showDuplicatesOnly = true;
-            this._dupToggleBtn.classList.add('active');
+            Q(this._dupToggleBtn).addClass('active');
             this._currentPage = 1;
             await this._loadImages();
             
@@ -858,7 +869,7 @@ const DatasetPage = {
             Modal.alert(lang('dataset_page.duplicates_error'));
         } finally {
             this._dupToggleBtn.disabled = false;
-            this._dupToggleBtn.classList.remove('loading');
+            Q(this._dupToggleBtn).removeClass('loading');
         }
     },
 
@@ -868,10 +879,13 @@ const DatasetPage = {
     _buildFolderBrowser: function() {
         this._folderTreeContainer = Q('<div>', { class: 'folder-tree' }).get(0);
         
+        const folderTitle = Q('<span>', { class: 'folder-title', text: lang('dataset_page.folders') }).get(0);
+        folderTitle.setAttribute('data-lang-key', 'dataset_page.folders');
+        
         return Q('<div>', { class: 'folder-browser' })
             .append(
                 Q('<div>', { class: 'folder-header' })
-                    .append(Q('<span>', { class: 'folder-title', text: lang('dataset_page.folders') }).get(0))
+                    .append(folderTitle)
                     .get(0)
             )
             .append(this._folderTreeContainer)
@@ -884,12 +898,22 @@ const DatasetPage = {
     _buildImageGrid: function() {
         // Upload zone (drag & drop overlay)
         this._uploadZone = Q('<div>', { class: 'upload-zone' }).get(0);
-        this._uploadZone.innerHTML = `
-            <div class="upload-zone-content">
-                <img src="/static/icons/upload.svg" alt="Upload" class="upload-icon">
-                <p>${lang('dataset_page.drop_images')}</p>
-            </div>
-        `;
+        
+        const uploadContent = Q('<div>', { class: 'upload-zone-content' }).get(0);
+        
+        const uploadIcon = Q('<img>', { 
+            class: 'upload-icon',
+            src: '/static/icons/upload.svg',
+            alt: 'Upload'
+        }).get(0);
+        
+        const uploadText = Q('<p>', { 
+            text: lang('dataset_page.drop_images')
+        }).get(0);
+        uploadText.setAttribute('data-lang-key', 'dataset_page.drop_images');
+        
+        Q(uploadContent).append(uploadIcon).append(uploadText);
+        Q(this._uploadZone).append(uploadContent);
 
         // Image cards container
         this._imageCardsContainer = Q('<div>', { class: 'image-cards' }).get(0);
@@ -969,7 +993,7 @@ const DatasetPage = {
      * Render folder tree
      */
     _renderFolderTree: function() {
-        this._folderTreeContainer.innerHTML = '';
+        Q(this._folderTreeContainer).empty();
 
         if (!this._folderTree) return;
 
@@ -1062,17 +1086,17 @@ const DatasetPage = {
      */
     _renderImages: function() {
         if (this._imageCardsContainer) {
-            this._imageCardsContainer.innerHTML = '';
+            Q(this._imageCardsContainer).empty();
         }
         
         this._lastSelectedIndex = -1;
 
         this._images.forEach((image, index) => {
             const card = this._createImageCard(image, index);
-            this._imageCardsContainer.appendChild(card);
+            Q(this._imageCardsContainer).append(card);
 
-            const thumbContainer = card.querySelector('.image-thumb-container');
-            const thumb = thumbContainer?.querySelector('.image-thumb');
+            const thumbContainer = Q(card).find('.image-thumb-container').get(0);
+            const thumb = thumbContainer ? Q(thumbContainer).find('.image-thumb').get(0) : null;
             if (thumbContainer && thumb) {
                 this._setupImageZoom(thumbContainer, thumb, image);
             }
@@ -1101,12 +1125,12 @@ const DatasetPage = {
         // Delete button
         const deleteBtn = Q('<button>', { 
             class: 'image-delete-btn',
-            title: lang('dataset_page.delete_image')
+            title: lang('dataset_page.delete_image'),
+            text: '\u00D7'
         }).on('click', (e) => {
             e.stopPropagation();
             this._deleteImage(image);
         }).get(0);
-        deleteBtn.innerHTML = '&times;';
 
         // Thumbnail container
         const thumbContainer = Q('<div>', { class: 'image-thumb-container' })
@@ -1213,7 +1237,7 @@ const DatasetPage = {
      * Update selection visuals on all cards
      */
     _updateSelectionVisuals: function() {
-        const cards = this._imageCardsContainer.querySelectorAll('.image-card');
+        const cards = Q(this._imageCardsContainer).find('.image-card').getAll();
         cards.forEach(card => {
             const id = card.dataset.id;
             const isSelected = this._selectedImages.has(id);
@@ -1284,7 +1308,7 @@ const DatasetPage = {
         if (img.complete) {
             requestAnimationFrame(initialize);
         } else {
-            img.addEventListener('load', () => requestAnimationFrame(initialize), { once: true });
+            Q(img).on('load', () => requestAnimationFrame(initialize), { once: true });
         }
 
         // Save function
@@ -1306,7 +1330,7 @@ const DatasetPage = {
             const card = container.closest('.image-card');
             if (card) {
                 const hasChanged = bounds.zoom !== 1 || bounds.center_x !== 0.5 || bounds.center_y !== 0.5;
-                card.classList.toggle('bounds-changed', hasChanged);
+                Q(card).toggleClass('bounds-changed', hasChanged);
             }
         };
 
@@ -1498,7 +1522,7 @@ const DatasetPage = {
             if (idx !== -1) {
                 this._images[idx] = updated;
                 // Re-render just this card
-                const cards = this._imageCardsContainer.querySelectorAll('.image-card');
+                const cards = Q(this._imageCardsContainer).find('.image-card').getAll();
                 if (cards[idx]) {
                     const newCard = this._createImageCard(updated);
                     cards[idx].replaceWith(newCard);
@@ -1777,7 +1801,7 @@ const DatasetPage = {
      * Update status bar
      */
     _updateStatusBar: function(totalItems) {
-        this._statusCount.textContent = lang('dataset_page.status_count', { count: totalItems });
+        Q(this._statusCount).text(lang('dataset_page.status_count', { count: totalItems }));
     },
 
     /**
@@ -1804,7 +1828,7 @@ const DatasetPage = {
         }
 
         // Update total pages label
-        this._totalPagesLabel.textContent = `/ ${this._totalPages}`;
+        Q(this._totalPagesLabel).text(`/ ${this._totalPages}`);
     },
 
     /**
@@ -1904,7 +1928,7 @@ const DatasetPage = {
         const count = this._selectedImages.size;
         
         if (count > 0) {
-            this._bulkSelectionCount.textContent = lang('dataset_page.selected_count', { count });
+            Q(this._bulkSelectionCount).text(lang('dataset_page.selected_count', { count }));
             Q(this._bulkActionsBar).removeClass('hidden');
         } else {
             Q(this._bulkActionsBar).addClass('hidden');

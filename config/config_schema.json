@@ -950,8 +950,7 @@
               "save_frequency": { "type": "integer", "minimum": 1, "maximum": 100, "default": 1, "ui": { "widget": "slider", "order": 2, "step": 1 } },
               "max_checkpoints": { "type": "integer", "minimum": 1, "maximum": 50, "default": 5, "ui": { "widget": "slider", "order": 3, "step": 1 } },
               "checkpoint_dir": { "type": "string", "default": "model", "ui": { "widget": "path", "order": 4, "path_type": "directory" } },
-              "best_model_filename": { "type": "string", "default": "best_model.pth", "ui": { "widget": "text", "order": 5 } },
-              "training_history_filename": { "type": "string", "default": "training_history.json", "ui": { "widget": "text", "order": 6 } }
+              "best_model_filename": { "type": "string", "default": "best_model.pth", "ui": { "widget": "text", "order": 5 } }
            },
            "additionalProperties": false
         },

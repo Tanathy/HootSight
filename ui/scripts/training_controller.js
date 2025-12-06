@@ -38,54 +38,55 @@ const TrainingController = {
      * Create the header training progress element
      */
     _createHeaderElement: function() {
-        const headerProgress = document.getElementById('header-progress');
+        const headerProgress = Q('#header-progress').get();
         if (!headerProgress) return;
 
         // Create training progress container
-        this._headerElement = document.createElement('div');
-        this._headerElement.className = 'header-training-progress';
-        this._headerElement.id = 'header-training-progress';
-        this._headerElement.style.display = 'none';
+        this._headerElement = Q('<div>', { 
+            class: 'header-training-progress', 
+            id: 'header-training-progress' 
+        }).get();
+        Q(this._headerElement).css('display', 'none');
 
         // Progress info
-        const infoContainer = document.createElement('div');
-        infoContainer.className = 'training-progress-info';
+        const infoContainer = Q('<div>', { class: 'training-progress-info' }).get();
 
-        const projectLabel = document.createElement('span');
-        projectLabel.className = 'training-project-label';
-        projectLabel.id = 'training-project-label';
-        projectLabel.textContent = '';
-        infoContainer.appendChild(projectLabel);
+        const projectLabel = Q('<span>', { 
+            class: 'training-project-label', 
+            id: 'training-project-label' 
+        }).get();
+        Q(infoContainer).append(projectLabel);
 
-        const progressText = document.createElement('span');
-        progressText.className = 'training-progress-text';
-        progressText.id = 'training-progress-text';
-        progressText.textContent = '';
-        infoContainer.appendChild(progressText);
+        const progressText = Q('<span>', { 
+            class: 'training-progress-text', 
+            id: 'training-progress-text' 
+        }).get();
+        Q(infoContainer).append(progressText);
 
-        this._headerElement.appendChild(infoContainer);
+        Q(this._headerElement).append(infoContainer);
 
         // Progress bar
-        const progressBarContainer = document.createElement('div');
-        progressBarContainer.className = 'training-progress-bar-container';
+        const progressBarContainer = Q('<div>', { class: 'training-progress-bar-container' }).get();
 
-        const progressBar = document.createElement('div');
-        progressBar.className = 'training-progress-bar';
-        progressBar.id = 'training-progress-bar';
-        progressBar.style.width = '0%';
-        progressBarContainer.appendChild(progressBar);
+        const progressBar = Q('<div>', { 
+            class: 'training-progress-bar', 
+            id: 'training-progress-bar' 
+        }).get();
+        Q(progressBar).css('width', '0%');
+        Q(progressBarContainer).append(progressBar);
 
-        this._headerElement.appendChild(progressBarContainer);
+        Q(this._headerElement).append(progressBarContainer);
 
         // Stop button
-        const stopBtn = document.createElement('button');
-        stopBtn.className = 'btn btn-secondary btn-sm training-stop-btn';
-        stopBtn.id = 'training-stop-btn';
-        stopBtn.textContent = lang('training_controller.stop');
-        stopBtn.onclick = () => this.stopTraining();
-        this._headerElement.appendChild(stopBtn);
+        const stopBtn = Q('<button>', { 
+            class: 'btn btn-secondary btn-sm training-stop-btn', 
+            id: 'training-stop-btn',
+            text: lang('training_controller.stop')
+        }).get();
+        Q(stopBtn).on('click', () => this.stopTraining());
+        Q(this._headerElement).append(stopBtn);
 
-        headerProgress.appendChild(this._headerElement);
+        Q(headerProgress).append(this._headerElement);
     },
 
     /**
@@ -215,14 +216,14 @@ const TrainingController = {
      */
     _updateProgress: function(state, metrics) {
         // Project label
-        const projectLabel = document.getElementById('training-project-label');
-        if (projectLabel) {
-            projectLabel.textContent = this._trainingProject || state.project || '';
+        const projectLabel = Q('#training-project-label');
+        if (projectLabel.get()) {
+            projectLabel.text(this._trainingProject || state.project || '');
         }
 
         // Progress text
-        const progressText = document.getElementById('training-progress-text');
-        if (progressText) {
+        const progressText = Q('#training-progress-text');
+        if (progressText.get()) {
             const epoch = state.currentEpoch || 0;
             const totalEpochs = state.totalEpochs || 0;
             const step = state.currentStep || 0;
@@ -241,12 +242,12 @@ const TrainingController = {
                 text += ` - Loss: ${Format.loss(metrics.loss)}`;
             }
             
-            progressText.textContent = text;
+            progressText.text(text);
         }
 
         // Progress bar
-        const progressBar = document.getElementById('training-progress-bar');
-        if (progressBar) {
+        const progressBar = Q('#training-progress-bar');
+        if (progressBar.get()) {
             const epoch = state.currentEpoch || 0;
             const totalEpochs = state.totalEpochs || 1;
             const step = state.currentStep || 0;
@@ -257,7 +258,7 @@ const TrainingController = {
             const stepProgress = step / totalSteps / totalEpochs;
             const overallProgress = Math.min((epochProgress + stepProgress) * 100, 100);
             
-            progressBar.style.width = `${overallProgress}%`;
+            progressBar.css('width', `${overallProgress}%`);
         }
     },
 
@@ -272,23 +273,22 @@ const TrainingController = {
         }
 
         // Update UI to show completion
-        const progressText = document.getElementById('training-progress-text');
-        if (progressText) {
+        const progressText = Q('#training-progress-text');
+        if (progressText.get()) {
             if (status === 'completed') {
-                progressText.textContent = lang('training_controller.completed');
+                progressText.text(lang('training_controller.completed'));
             } else if (status === 'stopped') {
-                progressText.textContent = lang('training_controller.stopped');
+                progressText.text(lang('training_controller.stopped'));
             } else {
-                progressText.textContent = lang('training_controller.error');
+                progressText.text(lang('training_controller.error'));
             }
         }
 
         // Change stop button to "Clear"
-        const stopBtn = document.getElementById('training-stop-btn');
-        if (stopBtn) {
-            stopBtn.textContent = lang('training_controller.clear');
-            stopBtn.className = 'btn btn-secondary btn-sm training-stop-btn';
-            stopBtn.onclick = () => this._clearProgress();
+        const stopBtn = Q('#training-stop-btn');
+        if (stopBtn.get()) {
+            stopBtn.text(lang('training_controller.clear'));
+            stopBtn.off('click').on('click', () => this._clearProgress());
         }
 
         // Clear active training ID
@@ -303,11 +303,10 @@ const TrainingController = {
         this._trainingProject = null;
         
         // Reset stop button
-        const stopBtn = document.getElementById('training-stop-btn');
-        if (stopBtn) {
-            stopBtn.textContent = lang('training_controller.stop');
-            stopBtn.className = 'btn btn-secondary btn-sm training-stop-btn';
-            stopBtn.onclick = () => this.stopTraining();
+        const stopBtn = Q('#training-stop-btn');
+        if (stopBtn.get()) {
+            stopBtn.text(lang('training_controller.stop'));
+            stopBtn.off('click').on('click', () => this.stopTraining());
         }
     },
 
@@ -316,7 +315,7 @@ const TrainingController = {
      */
     _showProgress: function() {
         if (this._headerElement) {
-            this._headerElement.style.display = 'flex';
+            Q(this._headerElement).css('display', 'flex');
         }
     },
 
@@ -325,7 +324,7 @@ const TrainingController = {
      */
     _hideProgress: function() {
         if (this._headerElement) {
-            this._headerElement.style.display = 'none';
+            Q(this._headerElement).css('display', 'none');
         }
     },
 

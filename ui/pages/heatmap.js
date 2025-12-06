@@ -50,7 +50,7 @@ const HeatmapPage = {
      * @param {HTMLElement} container - Container element
      */
     build: async function(container) {
-        container.innerHTML = '';
+        Q(container).empty();
         this._container = container;
         this._currentImagePath = null;
         this._isUploadedImage = false;
@@ -74,20 +74,28 @@ const HeatmapPage = {
      * Build "no project selected" view
      */
     _buildNoProjectView: function(container) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'heatmap-no-project';
-        wrapper.innerHTML = `
-            <div class="no-project-content">
-                <h2>${lang('heatmap_page.no_project.title')}</h2>
-                <p>${lang('heatmap_page.no_project.description')}</p>
-                <button class="btn btn-primary" id="heatmap-go-projects">
-                    ${lang('heatmap_page.no_project.button')}
-                </button>
-            </div>
-        `;
-        container.appendChild(wrapper);
+        const wrapper = Q('<div>', { class: 'heatmap-no-project' }).get(0);
+        
+        const content = Q('<div>', { class: 'no-project-content' }).get(0);
+        
+        const title = Q('<h2>', { text: lang('heatmap_page.no_project.title') }).get(0);
+        title.setAttribute('data-lang-key', 'heatmap_page.no_project.title');
+        
+        const desc = Q('<p>', { text: lang('heatmap_page.no_project.description') }).get(0);
+        desc.setAttribute('data-lang-key', 'heatmap_page.no_project.description');
+        
+        const btn = Q('<button>', { 
+            class: 'btn btn-primary',
+            id: 'heatmap-go-projects',
+            text: lang('heatmap_page.no_project.button')
+        }).get(0);
+        btn.setAttribute('data-lang-key', 'heatmap_page.no_project.button');
+        
+        Q(content).append(title).append(desc).append(btn);
+        Q(wrapper).append(content);
+        Q(container).append(wrapper);
 
-        document.getElementById('heatmap-go-projects')?.addEventListener('click', () => {
+        Q('#heatmap-go-projects').on('click', () => {
             Navigation.navigateTo('projects');
         });
     },
@@ -96,113 +104,193 @@ const HeatmapPage = {
      * Build main page layout
      */
     _buildLayout: function(container) {
-        const projectName = Config.getActiveProject();
-
         // Page wrapper
-        const wrapper = document.createElement('div');
-        wrapper.className = 'heatmap-page';
-
-        // Header
-        const header = document.createElement('div');
-        header.className = 'heatmap-header';
-        header.innerHTML = `
-            <div class="heatmap-header-left">
-                <span class="heatmap-project-label">${lang('common.project_label')}</span>
-                <span class="heatmap-project-name">${projectName}</span>
-            </div>
-            <div class="heatmap-header-center">
-                <div class="switch-container">
-                    <div class="switch-track" id="heatmap-live-model-switch" tabindex="0">
-                        <div class="switch-thumb"></div>
-                    </div>
-                    <span class="switch-text">${lang('heatmap_page.live_model_switch')}</span>
-                </div>
-            </div>
-            <div class="heatmap-header-actions">
-                <button class="btn btn-secondary" id="heatmap-random-btn">
-                    ${lang('heatmap_page.random_button')}
-                </button>
-                <button class="btn btn-primary" id="heatmap-refresh-btn">
-                    ${lang('heatmap_page.refresh_button')}
-                </button>
-            </div>
-        `;
-        wrapper.appendChild(header);
+        const wrapper = Q('<div>', { class: 'heatmap-page' }).get(0);
 
         // Main content - split view
-        const content = document.createElement('div');
-        content.className = 'heatmap-content';
+        const content = Q('<div>', { class: 'heatmap-content' }).get(0);
 
         // Left panel - Image with drop zone
-        const leftPanel = document.createElement('div');
-        leftPanel.className = 'heatmap-panel heatmap-panel-left';
+        const leftPanel = Q('<div>', { class: 'heatmap-panel heatmap-panel-left' }).get(0);
         
-        const dropZone = document.createElement('div');
-        dropZone.className = 'heatmap-drop-zone';
-        dropZone.id = 'heatmap-drop-zone';
-        dropZone.innerHTML = `
-            <div class="heatmap-drop-placeholder" id="heatmap-placeholder">
-                <div class="drop-icon">&#128247;</div>
-                <div class="drop-text">${lang('heatmap_page.drop_zone.text')}</div>
-                <div class="drop-hint">${lang('heatmap_page.drop_zone.hint')}</div>
-            </div>
-            <img class="heatmap-image" id="heatmap-image" style="display: none;" alt="Heatmap">
-        `;
-        leftPanel.appendChild(dropZone);
+        const dropZone = Q('<div>', { 
+            class: 'heatmap-drop-zone',
+            id: 'heatmap-drop-zone'
+        }).get(0);
+        
+        const placeholder = Q('<div>', { 
+            class: 'heatmap-drop-placeholder',
+            id: 'heatmap-placeholder'
+        }).get(0);
+        
+        const dropIcon = Q('<div>', { 
+            class: 'drop-icon',
+            text: '\u{1F4F7}'
+        }).get(0);
+        
+        const dropText = Q('<div>', { 
+            class: 'drop-text',
+            text: lang('heatmap_page.drop_zone.text')
+        }).get(0);
+        dropText.setAttribute('data-lang-key', 'heatmap_page.drop_zone.text');
+        
+        const dropHint = Q('<div>', { 
+            class: 'drop-hint',
+            text: lang('heatmap_page.drop_zone.hint')
+        }).get(0);
+        dropHint.setAttribute('data-lang-key', 'heatmap_page.drop_zone.hint');
+        
+        const heatmapImg = Q('<img>', { 
+            class: 'heatmap-image',
+            id: 'heatmap-image',
+            alt: 'Heatmap'
+        }).get(0);
+        heatmapImg.style.display = 'none';
+        
+        Q(placeholder).append(dropIcon).append(dropText).append(dropHint);
+        Q(dropZone).append(placeholder).append(heatmapImg);
+        Q(leftPanel).append(dropZone);
 
         // Alpha slider
-        const alphaControl = document.createElement('div');
-        alphaControl.className = 'heatmap-alpha-control';
-        alphaControl.innerHTML = `
-            <label>${lang('heatmap_page.alpha_label')}</label>
-            <input type="range" id="heatmap-alpha" min="0" max="100" value="50" class="heatmap-slider">
-            <span id="heatmap-alpha-value">50%</span>
-        `;
-        leftPanel.appendChild(alphaControl);
+        const alphaControl = Q('<div>', { class: 'heatmap-alpha-control' }).get(0);
+        
+        const alphaLabel = Q('<label>', { text: lang('heatmap_page.alpha_label') }).get(0);
+        alphaLabel.setAttribute('data-lang-key', 'heatmap_page.alpha_label');
+        
+        const alphaInput = Q('<input>', { 
+            class: 'heatmap-slider',
+            id: 'heatmap-alpha',
+            type: 'range',
+            min: '0',
+            max: '100',
+            value: '50'
+        }).get(0);
+        
+        const alphaValue = Q('<span>', { 
+            id: 'heatmap-alpha-value',
+            text: '50%'
+        }).get(0);
+        
+        Q(alphaControl).append(alphaLabel).append(alphaInput).append(alphaValue);
+        Q(leftPanel).append(alphaControl);
 
         // Image info
-        const imageInfo = document.createElement('div');
-        imageInfo.className = 'heatmap-image-info';
-        imageInfo.id = 'heatmap-image-info';
-        leftPanel.appendChild(imageInfo);
+        const imageInfo = Q('<div>', { 
+            class: 'heatmap-image-info',
+            id: 'heatmap-image-info'
+        }).get(0);
+        Q(leftPanel).append(imageInfo);
 
-        content.appendChild(leftPanel);
+        Q(content).append(leftPanel);
 
         // Right panel - Results
-        const rightPanel = document.createElement('div');
-        rightPanel.className = 'heatmap-panel heatmap-panel-right';
+        const rightPanel = Q('<div>', { class: 'heatmap-panel heatmap-panel-right' }).get(0);
         
-        const resultsHeader = document.createElement('div');
-        resultsHeader.className = 'heatmap-results-header';
-        resultsHeader.innerHTML = `<h3>${lang('heatmap_page.results.title')}</h3>`;
-        rightPanel.appendChild(resultsHeader);
+        const resultsHeader = Q('<div>', { class: 'heatmap-results-header' }).get(0);
+        const resultsTitle = Q('<h3>', { text: lang('heatmap_page.results.title') }).get(0);
+        resultsTitle.setAttribute('data-lang-key', 'heatmap_page.results.title');
+        Q(resultsHeader).append(resultsTitle);
+        Q(rightPanel).append(resultsHeader);
 
-        const predictionsPanel = document.createElement('div');
-        predictionsPanel.className = 'heatmap-predictions';
-        predictionsPanel.id = 'heatmap-predictions';
-        predictionsPanel.innerHTML = `
-            <div class="predictions-placeholder">
-                ${lang('heatmap_page.results.placeholder')}
-            </div>
-        `;
-        rightPanel.appendChild(predictionsPanel);
+        const predictionsPanel = Q('<div>', { 
+            class: 'heatmap-predictions',
+            id: 'heatmap-predictions'
+        }).get(0);
+        
+        const predictionsPlaceholder = Q('<div>', { 
+            class: 'predictions-placeholder',
+            text: lang('heatmap_page.results.placeholder')
+        }).get(0);
+        predictionsPlaceholder.setAttribute('data-lang-key', 'heatmap_page.results.placeholder');
+        Q(predictionsPanel).append(predictionsPlaceholder);
+        Q(rightPanel).append(predictionsPanel);
 
-        content.appendChild(rightPanel);
-        wrapper.appendChild(content);
-        container.appendChild(wrapper);
+        Q(content).append(rightPanel);
+        Q(wrapper).append(content);
+        Q(container).append(wrapper);
 
         // Store references
         this._elements.dropZone = dropZone;
-        this._elements.heatmapImage = document.getElementById('heatmap-image');
+        this._elements.heatmapImage = Q('#heatmap-image').get(0);
         this._elements.predictionsPanel = predictionsPanel;
         this._elements.imageInfo = imageInfo;
-        this._elements.alphaSlider = document.getElementById('heatmap-alpha');
-        this._elements.refreshBtn = document.getElementById('heatmap-refresh-btn');
-        this._elements.randomBtn = document.getElementById('heatmap-random-btn');
-        this._elements.liveModelSwitch = document.getElementById('heatmap-live-model-switch');
+        this._elements.alphaSlider = Q('#heatmap-alpha').get(0);
 
         // Setup event listeners
         this._setupEventListeners();
+    },
+
+    /**
+     * Setup header action buttons (called by app.js after page build)
+     */
+    setupHeaderActions: function() {
+        // Clear existing buttons
+        HeaderActions.clear();
+        
+        const headerActions = Q('#header-actions').get(0);
+        if (!headerActions) return;
+
+        const self = this;
+
+        // Live model switch (custom element - not a standard button)
+        const switchContainer = Q('<div>', { class: 'switch-container' }).get(0);
+        
+        const switchTrack = Q('<div>', { 
+            class: 'switch-track',
+            id: 'heatmap-live-model-switch',
+            tabindex: '0'
+        }).get(0);
+        
+        const switchThumb = Q('<div>', { class: 'switch-thumb' }).get(0);
+        Q(switchTrack).append(switchThumb);
+        
+        const switchText = Q('<span>', { 
+            class: 'switch-text',
+            text: lang('heatmap_page.live_model_switch')
+        }).get(0);
+        switchText.setAttribute('data-lang-key', 'heatmap_page.live_model_switch');
+        
+        Q(switchContainer).append(switchTrack).append(switchText);
+        Q(headerActions).append(switchContainer);
+
+        // Add buttons using HeaderActions
+        HeaderActions.add([
+            {
+                id: 'heatmap-random',
+                label: lang('heatmap_page.random_button'),
+                labelLangKey: 'heatmap_page.random_button',
+                type: 'secondary',
+                onClick: () => self._loadRandomImage()
+            },
+            {
+                id: 'heatmap-refresh',
+                label: lang('heatmap_page.refresh_button'),
+                labelLangKey: 'heatmap_page.refresh_button',
+                type: 'primary',
+                onClick: () => self._refreshCurrentImage()
+            }
+        ]);
+
+        // Store button references
+        this._elements.randomBtn = HeaderActions.get('heatmap-random')?.getElement();
+        this._elements.refreshBtn = HeaderActions.get('heatmap-refresh')?.getElement();
+
+        // Store switch reference and setup event
+        this._elements.liveModelSwitch = Q('#heatmap-live-model-switch').get(0);
+        if (this._elements.liveModelSwitch) {
+            const switchEl = this._elements.liveModelSwitch;
+            const toggle = () => {
+                self._useLiveModel = !self._useLiveModel;
+                Q(switchEl).toggleClass('active', self._useLiveModel);
+            };
+            Q(switchEl).on('click', toggle);
+            Q(switchEl).on('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggle();
+                }
+            });
+        }
     },
 
     /**
@@ -210,84 +298,60 @@ const HeatmapPage = {
      */
     _setupEventListeners: function() {
         const dropZone = this._elements.dropZone;
+        const self = this;
 
         // Drag and drop
-        dropZone.addEventListener('dragover', (e) => {
+        Q(dropZone).on('dragover', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            dropZone.classList.add('drag-over');
+            Q(dropZone).addClass('drag-over');
         });
 
-        dropZone.addEventListener('dragleave', (e) => {
+        Q(dropZone).on('dragleave', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            dropZone.classList.remove('drag-over');
+            Q(dropZone).removeClass('drag-over');
         });
 
-        dropZone.addEventListener('drop', async (e) => {
+        Q(dropZone).on('drop', async (e) => {
             e.preventDefault();
             e.stopPropagation();
-            dropZone.classList.remove('drag-over');
+            Q(dropZone).removeClass('drag-over');
 
             const files = e.dataTransfer?.files;
             if (files && files.length > 0) {
                 const file = files[0];
                 if (file.type.startsWith('image/')) {
-                    await this._handleUploadedImage(file);
+                    await self._handleUploadedImage(file);
                 }
             }
         });
 
         // Click to upload
-        dropZone.addEventListener('click', () => {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
+        Q(dropZone).on('click', () => {
+            const input = Q('<input>', { 
+                type: 'file',
+                accept: 'image/*'
+            }).get(0);
             input.onchange = async (e) => {
                 const file = e.target?.files?.[0];
                 if (file) {
-                    await this._handleUploadedImage(file);
+                    await self._handleUploadedImage(file);
                 }
             };
             input.click();
         });
 
         // Alpha slider
-        this._elements.alphaSlider?.addEventListener('input', (e) => {
+        Q(this._elements.alphaSlider).on('input', (e) => {
             const value = e.target.value;
-            document.getElementById('heatmap-alpha-value').textContent = `${value}%`;
+            Q('#heatmap-alpha-value').text(`${value}%`);
         });
 
-        this._elements.alphaSlider?.addEventListener('change', async () => {
-            if (this._currentImagePath && !this._isUploadedImage) {
-                await this._refreshCurrentImage();
+        Q(this._elements.alphaSlider).on('change', async () => {
+            if (self._currentImagePath && !self._isUploadedImage) {
+                await self._refreshCurrentImage();
             }
-        });
-
-        // Live model switch (click toggles)
-        if (this._elements.liveModelSwitch) {
-            const switchEl = this._elements.liveModelSwitch;
-            const toggle = () => {
-                this._useLiveModel = !this._useLiveModel;
-                switchEl.classList.toggle('active', this._useLiveModel);
-            };
-            switchEl.addEventListener('click', toggle);
-            switchEl.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    toggle();
-                }
-            });
-        }
-
-        // Random button - loads new random image
-        this._elements.randomBtn?.addEventListener('click', async () => {
-            await this._loadRandomImage();
-        });
-
-        // Refresh button - re-evaluates current image
-        this._elements.refreshBtn?.addEventListener('click', async () => {
-            await this._refreshCurrentImage();
         });
     },
 
@@ -408,22 +472,37 @@ const HeatmapPage = {
     _displayResults: function(result) {
         // Display heatmap image
         const img = this._elements.heatmapImage;
-        const placeholder = document.getElementById('heatmap-placeholder');
+        const placeholder = Q('#heatmap-placeholder');
         
         if (result.heatmap) {
             img.src = `data:image/png;base64,${result.heatmap}`;
-            img.style.display = 'block';
-            placeholder.style.display = 'none';
+            Q(img).css('display', 'block');
+            placeholder.css('display', 'none');
         }
 
         // Update image info
         const imageInfo = this._elements.imageInfo;
         if (result.image_path) {
             this._currentImagePath = result.image_path;
-            imageInfo.innerHTML = `
-                <span class="image-filename">${result.image_path}</span>
-                ${result.checkpoint ? `<span class="checkpoint-info">${lang('heatmap_page.checkpoint_label')} ${result.checkpoint}</span>` : ''}
-            `;
+            
+            const filenameSpan = Q('<span>', { 
+                class: 'image-filename',
+                text: result.image_path
+            }).get(0);
+            
+            Q(imageInfo).empty().append(filenameSpan);
+            
+            if (result.checkpoint) {
+                const checkpointSpan = Q('<span>', { class: 'checkpoint-info' }).get(0);
+                
+                const checkpointLabel = Q('<span>', { 
+                    text: lang('heatmap_page.checkpoint_label')
+                }).get(0);
+                checkpointLabel.setAttribute('data-lang-key', 'heatmap_page.checkpoint_label');
+                
+                Q(checkpointSpan).append(checkpointLabel).append(' ' + result.checkpoint);
+                Q(imageInfo).append(checkpointSpan);
+            }
         }
 
         // Display predictions
@@ -436,11 +515,12 @@ const HeatmapPage = {
     _displayPredictions: function(predictions) {
         const panel = this._elements.predictionsPanel;
         if (!predictions || !predictions.predicted_classes || predictions.predicted_classes.length === 0) {
-            panel.innerHTML = `
-                <div class="predictions-empty">
-                    ${lang('heatmap_page.results.no_predictions')}
-                </div>
-            `;
+            const emptyDiv = Q('<div>', { 
+                class: 'predictions-empty',
+                text: lang('heatmap_page.results.no_predictions')
+            }).get(0);
+            emptyDiv.setAttribute('data-lang-key', 'heatmap_page.results.no_predictions');
+            Q(panel).empty().append(emptyDiv);
             return;
         }
 
@@ -468,7 +548,7 @@ const HeatmapPage = {
         });
 
         html += '</div>';
-        panel.innerHTML = html;
+        Q(panel).html(html);
     },
 
     /**
@@ -476,11 +556,7 @@ const HeatmapPage = {
      */
     _showLoading: function(loading) {
         const dropZone = this._elements.dropZone;
-        if (loading) {
-            dropZone.classList.add('loading');
-        } else {
-            dropZone.classList.remove('loading');
-        }
+        Q(dropZone).toggleClass('loading', loading);
     },
 
     /**
@@ -488,12 +564,12 @@ const HeatmapPage = {
      */
     _showError: function(message) {
         const panel = this._elements.predictionsPanel;
-        panel.innerHTML = `
+        Q(panel).html(`
             <div class="predictions-error">
                 <div class="error-icon">&#9888;</div>
                 <div class="error-message">${message}</div>
             </div>
-        `;
+        `);
     },
 
     /**
@@ -519,7 +595,4 @@ const HeatmapPage = {
 };
 
 // Register with Pages system
-Pages.register('heatmap', {
-    build: (container) => HeatmapPage.build(container),
-    cleanup: () => HeatmapPage.cleanup()
-});
+Pages.register('heatmap', HeatmapPage);

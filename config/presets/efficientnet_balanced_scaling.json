@@ -1,6 +1,6 @@
 {
-    "name": "EfficientNet Family - Balanced Scaling",
-    "description": "Optimized for EfficientNet architecture (B0-B7, V2-S/M/L) using compound scaling that uniformly scales depth, width, and resolution with fixed ratios. EfficientNets achieve state-of-the-art accuracy while being 8-10x more efficient than previous architectures. Best for: maximum accuracy tasks, medical image analysis (X-ray, MRI, pathology), fine-grained recognition (bird species, car models, plant diseases), scientific imaging, satellite/aerial imagery, quality inspection with subtle defects, art authentication, forgery detection, dermoscopy, retinal imaging, food quality assessment. EfficientNet-B0 matches ResNet50 accuracy with 5x fewer parameters. B4-B7 for when accuracy is critical regardless of compute. EfficientNetV2 variants offer faster training with progressive learning. The gold standard for accuracy-critical applications.",
+    "name": "presets.efficientnet_balanced_scaling.name",
+    "description": "presets.efficientnet_balanced_scaling.description",
     "task": "classification",
     "dataset_types": [
         "folder_classification",
@@ -11,7 +11,7 @@
     ],
     "configs": {
         "tiny": {
-            "description": "Very small datasets (50-500 images). Heavy regularization, aggressive augmentation, smaller models. High risk of overfitting - early stopping essential.",
+            "description": "presets.configs.tiny",
             "range": [
                 50,
                 500
@@ -83,7 +83,7 @@
             }
         },
         "small": {
-            "description": "Small datasets (500-2.5k images). Moderate regularization with pretrained weights. Balance between learning capacity and overfitting prevention.",
+            "description": "presets.configs.small",
             "range": [
                 500,
                 2500
@@ -155,7 +155,7 @@
             }
         },
         "medium": {
-            "description": "Medium datasets (2.5k-10k images). Standard hyperparameters with good augmentation. Balanced training approach works well.",
+            "description": "presets.configs.medium",
             "range": [
                 2500,
                 10000
@@ -227,7 +227,7 @@
             }
         },
         "large": {
-            "description": "Large datasets (10k-30k images). Reduced regularization, larger models viable. Higher learning rates and bigger batches effective.",
+            "description": "presets.configs.large",
             "range": [
                 10000,
                 30000
@@ -299,7 +299,7 @@
             }
         },
         "huge": {
-            "description": "Huge datasets (30k-50k images). Minimal regularization needed. Deep networks train effectively with standard augmentation.",
+            "description": "presets.configs.huge",
             "range": [
                 30000,
                 50000
@@ -371,7 +371,7 @@
             }
         },
         "massive": {
-            "description": "Massive datasets (50k-100k images). Very deep networks fully supported. Fast learning rates, large batches, minimal regularization.",
+            "description": "presets.configs.massive",
             "range": [
                 50000,
                 100000
@@ -443,7 +443,7 @@
             }
         },
         "giant": {
-            "description": "Giant datasets (100k+ images). Maximum model capacity utilized. Can train from scratch or fine-tune with aggressive settings.",
+            "description": "presets.configs.giant",
             "range": [
                 100000,
                 null

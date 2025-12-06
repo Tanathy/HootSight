@@ -8,9 +8,7 @@ class CardSection {
             cards: options.cards || []
         };
         
-        this._element = document.createElement('div');
-        this._element.className = 'card-section';
-        this._element.id = `card-section-${this.id}`;
+        this._element = Q('<div>', { class: 'card-section', id: `card-section-${this.id}` }).get();
         this._cards = [];
         
         if (this.options.cards.length) {
@@ -27,13 +25,13 @@ class CardSection {
             cardInstance = new Card(cardId, cardConfig || {});
         }
         this._cards.push(cardInstance);
-        this._element.appendChild(cardInstance.getElement());
+        Q(this._element).append(cardInstance.getElement());
         return cardInstance;
     }
     
     clear() {
         this._cards = [];
-        this._element.innerHTML = '';
+        Q(this._element).empty();
     }
     
     getCards() {

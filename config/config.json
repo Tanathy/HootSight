@@ -108,8 +108,7 @@
             "save_frequency": 1,
             "max_checkpoints": 5,
             "checkpoint_dir": "model",
-            "best_model_filename": "best_model.pth",
-            "training_history_filename": "training_history.json"
+            "best_model_filename": "best_model.pth"
         },
         "early_stopping": {
             "enabled": false,

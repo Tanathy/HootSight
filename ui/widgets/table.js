@@ -11,30 +11,23 @@ class TableWidget {
             emptyText: options.emptyText || 'No rows'
         };
         
-        this._element = document.createElement('div');
-        this._element.className = 'widget table-widget';
-        this._element.id = `table-${this.id}`;
+        this._element = Q('<div>', { class: 'widget table-widget', id: `table-${this.id}` }).get();
         
         if (this.options.label) {
-            this._labelEl = document.createElement('label');
-            this._labelEl.className = 'widget-label';
-            this._labelEl.textContent = this.options.label;
-            this._element.appendChild(this._labelEl);
+            this._labelEl = Q('<label>', { class: 'widget-label', text: this.options.label }).get();
+            Q(this._element).append(this._labelEl);
         }
         
         if (this.options.description) {
-            this._descriptionEl = document.createElement('div');
-            this._descriptionEl.className = 'widget-description';
-            this._descriptionEl.textContent = this.options.description;
-            this._element.appendChild(this._descriptionEl);
+            this._descriptionEl = Q('<div>', { class: 'widget-description', text: this.options.description }).get();
+            Q(this._element).append(this._descriptionEl);
         }
         
-        this._table = document.createElement('table');
-        this._table.className = 'table';
-        this._element.appendChild(this._table);
+        this._table = Q('<table>', { class: 'table' }).get();
+        Q(this._element).append(this._table);
         
-        this._tbody = document.createElement('tbody');
-        this._table.appendChild(this._tbody);
+        this._tbody = Q('<tbody>').get();
+        Q(this._table).append(this._tbody);
         
         this._render();
     }
@@ -45,20 +38,14 @@ class TableWidget {
     }
     
     _render() {
-        this._tbody.innerHTML = '';
+        Q(this._tbody).empty();
         const data = this.options.data;
         if (data === null || typeof data === 'undefined') {
-            const row = document.createElement('tr');
-            row.className = 'table-row';
-            const keyCell = document.createElement('td');
-            keyCell.className = 'table-key';
-            keyCell.textContent = '';
-            const valueCell = document.createElement('td');
-            valueCell.className = 'table-value';
-            valueCell.textContent = this.options.emptyText;
-            row.appendChild(keyCell);
-            row.appendChild(valueCell);
-            this._tbody.appendChild(row);
+            const row = Q('<tr>', { class: 'table-row' });
+            const keyCell = Q('<td>', { class: 'table-key', text: '' }).get();
+            const valueCell = Q('<td>', { class: 'table-value', text: this.options.emptyText }).get();
+            row.append(keyCell).append(valueCell);
+            Q(this._tbody).append(row.get());
             return;
         }
         if (Array.isArray(data)) {
@@ -71,81 +58,62 @@ class TableWidget {
     }
     
     _appendRow(key, value) {
-        const row = document.createElement('tr');
-        row.className = 'table-row';
+        const row = Q('<tr>', { class: 'table-row' });
         
-        const keyCell = document.createElement('td');
-        keyCell.className = 'table-key';
-        keyCell.textContent = key === null || typeof key === 'undefined'
-            ? ''
-            : key.toString();
-        row.appendChild(keyCell);
+        const keyText = key === null || typeof key === 'undefined' ? '' : key.toString();
+        const keyCell = Q('<td>', { class: 'table-key', text: keyText }).get();
+        row.append(keyCell);
         
-        const valueCell = document.createElement('td');
-        valueCell.className = 'table-value';
+        const valueCell = Q('<td>', { class: 'table-value' }).get();
         
         if (value !== null && typeof value === 'object') {
-            const nestedList = document.createElement('ul');
-            nestedList.className = 'list';
+            const nestedList = Q('<ul>', { class: 'list' }).get();
             this._buildList(nestedList, value);
-            valueCell.appendChild(nestedList);
+            Q(valueCell).append(nestedList);
         } else {
-            valueCell.textContent = value === null || typeof value === 'undefined'
-                ? '—'
-                : value.toString();
+            const text = value === null || typeof value === 'undefined' ? '—' : value.toString();
+            Q(valueCell).text(text);
         }
         
-        row.appendChild(valueCell);
-        this._tbody.appendChild(row);
+        row.append(valueCell);
+        Q(this._tbody).append(row.get());
     }
     
     _buildList(container, data) {
         if (Array.isArray(data)) {
             data.forEach((value, index) => {
-                const li = document.createElement('li');
-                li.className = 'list-item';
-                const keyEl = document.createElement('span');
-                keyEl.className = 'list-key';
-                keyEl.textContent = index.toString();
-                li.appendChild(keyEl);
-                const valueEl = document.createElement('div');
-                valueEl.className = 'list-value';
+                const li = Q('<li>', { class: 'list-item' });
+                const keyEl = Q('<span>', { class: 'list-key', text: index.toString() }).get();
+                li.append(keyEl);
+                const valueEl = Q('<div>', { class: 'list-value' });
                 if (value !== null && typeof value === 'object') {
-                    const nested = document.createElement('ul');
-                    nested.className = 'list';
+                    const nested = Q('<ul>', { class: 'list' }).get();
                     this._buildList(nested, value);
-                    valueEl.appendChild(nested);
+                    valueEl.append(nested);
                 } else {
-                    valueEl.textContent = value === null || typeof value === 'undefined'
-                        ? '—'
-                        : value.toString();
+                    const text = value === null || typeof value === 'undefined' ? '—' : value.toString();
+                    valueEl.text(text);
                 }
-                li.appendChild(valueEl);
-                container.appendChild(li);
+                li.append(valueEl.get());
+                Q(container).append(li.get());
             });
         } else if (typeof data === 'object' && data !== null) {
             Object.keys(data).forEach(key => {
-                const li = document.createElement('li');
-                li.className = 'list-item';
-                const keyEl = document.createElement('span');
-                keyEl.className = 'list-key';
-                keyEl.textContent = key.toString();
-                li.appendChild(keyEl);
-                const valueEl = document.createElement('div');
-                valueEl.className = 'list-value';
+                const li = Q('<li>', { class: 'list-item' });
+                const keyEl = Q('<span>', { class: 'list-key', text: key.toString() }).get();
+                li.append(keyEl);
+                const valueEl = Q('<div>', { class: 'list-value' });
                 const valueData = data[key];
                 if (valueData !== null && typeof valueData === 'object') {
-                    const nested = document.createElement('ul');
-                    nested.className = 'list';
+                    const nested = Q('<ul>', { class: 'list' }).get();
                     this._buildList(nested, valueData);
-                    valueEl.appendChild(nested);
+                    valueEl.append(nested);
                 } else {
-                    valueEl.textContent = valueData === null || typeof valueData === 'undefined'
-                        ? '—'
-                        : valueData.toString();
+                    const text = valueData === null || typeof valueData === 'undefined' ? '—' : valueData.toString();
+                    valueEl.text(text);
                 }
-                li.appendChild(valueEl);
-                container.appendChild(li);
+                li.append(valueEl.get());
+                Q(container).append(li.get());
             });
         }
     }

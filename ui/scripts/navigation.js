@@ -29,36 +29,36 @@ const Navigation = {
      * @param {string} containerId - ID of the nav container
      */
     build: function(containerId = 'sidebar-nav') {
-        const container = document.getElementById(containerId);
+        const container = Q('#' + containerId).get();
         if (!container) {
             console.error('Navigation container not found:', containerId);
             return;
         }
 
         // Clear existing items
-        container.innerHTML = '';
+        Q(container).empty();
 
         // Sort by order
         const sorted = [...this.items].sort((a, b) => a.order - b.order);
 
         // Create nav items
         sorted.forEach((item, index) => {
-            const navItem = document.createElement('div');
-            navItem.className = 'nav-item';
+            const navItem = Q('<div>', { class: 'nav-item' }).get();
             navItem.dataset.page = item.page;
 
             // First item is active by default
             if (index === 0) {
-                navItem.classList.add('active');
+                Q(navItem).addClass('active');
             }
 
-            const label = document.createElement('span');
-            label.className = 'nav-item-label';
-            label.textContent = lang(item.langKey);
+            const label = Q('<span>', { 
+                class: 'nav-item-label',
+                text: lang(item.langKey)
+            }).get();
             label.setAttribute('data-lang-key', item.langKey);
 
-            navItem.appendChild(label);
-            container.appendChild(navItem);
+            Q(navItem).append(label);
+            Q(container).append(navItem);
         });
 
         // Build language selector in sidebar footer
@@ -70,13 +70,13 @@ const Navigation = {
      * Uses the Dropdown widget for consistent styling
      */
     _buildLanguageSelector: function() {
-        const sidebar = document.querySelector('.sidebar');
+        const sidebar = Q('.sidebar').get();
         if (!sidebar) return;
 
         // Remove existing footer if any
-        const existingFooter = sidebar.querySelector('.sidebar-footer');
+        const existingFooter = Q(sidebar).find('.sidebar-footer').get();
         if (existingFooter) {
-            existingFooter.remove();
+            Q(existingFooter).remove();
         }
 
         // Get available languages
@@ -95,8 +95,7 @@ const Navigation = {
         });
 
         // Create footer container
-        const footer = document.createElement('div');
-        footer.className = 'sidebar-footer';
+        const footer = Q('<div>', { class: 'sidebar-footer' }).get();
 
         // Create Dropdown widget
         this._langDropdown = new Dropdown('language-selector', {
@@ -117,8 +116,8 @@ const Navigation = {
             }
         });
 
-        footer.appendChild(this._langDropdown.getElement());
-        sidebar.appendChild(footer);
+        Q(footer).append(this._langDropdown.getElement());
+        Q(sidebar).append(footer);
     },
 
     /**
@@ -156,7 +155,7 @@ const Navigation = {
      * @param {string} pageName - Page identifier
      */
     navigateTo: function(pageName) {
-        const navItem = document.querySelector(`.nav-item[data-page="${pageName}"]`);
+        const navItem = Q(`.nav-item[data-page="${pageName}"]`).get();
         if (navItem) {
             navItem.click();
         }

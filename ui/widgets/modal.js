@@ -42,9 +42,9 @@ const Modal = {
 
         this._overlay = Q('<div>', { class: 'modal-overlay' }).get(0);
         this._container = Q('<div>', { class: 'modal-container' }).get(0);
-        this._overlay.appendChild(this._container);
+        Q(this._overlay).append(this._container);
         
-        document.body.appendChild(this._overlay);
+        Q(document.body).append(this._overlay);
 
         Q(this._overlay).on('click', (e) => {
             if (e.target === this._overlay) {
@@ -52,7 +52,7 @@ const Modal = {
             }
         });
 
-        document.addEventListener('keydown', (e) => {
+        Q(document).on('keydown', (e) => {
             if (e.key === 'Escape' && this._isOpen) {
                 this._close(null);
             }
@@ -86,7 +86,7 @@ const Modal = {
             title: title,
             content: `<p class="modal-message">${this._escapeHtml(message)}</p>`,
             buttons: [
-                { label: lang('common.cancel') || 'Cancel', variant: 'ghost', action: () => false },
+                { label: lang('common.cancel') || 'Cancel', labelLangKey: 'common.cancel', variant: 'ghost', action: () => false },
                 { label: 'OK', variant: 'primary', action: () => true, autoFocus: true }
             ]
         });
@@ -113,13 +113,13 @@ const Modal = {
             title: title,
             contentElement: this._promptInput.getElement(),
             buttons: [
-                { label: lang('common.cancel') || 'Cancel', variant: 'ghost', action: () => null },
+                { label: lang('common.cancel') || 'Cancel', labelLangKey: 'common.cancel', variant: 'ghost', action: () => null },
                 { label: 'OK', variant: 'primary', action: () => this._promptInput.get(), autoFocus: false }
             ],
             onOpen: () => {
                 this._promptInput.focus();
                 // Enter key submits
-                this._promptInput.input.addEventListener('keydown', (e) => {
+                Q(this._promptInput.input).on('keydown', (e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
                         this._close(this._promptInput.get());
@@ -144,42 +144,43 @@ const Modal = {
         
         return new Promise((resolve) => {
             this._resolveCallback = resolve;
-            this._container.innerHTML = '';
+            Q(this._container).empty();
             
             // Header (if title)
             if (options.title) {
-                const header = Q('<div>', { class: 'modal-header' }).get(0);
+                const header = Q('<div>', { class: 'modal-header' });
                 const title = Q('<h3>', { class: 'modal-title', text: options.title }).get(0);
-                header.appendChild(title);
+                header.append(title);
                 
                 const closeBtn = new ActionButton('modal-close', {
                     label: '\u00D7',
                     className: 'modal-close',
                     onClick: () => this._close(null)
                 });
-                header.appendChild(closeBtn.getElement());
+                header.append(closeBtn.getElement());
                 
-                this._container.appendChild(header);
+                Q(this._container).append(header.get());
             }
             
             // Body
-            const body = Q('<div>', { class: 'modal-body' }).get(0);
+            const body = Q('<div>', { class: 'modal-body' });
             if (options.contentElement) {
-                body.appendChild(options.contentElement);
+                body.append(options.contentElement);
             } else if (options.content) {
-                body.innerHTML = options.content;
+                body.html(options.content);
             }
-            this._container.appendChild(body);
+            Q(this._container).append(body.get());
             
             // Footer with buttons (using ActionButton widgets)
             if (options.buttons && options.buttons.length > 0) {
-                const footer = Q('<div>', { class: 'modal-footer' }).get(0);
+                const footer = Q('<div>', { class: 'modal-footer' });
                 
                 let autoFocusBtn = null;
                 options.buttons.forEach((btnDef, idx) => {
                     const variantClass = btnDef.variant ? `btn-${btnDef.variant}` : 'btn-secondary';
                     const btn = new ActionButton(`modal-btn-${idx}`, {
                         label: btnDef.label,
+                        labelLangKey: btnDef.labelLangKey || null,
                         className: `btn ${variantClass}`,
                         onClick: () => {
                             const result = typeof btnDef.action === 'function' ? btnDef.action() : btnDef.action;
@@ -191,10 +192,10 @@ const Modal = {
                         autoFocusBtn = btn.getElement();
                     }
                     
-                    footer.appendChild(btn.getElement());
+                    footer.append(btn.getElement());
                 });
                 
-                this._container.appendChild(footer);
+                Q(this._container).append(footer.get());
                 
                 if (autoFocusBtn) {
                     setTimeout(() => autoFocusBtn.focus(), 10);
@@ -249,4 +250,4 @@ const Modal = {
 };
 
 // Auto-initialize on load
-document.addEventListener('DOMContentLoaded', () => Modal.init());
+Q(document).on('DOMContentLoaded', () => Modal.init());

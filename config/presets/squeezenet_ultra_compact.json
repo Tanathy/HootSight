@@ -1,13 +1,21 @@
 {
-    "name": "SqueezeNet - Ultra Compact Networks",
-    "description": "Optimized for SqueezeNet architecture which achieves AlexNet-level accuracy with 50x fewer parameters using Fire modules (squeeze and expand layers). SqueezeNet is designed for extreme model compression while maintaining reasonable accuracy. Best for: ultra-low memory devices, microcontrollers, FPGA deployment, model compression research, bandwidth-limited edge devices, embedded systems with <5MB storage, smart sensors, always-on vision applications, battery-powered devices where model size directly impacts power consumption. SqueezeNet 1.1 is 2.4x faster than 1.0 with same accuracy. Ideal when model size is the primary constraint. Not recommended for tasks requiring high accuracy or complex feature hierarchies.",
+    "name": "presets.squeezenet_ultra_compact.name",
+    "description": "presets.squeezenet_ultra_compact.description",
     "task": "classification",
-    "dataset_types": ["folder_classification", "multi_label"],
-    "recommended_models": ["squeezenet"],
+    "dataset_types": [
+        "folder_classification",
+        "multi_label"
+    ],
+    "recommended_models": [
+        "squeezenet"
+    ],
     "configs": {
         "tiny": {
-            "description": "Very small datasets (50-500 images). Heavy regularization essential for this already-compact architecture. Early stopping critical to prevent overfitting.",
-            "range": [50, 500],
+            "description": "presets.squeezenet_ultra_compact.configs.tiny",
+            "range": [
+                50,
+                500
+            ],
             "config": {
                 "training": {
                     "task": "classification",
@@ -17,28 +25,69 @@
                     "input_size": 224,
                     "batch_size": 32,
                     "epochs": 150,
-                    "learning_rate": 0.00005,
+                    "learning_rate": 5e-05,
                     "weight_decay": 0.02,
                     "val_ratio": 0.25,
-                    "normalize": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
-                    "dataloader": {"num_workers": 0, "pin_memory": true, "persistent_workers": false, "prefetch_factor": 2},
-                    "augmentation": {"train": [], "val": []},
+                    "normalize": {
+                        "mean": [
+                            0.485,
+                            0.456,
+                            0.406
+                        ],
+                        "std": [
+                            0.229,
+                            0.224,
+                            0.225
+                        ]
+                    },
+                    "dataloader": {
+                        "num_workers": 0,
+                        "pin_memory": true,
+                        "persistent_workers": false,
+                        "prefetch_factor": 2
+                    },
+                    "augmentation": {
+                        "train": [],
+                        "val": []
+                    },
                     "loss_type": "cross_entropy",
                     "loss_reduction": "mean",
                     "optimizer_type": "adamw",
-                    "optimizer_lr": 0.00005,
+                    "optimizer_lr": 5e-05,
                     "optimizer_weight_decay": 0.02,
                     "scheduler_type": "cosine_annealing_lr",
-                    "scheduler_params": {"cosine_annealing_lr": {"T_max": 150, "eta_min": 1e-7}},
-                    "early_stopping": {"enabled": true, "patience": 25, "min_delta": 0.001, "monitor": "val_loss"},
-                    "gradient": {"clip_norm": 1.0, "clip_value": null, "accumulation_steps": 2},
-                    "runtime": {"mixed_precision": true, "channels_last": true, "allow_tf32": true, "cudnn_benchmark": true}
+                    "scheduler_params": {
+                        "cosine_annealing_lr": {
+                            "T_max": 150,
+                            "eta_min": 1e-07
+                        }
+                    },
+                    "early_stopping": {
+                        "enabled": true,
+                        "patience": 25,
+                        "min_delta": 0.001,
+                        "monitor": "val_loss"
+                    },
+                    "gradient": {
+                        "clip_norm": 1.0,
+                        "clip_value": null,
+                        "accumulation_steps": 2
+                    },
+                    "runtime": {
+                        "mixed_precision": true,
+                        "channels_last": true,
+                        "allow_tf32": true,
+                        "cudnn_benchmark": true
+                    }
                 }
             }
         },
         "small": {
-            "description": "Small datasets (500-2.5k images). Moderate regularization with pretrained Fire modules. SqueezeNet learns efficiently from limited data.",
-            "range": [500, 2500],
+            "description": "presets.squeezenet_ultra_compact.configs.small",
+            "range": [
+                500,
+                2500
+            ],
             "config": {
                 "training": {
                     "task": "classification",
@@ -51,25 +100,66 @@
                     "learning_rate": 0.0001,
                     "weight_decay": 0.01,
                     "val_ratio": 0.2,
-                    "normalize": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
-                    "dataloader": {"num_workers": 0, "pin_memory": true, "persistent_workers": false, "prefetch_factor": 2},
-                    "augmentation": {"train": [], "val": []},
+                    "normalize": {
+                        "mean": [
+                            0.485,
+                            0.456,
+                            0.406
+                        ],
+                        "std": [
+                            0.229,
+                            0.224,
+                            0.225
+                        ]
+                    },
+                    "dataloader": {
+                        "num_workers": 0,
+                        "pin_memory": true,
+                        "persistent_workers": false,
+                        "prefetch_factor": 2
+                    },
+                    "augmentation": {
+                        "train": [],
+                        "val": []
+                    },
                     "loss_type": "cross_entropy",
                     "loss_reduction": "mean",
                     "optimizer_type": "adamw",
                     "optimizer_lr": 0.0001,
                     "optimizer_weight_decay": 0.01,
                     "scheduler_type": "cosine_annealing_lr",
-                    "scheduler_params": {"cosine_annealing_lr": {"T_max": 100, "eta_min": 1e-7}},
-                    "early_stopping": {"enabled": true, "patience": 20, "min_delta": 0.001, "monitor": "val_loss"},
-                    "gradient": {"clip_norm": 1.0, "clip_value": null, "accumulation_steps": 1},
-                    "runtime": {"mixed_precision": true, "channels_last": true, "allow_tf32": true, "cudnn_benchmark": true}
+                    "scheduler_params": {
+                        "cosine_annealing_lr": {
+                            "T_max": 100,
+                            "eta_min": 1e-07
+                        }
+                    },
+                    "early_stopping": {
+                        "enabled": true,
+                        "patience": 20,
+                        "min_delta": 0.001,
+                        "monitor": "val_loss"
+                    },
+                    "gradient": {
+                        "clip_norm": 1.0,
+                        "clip_value": null,
+                        "accumulation_steps": 1
+                    },
+                    "runtime": {
+                        "mixed_precision": true,
+                        "channels_last": true,
+                        "allow_tf32": true,
+                        "cudnn_benchmark": true
+                    }
                 }
             }
         },
         "medium": {
-            "description": "Medium datasets (2.5k-10k images). Standard hyperparameters work well. SqueezeNet's compact size allows larger batch sizes.",
-            "range": [2500, 10000],
+            "description": "presets.squeezenet_ultra_compact.configs.medium",
+            "range": [
+                2500,
+                10000
+            ],
             "config": {
                 "training": {
                     "task": "classification",
@@ -82,25 +172,66 @@
                     "learning_rate": 0.0005,
                     "weight_decay": 0.001,
                     "val_ratio": 0.15,
-                    "normalize": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
-                    "dataloader": {"num_workers": 2, "pin_memory": true, "persistent_workers": true, "prefetch_factor": 2},
-                    "augmentation": {"train": [], "val": []},
+                    "normalize": {
+                        "mean": [
+                            0.485,
+                            0.456,
+                            0.406
+                        ],
+                        "std": [
+                            0.229,
+                            0.224,
+                            0.225
+                        ]
+                    },
+                    "dataloader": {
+                        "num_workers": 2,
+                        "pin_memory": true,
+                        "persistent_workers": true,
+                        "prefetch_factor": 2
+                    },
+                    "augmentation": {
+                        "train": [],
+                        "val": []
+                    },
                     "loss_type": "cross_entropy",
                     "loss_reduction": "mean",
                     "optimizer_type": "adamw",
                     "optimizer_lr": 0.0005,
                     "optimizer_weight_decay": 0.001,
                     "scheduler_type": "cosine_annealing_lr",
-                    "scheduler_params": {"cosine_annealing_lr": {"T_max": 75, "eta_min": 1e-7}},
-                    "early_stopping": {"enabled": true, "patience": 15, "min_delta": 0.001, "monitor": "val_loss"},
-                    "gradient": {"clip_norm": null, "clip_value": null, "accumulation_steps": 1},
-                    "runtime": {"mixed_precision": true, "channels_last": true, "allow_tf32": true, "cudnn_benchmark": true}
+                    "scheduler_params": {
+                        "cosine_annealing_lr": {
+                            "T_max": 75,
+                            "eta_min": 1e-07
+                        }
+                    },
+                    "early_stopping": {
+                        "enabled": true,
+                        "patience": 15,
+                        "min_delta": 0.001,
+                        "monitor": "val_loss"
+                    },
+                    "gradient": {
+                        "clip_norm": null,
+                        "clip_value": null,
+                        "accumulation_steps": 1
+                    },
+                    "runtime": {
+                        "mixed_precision": true,
+                        "channels_last": true,
+                        "allow_tf32": true,
+                        "cudnn_benchmark": true
+                    }
                 }
             }
         },
         "large": {
-            "description": "Large datasets (10k-30k images). Reduced regularization. SqueezeNet 1.0 can be used for slightly more capacity.",
-            "range": [10000, 30000],
+            "description": "presets.squeezenet_ultra_compact.configs.large",
+            "range": [
+                10000,
+                30000
+            ],
             "config": {
                 "training": {
                     "task": "classification",
@@ -113,25 +244,66 @@
                     "learning_rate": 0.001,
                     "weight_decay": 0.0001,
                     "val_ratio": 0.15,
-                    "normalize": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
-                    "dataloader": {"num_workers": 4, "pin_memory": true, "persistent_workers": true, "prefetch_factor": 2},
-                    "augmentation": {"train": [], "val": []},
+                    "normalize": {
+                        "mean": [
+                            0.485,
+                            0.456,
+                            0.406
+                        ],
+                        "std": [
+                            0.229,
+                            0.224,
+                            0.225
+                        ]
+                    },
+                    "dataloader": {
+                        "num_workers": 4,
+                        "pin_memory": true,
+                        "persistent_workers": true,
+                        "prefetch_factor": 2
+                    },
+                    "augmentation": {
+                        "train": [],
+                        "val": []
+                    },
                     "loss_type": "cross_entropy",
                     "loss_reduction": "mean",
                     "optimizer_type": "adamw",
                     "optimizer_lr": 0.001,
                     "optimizer_weight_decay": 0.0001,
                     "scheduler_type": "cosine_annealing_lr",
-                    "scheduler_params": {"cosine_annealing_lr": {"T_max": 50, "eta_min": 1e-7}},
-                    "early_stopping": {"enabled": true, "patience": 12, "min_delta": 0.001, "monitor": "val_loss"},
-                    "gradient": {"clip_norm": null, "clip_value": null, "accumulation_steps": 1},
-                    "runtime": {"mixed_precision": true, "channels_last": true, "allow_tf32": true, "cudnn_benchmark": true}
+                    "scheduler_params": {
+                        "cosine_annealing_lr": {
+                            "T_max": 50,
+                            "eta_min": 1e-07
+                        }
+                    },
+                    "early_stopping": {
+                        "enabled": true,
+                        "patience": 12,
+                        "min_delta": 0.001,
+                        "monitor": "val_loss"
+                    },
+                    "gradient": {
+                        "clip_norm": null,
+                        "clip_value": null,
+                        "accumulation_steps": 1
+                    },
+                    "runtime": {
+                        "mixed_precision": true,
+                        "channels_last": true,
+                        "allow_tf32": true,
+                        "cudnn_benchmark": true
+                    }
                 }
             }
         },
         "huge": {
-            "description": "Huge datasets (30k-50k images). Minimal regularization. SqueezeNet reaches its capacity limits here - consider larger architectures for better accuracy.",
-            "range": [30000, 50000],
+            "description": "presets.squeezenet_ultra_compact.configs.huge",
+            "range": [
+                30000,
+                50000
+            ],
             "config": {
                 "training": {
                     "task": "classification",
@@ -142,27 +314,68 @@
                     "batch_size": 192,
                     "epochs": 40,
                     "learning_rate": 0.002,
-                    "weight_decay": 0.00005,
+                    "weight_decay": 5e-05,
                     "val_ratio": 0.1,
-                    "normalize": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
-                    "dataloader": {"num_workers": 4, "pin_memory": true, "persistent_workers": true, "prefetch_factor": 2},
-                    "augmentation": {"train": [], "val": []},
+                    "normalize": {
+                        "mean": [
+                            0.485,
+                            0.456,
+                            0.406
+                        ],
+                        "std": [
+                            0.229,
+                            0.224,
+                            0.225
+                        ]
+                    },
+                    "dataloader": {
+                        "num_workers": 4,
+                        "pin_memory": true,
+                        "persistent_workers": true,
+                        "prefetch_factor": 2
+                    },
+                    "augmentation": {
+                        "train": [],
+                        "val": []
+                    },
                     "loss_type": "cross_entropy",
                     "loss_reduction": "mean",
                     "optimizer_type": "adamw",
                     "optimizer_lr": 0.002,
-                    "optimizer_weight_decay": 0.00005,
+                    "optimizer_weight_decay": 5e-05,
                     "scheduler_type": "cosine_annealing_lr",
-                    "scheduler_params": {"cosine_annealing_lr": {"T_max": 40, "eta_min": 1e-7}},
-                    "early_stopping": {"enabled": true, "patience": 10, "min_delta": 0.001, "monitor": "val_loss"},
-                    "gradient": {"clip_norm": null, "clip_value": null, "accumulation_steps": 1},
-                    "runtime": {"mixed_precision": true, "channels_last": true, "allow_tf32": true, "cudnn_benchmark": true}
+                    "scheduler_params": {
+                        "cosine_annealing_lr": {
+                            "T_max": 40,
+                            "eta_min": 1e-07
+                        }
+                    },
+                    "early_stopping": {
+                        "enabled": true,
+                        "patience": 10,
+                        "min_delta": 0.001,
+                        "monitor": "val_loss"
+                    },
+                    "gradient": {
+                        "clip_norm": null,
+                        "clip_value": null,
+                        "accumulation_steps": 1
+                    },
+                    "runtime": {
+                        "mixed_precision": true,
+                        "channels_last": true,
+                        "allow_tf32": true,
+                        "cudnn_benchmark": true
+                    }
                 }
             }
         },
         "massive": {
-            "description": "Massive datasets (50k-100k images). SqueezeNet may underfit - this preset pushes the architecture to its limits. Consider EfficientNet for better results.",
-            "range": [50000, 100000],
+            "description": "presets.squeezenet_ultra_compact.configs.massive",
+            "range": [
+                50000,
+                100000
+            ],
             "config": {
                 "training": {
                     "task": "classification",
@@ -173,27 +386,68 @@
                     "batch_size": 256,
                     "epochs": 30,
                     "learning_rate": 0.003,
-                    "weight_decay": 0.00001,
+                    "weight_decay": 1e-05,
                     "val_ratio": 0.1,
-                    "normalize": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
-                    "dataloader": {"num_workers": 4, "pin_memory": true, "persistent_workers": true, "prefetch_factor": 2},
-                    "augmentation": {"train": [], "val": []},
+                    "normalize": {
+                        "mean": [
+                            0.485,
+                            0.456,
+                            0.406
+                        ],
+                        "std": [
+                            0.229,
+                            0.224,
+                            0.225
+                        ]
+                    },
+                    "dataloader": {
+                        "num_workers": 4,
+                        "pin_memory": true,
+                        "persistent_workers": true,
+                        "prefetch_factor": 2
+                    },
+                    "augmentation": {
+                        "train": [],
+                        "val": []
+                    },
                     "loss_type": "cross_entropy",
                     "loss_reduction": "mean",
                     "optimizer_type": "adamw",
                     "optimizer_lr": 0.003,
-                    "optimizer_weight_decay": 0.00001,
+                    "optimizer_weight_decay": 1e-05,
                     "scheduler_type": "cosine_annealing_lr",
-                    "scheduler_params": {"cosine_annealing_lr": {"T_max": 30, "eta_min": 1e-7}},
-                    "early_stopping": {"enabled": true, "patience": 8, "min_delta": 0.001, "monitor": "val_loss"},
-                    "gradient": {"clip_norm": null, "clip_value": null, "accumulation_steps": 1},
-                    "runtime": {"mixed_precision": true, "channels_last": true, "allow_tf32": true, "cudnn_benchmark": true}
+                    "scheduler_params": {
+                        "cosine_annealing_lr": {
+                            "T_max": 30,
+                            "eta_min": 1e-07
+                        }
+                    },
+                    "early_stopping": {
+                        "enabled": true,
+                        "patience": 8,
+                        "min_delta": 0.001,
+                        "monitor": "val_loss"
+                    },
+                    "gradient": {
+                        "clip_norm": null,
+                        "clip_value": null,
+                        "accumulation_steps": 1
+                    },
+                    "runtime": {
+                        "mixed_precision": true,
+                        "channels_last": true,
+                        "allow_tf32": true,
+                        "cudnn_benchmark": true
+                    }
                 }
             }
         },
         "giant": {
-            "description": "Giant datasets (100k+ images). SqueezeNet is NOT recommended for datasets this large - limited capacity will cause underfitting. Use only if model size is absolutely critical.",
-            "range": [100000, null],
+            "description": "presets.squeezenet_ultra_compact.configs.giant",
+            "range": [
+                100000,
+                null
+            ],
             "config": {
                 "training": {
                     "task": "classification",
@@ -204,21 +458,59 @@
                     "batch_size": 384,
                     "epochs": 25,
                     "learning_rate": 0.005,
-                    "weight_decay": 0.000005,
+                    "weight_decay": 5e-06,
                     "val_ratio": 0.05,
-                    "normalize": {"mean": [0.485, 0.456, 0.406], "std": [0.229, 0.224, 0.225]},
-                    "dataloader": {"num_workers": 4, "pin_memory": true, "persistent_workers": true, "prefetch_factor": 2},
-                    "augmentation": {"train": [], "val": []},
+                    "normalize": {
+                        "mean": [
+                            0.485,
+                            0.456,
+                            0.406
+                        ],
+                        "std": [
+                            0.229,
+                            0.224,
+                            0.225
+                        ]
+                    },
+                    "dataloader": {
+                        "num_workers": 4,
+                        "pin_memory": true,
+                        "persistent_workers": true,
+                        "prefetch_factor": 2
+                    },
+                    "augmentation": {
+                        "train": [],
+                        "val": []
+                    },
                     "loss_type": "cross_entropy",
                     "loss_reduction": "mean",
                     "optimizer_type": "adamw",
                     "optimizer_lr": 0.005,
-                    "optimizer_weight_decay": 0.000005,
+                    "optimizer_weight_decay": 5e-06,
                     "scheduler_type": "cosine_annealing_lr",
-                    "scheduler_params": {"cosine_annealing_lr": {"T_max": 25, "eta_min": 1e-7}},
-                    "early_stopping": {"enabled": true, "patience": 5, "min_delta": 0.001, "monitor": "val_loss"},
-                    "gradient": {"clip_norm": null, "clip_value": null, "accumulation_steps": 1},
-                    "runtime": {"mixed_precision": true, "channels_last": true, "allow_tf32": true, "cudnn_benchmark": true}
+                    "scheduler_params": {
+                        "cosine_annealing_lr": {
+                            "T_max": 25,
+                            "eta_min": 1e-07
+                        }
+                    },
+                    "early_stopping": {
+                        "enabled": true,
+                        "patience": 5,
+                        "min_delta": 0.001,
+                        "monitor": "val_loss"
+                    },
+                    "gradient": {
+                        "clip_norm": null,
+                        "clip_value": null,
+                        "accumulation_steps": 1
+                    },
+                    "runtime": {
+                        "mixed_precision": true,
+                        "channels_last": true,
+                        "allow_tf32": true,
+                        "cudnn_benchmark": true
+                    }
                 }
             }
         }

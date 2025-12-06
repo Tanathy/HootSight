@@ -96,7 +96,6 @@
     width: 100%;
     border-collapse: collapse;
     font-size: var(--font-normal);
-    table-layout: fixed;
 }
 
 /* Header */
@@ -128,26 +127,14 @@
     background: var(--bg-hover);
 }
 
-/* Column widths - optimized for compact view */
-.updates-table .col-select {
-    width: 28px;
-    text-align: center;
-    padding-left: var(--spacing-xs);
-    padding-right: var(--spacing-xs);
-}
-
+/* Column widths - 2 columns only: file + status */
 .updates-table .col-file {
     width: auto;
 }
 
 .updates-table .col-status {
-    width: 80px;
+    width: 100px;
     text-align: center;
-}
-
-.updates-table .col-hash {
-    width: 140px;
-    text-align: left;
 }
 
 /* File path - compact monospace */
@@ -174,11 +161,12 @@
     display: inline-block;
     padding: 2px 8px;
     border-radius: 3px;
-    font-size: var(--font-normal);
+    font-size: var(--font-small);
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.3px;
     border: 1px solid;
+    white-space: nowrap;
 }
 
 .status-badge.status-missing {
@@ -199,62 +187,19 @@
     border-color: var(--accent-success);
 }
 
-/* ============================================================================
-   Orphaned Files - Compact Grid
-   ============================================================================ */
-
-.updates-orphaned {
-    margin-top: var(--spacing-lg);
-    padding-top: var(--spacing-md);
-    border-top: 1px solid var(--border-color);
-}
-
-.updates-orphaned h3 {
-    font-size: var(--font-normal);
-    font-weight: 600;
+.status-badge.status-orphaned {
+    background: transparent;
     color: var(--text-secondary);
-    margin-bottom: var(--spacing-sm);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    border-color: var(--border-color);
 }
 
-.updates-orphaned ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: var(--spacing-xs);
+/* Orphaned row styling */
+.updates-table .orphaned-row {
+    opacity: 0.7;
 }
 
-.updates-orphaned li {
-    padding: var(--spacing-xs) var(--spacing-sm);
-    font-family: 'Consolas', 'Monaco', monospace;
-    font-size: var(--font-normal);
-    color: var(--text-secondary);
-    background: var(--bg-tertiary);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.updates-orphaned li::before {
-    content: "\2022 ";
-    color: var(--text-secondary);
-    margin-right: 4px;
-}
-
-/* ============================================================================
-   Checkbox Styling
-   ============================================================================ */
-
-.updates-table input[type="checkbox"] {
-    width: 14px;
-    height: 14px;
-    cursor: pointer;
-    accent-color: var(--accent-primary);
-    margin: 0;
+.updates-table .orphaned-row:hover {
+    opacity: 1;
 }
 
 /* ============================================================================
@@ -264,6 +209,7 @@
 .updates-table-wrapper {
     max-height: 60vh;
     overflow-y: auto;
+    overflow-x: hidden;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
 }

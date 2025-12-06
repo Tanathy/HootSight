@@ -286,30 +286,31 @@ const Config = {
      * @param {string|null} projectName
      */
     _updateHeaderProjectInfo: function(projectName) {
-        const headerInfo = document.querySelector('.header-info');
+        const headerInfo = Q('.header-info').get(0);
         if (!headerInfo) return;
 
         // Remove existing project info
-        const existingInfo = headerInfo.querySelector('.header-project-info');
+        const existingInfo = Q(headerInfo).find('.header-project-info').get(0);
         if (existingInfo) {
             existingInfo.remove();
         }
 
         // Add new project info if we have a project
         if (projectName) {
-            const projectInfo = document.createElement('div');
-            projectInfo.className = 'header-project-info';
+            const projectInfo = Q('<div>', { class: 'header-project-info' }).get(0);
             
-            const label = document.createElement('span');
-            label.className = 'project-label';
-            label.textContent = typeof lang === 'function' ? lang('common.project_label') : 'Project:';
+            const label = Q('<span>', {
+                class: 'project-label',
+                text: typeof lang === 'function' ? lang('common.project_label') : 'Project:'
+            }).get(0);
             
-            const name = document.createElement('span');
-            name.className = 'project-name';
-            name.textContent = projectName;
+            const name = Q('<span>', {
+                class: 'project-name',
+                text: projectName
+            }).get(0);
             
-            projectInfo.appendChild(label);
-            projectInfo.appendChild(name);
+            Q(projectInfo).append(label);
+            Q(projectInfo).append(name);
             
             // Insert at beginning of header-info
             headerInfo.insertBefore(projectInfo, headerInfo.firstChild);

@@ -1,6 +1,6 @@
 {
-    "name": "ResNeXt Family - Aggregated Residual Networks",
-    "description": "Optimized for ResNeXt architecture (ResNeXt50/101 with 32x4d, 32x8d, 64x4d cardinalities) which extends ResNet with split-transform-merge paradigm using grouped convolutions. ResNeXt introduces 'cardinality' as a new scaling dimension beyond depth and width. Best for: complex multi-class classification, fine-grained visual recognition, multi-attribute detection, fashion/clothing classification, vehicle make/model recognition, food recognition, artwork style classification, texture analysis, material classification, detailed product categorization. Achieves 1-2% higher accuracy than equivalent ResNets with similar compute. The 32x4d variant offers best accuracy/speed ratio, 32x8d and 64x4d for maximum accuracy. Ideal when ResNet accuracy plateaus and you need that extra performance boost without architectural changes.",
+    "name": "presets.resnext_aggregated_networks.name",
+    "description": "presets.resnext_aggregated_networks.description",
     "task": "classification",
     "dataset_types": [
         "folder_classification",
@@ -11,7 +11,7 @@
     ],
     "configs": {
         "tiny": {
-            "description": "Very small datasets (50-500 images). Heavy regularization, aggressive augmentation, smaller models. High risk of overfitting - early stopping essential.",
+            "description": "presets.configs.tiny",
             "range": [
                 50,
                 500
@@ -83,7 +83,7 @@
             }
         },
         "small": {
-            "description": "Small datasets (500-2.5k images). Moderate regularization with pretrained weights. Balance between learning capacity and overfitting prevention.",
+            "description": "presets.configs.small",
             "range": [
                 500,
                 2500
@@ -155,7 +155,7 @@
             }
         },
         "medium": {
-            "description": "Medium datasets (2.5k-10k images). Standard hyperparameters with good augmentation. Balanced training approach works well.",
+            "description": "presets.configs.medium",
             "range": [
                 2500,
                 10000
@@ -227,7 +227,7 @@
             }
         },
         "large": {
-            "description": "Large datasets (10k-30k images). Reduced regularization, larger models viable. Higher learning rates and bigger batches effective.",
+            "description": "presets.configs.large",
             "range": [
                 10000,
                 30000
@@ -299,7 +299,7 @@
             }
         },
         "huge": {
-            "description": "Huge datasets (30k-50k images). Minimal regularization needed. Deep networks train effectively with standard augmentation.",
+            "description": "presets.configs.huge",
             "range": [
                 30000,
                 50000
@@ -371,7 +371,7 @@
             }
         },
         "massive": {
-            "description": "Massive datasets (50k-100k images). Very deep networks fully supported. Fast learning rates, large batches, minimal regularization.",
+            "description": "presets.configs.massive",
             "range": [
                 50000,
                 100000
@@ -443,7 +443,7 @@
             }
         },
         "giant": {
-            "description": "Giant datasets (100k+ images). Maximum model capacity utilized. Can train from scratch or fine-tune with aggressive settings.",
+            "description": "presets.configs.giant",
             "range": [
                 100000,
                 null

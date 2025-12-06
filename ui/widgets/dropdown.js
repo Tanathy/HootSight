@@ -66,7 +66,7 @@ class Dropdown {
             if (this.options.labelLangKey) {
                 this.labelEl.setAttribute('data-lang-key', this.options.labelLangKey);
             }
-            this.element.appendChild(this.labelEl);
+            Q(this.element).append(this.labelEl);
         }
         
         // Dropdown container
@@ -89,10 +89,8 @@ class Dropdown {
         this.hiddenInput.value = this._value || '';
         
         // Assemble
-        this.dropdownContainer.appendChild(this.selectedDisplay);
-        this.dropdownContainer.appendChild(this.optionsContainer);
-        this.element.appendChild(this.dropdownContainer);
-        this.element.appendChild(this.hiddenInput);
+        Q(this.dropdownContainer).append(this.selectedDisplay).append(this.optionsContainer);
+        Q(this.element).append(this.dropdownContainer).append(this.hiddenInput);
         
         // Description (static)
         if (this.options.description) {
@@ -101,13 +99,13 @@ class Dropdown {
             if (this.options.descriptionLangKey) {
                 this.descEl.setAttribute('data-lang-key', this.options.descriptionLangKey);
             }
-            this.element.appendChild(this.descEl);
+            Q(this.element).append(this.descEl);
         }
         
         // Dynamic description from enum_descriptor (changes based on selected value)
         if (this.options.enumDescriptor) {
             this.dynamicDescEl = Q('<div>', { class: 'widget-dynamic-description' }).get(0);
-            this.element.appendChild(this.dynamicDescEl);
+            Q(this.element).append(this.dynamicDescEl);
             this._updateDynamicDescription();
         }
         
@@ -121,7 +119,7 @@ class Dropdown {
     }
     
     _buildOptions() {
-        this.optionsContainer.innerHTML = '';
+        Q(this.optionsContainer).empty();
         
         this.options.options.forEach(value => {
             const label = this.options.optionLabels[value] || value;
@@ -137,26 +135,25 @@ class Dropdown {
                 this._selectOption(value);
             });
             
-            this.optionsContainer.appendChild(optionEl);
+            Q(this.optionsContainer).append(optionEl);
         });
     }
     
     _updateSelectedDisplay() {
         const label = this.options.optionLabels[this._value] || this._value || 'Select...';
-        // Keep arrow, update text
-        const textNode = document.createTextNode(label);
         
         // Clear and rebuild
-        while (this.selectedDisplay.firstChild) {
-            this.selectedDisplay.removeChild(this.selectedDisplay.firstChild);
-        }
-        this.selectedDisplay.appendChild(textNode);
+        Q(this.selectedDisplay).empty();
+        
+        // Add text
+        const textSpan = Q('<span>', { text: label }).get(0);
+        Q(this.selectedDisplay).append(textSpan);
         
         // Re-add arrow
         if (!this.arrow) {
             this.arrow = Q('<span>', { class: 'dropdown-arrow', text: '\u25BC' }).get(0);
         }
-        this.selectedDisplay.appendChild(this.arrow);
+        Q(this.selectedDisplay).append(this.arrow);
     }
     
     _updateDynamicDescription() {
@@ -166,11 +163,11 @@ class Dropdown {
         if (descKey) {
             // Use lang() for localization, fallback to key if lang not available
             const text = typeof lang === 'function' ? lang(descKey) : descKey;
-            this.dynamicDescEl.textContent = text;
+            Q(this.dynamicDescEl).text(text);
             this.dynamicDescEl.style.display = '';
         } else {
             // No description for this value, hide the element
-            this.dynamicDescEl.textContent = '';
+            Q(this.dynamicDescEl).text('');
             this.dynamicDescEl.style.display = 'none';
         }
     }
@@ -250,7 +247,7 @@ class Dropdown {
     _portalOptions() {
         // Move options container to body for proper positioning above overflow containers
         if (!this._isPortaled) {
-            document.body.appendChild(this.optionsContainer);
+            Q(document.body).append(this.optionsContainer);
             this._isPortaled = true;
             
             // Add portal-specific styles
@@ -263,8 +260,8 @@ class Dropdown {
         
         // Update position on scroll/resize
         this._scrollHandler = () => this._positionPortaledOptions();
-        window.addEventListener('scroll', this._scrollHandler, true);
-        window.addEventListener('resize', this._scrollHandler);
+        Q(window).on('scroll', this._scrollHandler, true);
+        Q(window).on('resize', this._scrollHandler);
     }
     
     _positionPortaledOptions() {
@@ -301,7 +298,7 @@ class Dropdown {
         if (this._isPortaled) {
             // Hide and move back to container
             this.optionsContainer.style.display = 'none';
-            this.dropdownContainer.appendChild(this.optionsContainer);
+            Q(this.dropdownContainer).append(this.optionsContainer);
             this._isPortaled = false;
             
             // Reset styles
@@ -388,9 +385,9 @@ class Dropdown {
         this.options.optionLabels[value] = label;
         
         // Update option element in list
-        const optionEl = this.optionsContainer.querySelector(`[data-value="${value}"]`);
+        const optionEl = Q(this.optionsContainer).find(`[data-value="${value}"]`).get(0);
         if (optionEl) {
-            optionEl.textContent = label;
+            Q(optionEl).text(label);
         }
         
         // Update selected display if this is the current value

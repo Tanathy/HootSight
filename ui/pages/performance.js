@@ -61,7 +61,7 @@ const PerformancePage = {
      * @param {HTMLElement} container - Container element
      */
     build: async function(container) {
-        container.innerHTML = '';
+        Q(container).empty();
         this._container = container;
         
         // Cleanup previous subscriptions
@@ -74,10 +74,10 @@ const PerformancePage = {
         const trainingTab = this._buildTrainingTab();
         const systemTab = this._buildSystemTab();
 
-        this._tabs.addTab('training', lang('performance_page.tabs.training'), trainingTab);
-        this._tabs.addTab('system', lang('performance_page.tabs.system'), systemTab);
+        this._tabs.addTab('training', lang('performance_page.tabs.training'), trainingTab, { langKey: 'performance_page.tabs.training' });
+        this._tabs.addTab('system', lang('performance_page.tabs.system'), systemTab, { langKey: 'performance_page.tabs.system' });
 
-        container.appendChild(this._tabs.getElement());
+        Q(container).append(this._tabs.getElement());
 
         // Handle tab changes
         this._tabs.onChange((tabId) => {
@@ -102,45 +102,50 @@ const PerformancePage = {
      * Build Training Performance tab content
      */
     _buildTrainingTab: function() {
-        const content = document.createElement('div');
-        content.className = 'performance-training-tab';
-        content.id = 'training-tab-content';
+        const content = Q('<div>', { 
+            class: 'performance-training-tab',
+            id: 'training-tab-content'
+        }).get(0);
 
         // Header
-        const header = document.createElement('div');
-        header.className = 'performance-header';
+        const header = Q('<div>', { class: 'performance-header' }).get(0);
         
-        const titleContainer = document.createElement('div');
-        titleContainer.className = 'performance-title-container';
+        const titleContainer = Q('<div>', { class: 'performance-title-container' }).get(0);
         
-        const title = document.createElement('h3');
-        title.className = 'performance-section-title';
-        title.textContent = lang('performance_page.training.title');
-        titleContainer.appendChild(title);
+        const title = Q('<h3>', { 
+            class: 'performance-section-title',
+            text: lang('performance_page.training.title')
+        }).get(0);
+        title.setAttribute('data-lang-key', 'performance_page.training.title');
+        Q(titleContainer).append(title);
         
         // Training info subtitle
-        const trainingInfo = document.createElement('div');
-        trainingInfo.className = 'performance-hw-info';
-        trainingInfo.id = 'training-info';
-        trainingInfo.textContent = '';
-        titleContainer.appendChild(trainingInfo);
+        const trainingInfo = Q('<div>', { 
+            class: 'performance-hw-info',
+            id: 'training-info',
+            text: ''
+        }).get(0);
+        Q(titleContainer).append(trainingInfo);
         
-        header.appendChild(titleContainer);
+        Q(header).append(titleContainer);
 
         // Status indicator
-        const status = document.createElement('span');
-        status.className = 'performance-status';
-        status.id = 'training-status';
-        status.textContent = lang('performance_page.training.no_active');
-        header.appendChild(status);
+        const status = Q('<span>', { 
+            class: 'performance-status',
+            id: 'training-status',
+            text: lang('performance_page.training.no_active')
+        }).get(0);
+        status.setAttribute('data-lang-key', 'performance_page.training.no_active');
+        Q(header).append(status);
 
-        content.appendChild(header);
+        Q(content).append(header);
 
         // Graphs container
-        const graphsContainer = document.createElement('div');
-        graphsContainer.className = 'performance-graphs';
-        graphsContainer.id = 'training-graphs';
-        content.appendChild(graphsContainer);
+        const graphsContainer = Q('<div>', { 
+            class: 'performance-graphs',
+            id: 'training-graphs'
+        }).get(0);
+        Q(content).append(graphsContainer);
 
         return content;
     },
@@ -149,10 +154,10 @@ const PerformancePage = {
      * Initialize Training tab
      */
     _initTrainingTab: async function() {
-        const container = document.getElementById('training-graphs');
+        const container = Q('#training-graphs').get(0);
         if (!container) return;
 
-        container.innerHTML = '';
+        Q(container).empty();
         this._trainingGraphs = {
             trainStepLoss: null,
             valStepLoss: null,
@@ -174,18 +179,16 @@ const PerformancePage = {
 
         if (!hasData && !isRunning) {
             // Show placeholder
-            const placeholder = document.createElement('div');
-            placeholder.className = 'performance-placeholder';
+            const placeholder = Q('<div>', { class: 'performance-placeholder' }).get(0);
             
-            const title = document.createElement('h3');
-            title.textContent = lang('performance_page.training.no_data');
+            const title = Q('<h3>', { text: lang('performance_page.training.no_data') }).get(0);
+            title.setAttribute('data-lang-key', 'performance_page.training.no_data');
             
-            const desc = document.createElement('p');
-            desc.textContent = lang('performance_page.training.description');
+            const desc = Q('<p>', { text: lang('performance_page.training.description') }).get(0);
+            desc.setAttribute('data-lang-key', 'performance_page.training.description');
             
-            placeholder.appendChild(title);
-            placeholder.appendChild(desc);
-            container.appendChild(placeholder);
+            Q(placeholder).append(title).append(desc);
+            Q(container).append(placeholder);
             return;
         }
 
@@ -226,7 +229,7 @@ const PerformancePage = {
         });
         
         const trainStepLossCard = this._createGraphCard(this._trainingGraphs.trainStepLoss, 'train-step-loss-info');
-        container.appendChild(trainStepLossCard.card);
+        Q(container).append(trainStepLossCard.card);
 
         // Validation Step Loss graph - separate from training
         this._trainingGraphs.valStepLoss = new Graph('val-step-loss', {
@@ -248,7 +251,7 @@ const PerformancePage = {
         });
         
         const valStepLossCard = this._createGraphCard(this._trainingGraphs.valStepLoss, 'val-step-loss-info');
-        container.appendChild(valStepLossCard.card);
+        Q(container).append(valStepLossCard.card);
 
         // Step Accuracy graph - mirrors TensorBoard scalars
         this._trainingGraphs.stepAccuracy = new Graph('step-accuracy', {
@@ -272,7 +275,7 @@ const PerformancePage = {
         });
 
         const stepAccuracyCard = this._createGraphCard(this._trainingGraphs.stepAccuracy, 'step-accuracy-info');
-        container.appendChild(stepAccuracyCard.card);
+        Q(container).append(stepAccuracyCard.card);
 
         // Learning Rate graph - one point per epoch (TensorBoard standard)
         this._trainingGraphs.learningRate = new Graph('learning-rate', {
@@ -296,7 +299,7 @@ const PerformancePage = {
         });
         
         const lrCard = this._createGraphCard(this._trainingGraphs.learningRate, 'lr-info');
-        container.appendChild(lrCard.card);
+        Q(container).append(lrCard.card);
 
         // Epoch Loss graph - keep more points (one per epoch)
         this._trainingGraphs.epochLoss = new Graph('epoch-loss', {
@@ -323,7 +326,7 @@ const PerformancePage = {
         });
         
         const epochLossCard = this._createGraphCard(this._trainingGraphs.epochLoss, 'epoch-loss-info');
-        container.appendChild(epochLossCard.card);
+        Q(container).append(epochLossCard.card);
 
         // Epoch Accuracy graph
         this._trainingGraphs.epochAccuracy = new Graph('epoch-accuracy', {
@@ -350,7 +353,7 @@ const PerformancePage = {
         });
         
         const epochAccCard = this._createGraphCard(this._trainingGraphs.epochAccuracy, 'epoch-accuracy-info');
-        container.appendChild(epochAccCard.card);
+        Q(container).append(epochAccCard.card);
 
         // Update info panels
         this._updateTrainingInfoPanels(TrainingMonitor.getLatestMetrics(), state);
@@ -360,10 +363,10 @@ const PerformancePage = {
      * Update training header info
      */
     _updateTrainingInfo: function(state) {
-        const infoEl = document.getElementById('training-info');
-        const statusEl = document.getElementById('training-status');
+        const infoEl = Q('#training-info');
+        const statusEl = Q('#training-status');
         
-        if (infoEl && state.project) {
+        if (infoEl.get(0) && state.project) {
             const parts = [];
             parts.push(state.project);
             if (state.modelType && state.modelName) {
@@ -372,22 +375,22 @@ const PerformancePage = {
             if (state.totalEpochs) {
                 parts.push(`Epoch ${state.currentEpoch}/${state.totalEpochs}`);
             }
-            infoEl.textContent = parts.join(' | ');
+            infoEl.text(parts.join(' | '));
         }
         
-        if (statusEl) {
+        if (statusEl.get(0)) {
             if (state.status === 'running') {
-                statusEl.textContent = lang('performance_page.training.running');
-                statusEl.classList.add('active');
+                statusEl.text(lang('performance_page.training.running'));
+                statusEl.addClass('active');
             } else if (state.status === 'completed') {
-                statusEl.textContent = lang('performance_page.training.completed');
-                statusEl.classList.remove('active');
+                statusEl.text(lang('performance_page.training.completed'));
+                statusEl.removeClass('active');
             } else if (state.status === 'stopped') {
-                statusEl.textContent = lang('performance_page.training.stopped');
-                statusEl.classList.remove('active');
+                statusEl.text(lang('performance_page.training.stopped'));
+                statusEl.removeClass('active');
             } else {
-                statusEl.textContent = lang('performance_page.training.no_active');
-                statusEl.classList.remove('active');
+                statusEl.text(lang('performance_page.training.no_active'));
+                statusEl.removeClass('active');
             }
         }
     },
@@ -397,15 +400,15 @@ const PerformancePage = {
      */
     _updateTrainingInfoPanels: function(metrics, state) {
         // Train Step Loss info
-        const trainStepLossInfo = document.getElementById('train-step-loss-info');
-        if (trainStepLossInfo && metrics) {
+        const trainStepLossInfo = Q('#train-step-loss-info');
+        if (trainStepLossInfo.get(0) && metrics) {
             const trainLossText = this._formatValue(metrics.trainStepLoss, '', v => Format.loss(v));
             let stepText = 'N/A';
             if (state.currentStep && state.totalSteps && state.phase !== 'val') {
                 stepText = `${state.currentStep}/${state.totalSteps}`;
             }
             
-            trainStepLossInfo.innerHTML = `
+            trainStepLossInfo.html(`
                 <div class="info-row">
                     <span class="info-label">${lang('performance_page.training.current')}:</span>
                     <span class="info-value">${trainLossText}</span>
@@ -414,19 +417,19 @@ const PerformancePage = {
                     <span class="info-label">${lang('performance_page.training.step')}:</span>
                     <span class="info-value">${stepText}</span>
                 </div>
-            `;
+            `);
         }
 
         // Validation Step Loss info
-        const valStepLossInfo = document.getElementById('val-step-loss-info');
-        if (valStepLossInfo && metrics) {
+        const valStepLossInfo = Q('#val-step-loss-info');
+        if (valStepLossInfo.get(0) && metrics) {
             const valLossText = this._formatValue(metrics.valStepLoss, '', v => Format.loss(v));
             let stepText = 'N/A';
             if (state.currentStep && state.totalSteps && state.phase === 'val') {
                 stepText = `${state.currentStep}/${state.totalSteps}`;
             }
             
-            valStepLossInfo.innerHTML = `
+            valStepLossInfo.html(`
                 <div class="info-row">
                     <span class="info-label">${lang('performance_page.training.current')}:</span>
                     <span class="info-value">${valLossText}</span>
@@ -435,16 +438,16 @@ const PerformancePage = {
                     <span class="info-label">${lang('performance_page.training.step')}:</span>
                     <span class="info-value">${stepText}</span>
                 </div>
-            `;
+            `);
         }
 
         // Step Accuracy info
-        const stepAccuracyInfo = document.getElementById('step-accuracy-info');
-        if (stepAccuracyInfo && metrics) {
+        const stepAccuracyInfo = Q('#step-accuracy-info');
+        if (stepAccuracyInfo.get(0) && metrics) {
             const trainAccText = this._formatValue(metrics.trainStepAccuracy, '%', v => v.toFixed(2));
             const valAccText = this._formatValue(metrics.valStepAccuracy, '%', v => v.toFixed(2));
 
-            stepAccuracyInfo.innerHTML = `
+            stepAccuracyInfo.html(`
                 <div class="info-row">
                     <span class="info-label">${lang('performance_page.training.train_step_accuracy')}:</span>
                     <span class="info-value">${trainAccText}</span>
@@ -453,29 +456,29 @@ const PerformancePage = {
                     <span class="info-label">${lang('performance_page.training.val_step_accuracy')}:</span>
                     <span class="info-value">${valAccText}</span>
                 </div>
-            `;
+            `);
         }
 
         // LR info
-        const lrInfo = document.getElementById('lr-info');
-        if (lrInfo && metrics) {
+        const lrInfo = Q('#lr-info');
+        if (lrInfo.get(0) && metrics) {
             const lrText = this._formatValue(metrics.learningRate, '', v => v.toExponential(2));
             
-            lrInfo.innerHTML = `
+            lrInfo.html(`
                 <div class="info-row">
                     <span class="info-label">${lang('performance_page.training.current_lr')}:</span>
                     <span class="info-value">${lrText}</span>
                 </div>
-            `;
+            `);
         }
 
         // Epoch Loss info
-        const epochLossInfo = document.getElementById('epoch-loss-info');
-        if (epochLossInfo && metrics) {
+        const epochLossInfo = Q('#epoch-loss-info');
+        if (epochLossInfo.get(0) && metrics) {
             const trainLoss = this._formatValue(metrics.epochLoss, '', v => Format.loss(v));
             const valLoss = this._formatValue(metrics.valLoss, '', v => Format.loss(v));
             
-            epochLossInfo.innerHTML = `
+            epochLossInfo.html(`
                 <div class="info-row">
                     <span class="info-label">${lang('performance_page.training.train_loss')}:</span>
                     <span class="info-value">${trainLoss}</span>
@@ -484,16 +487,16 @@ const PerformancePage = {
                     <span class="info-label">${lang('performance_page.training.val_loss')}:</span>
                     <span class="info-value">${valLoss}</span>
                 </div>
-            `;
+            `);
         }
 
         // Epoch Accuracy info
-        const epochAccInfo = document.getElementById('epoch-accuracy-info');
-        if (epochAccInfo && metrics) {
+        const epochAccInfo = Q('#epoch-accuracy-info');
+        if (epochAccInfo.get(0) && metrics) {
             const trainAcc = this._formatValue(metrics.epochAccuracy, '%', v => Format.percent(v, 2));
             const valAcc = this._formatValue(metrics.valAccuracy, '%', v => Format.percent(v, 2));
             
-            epochAccInfo.innerHTML = `
+            epochAccInfo.html(`
                 <div class="info-row">
                     <span class="info-label">${lang('performance_page.training.train_accuracy')}:</span>
                     <span class="info-value">${trainAcc}</span>
@@ -502,7 +505,7 @@ const PerformancePage = {
                     <span class="info-label">${lang('performance_page.training.val_accuracy')}:</span>
                     <span class="info-value">${valAcc}</span>
                 </div>
-            `;
+            `);
         }
     },
 
@@ -571,49 +574,51 @@ const PerformancePage = {
      * Build System Usage tab content
      */
     _buildSystemTab: function() {
-        const content = document.createElement('div');
-        content.className = 'performance-system-tab';
+        const content = Q('<div>', { class: 'performance-system-tab' }).get(0);
 
         // Header
-        const header = document.createElement('div');
-        header.className = 'performance-header';
+        const header = Q('<div>', { class: 'performance-header' }).get(0);
         
-        const titleContainer = document.createElement('div');
-        titleContainer.className = 'performance-title-container';
+        const titleContainer = Q('<div>', { class: 'performance-title-container' }).get(0);
         
-        const title = document.createElement('h3');
-        title.className = 'performance-section-title';
-        title.textContent = lang('performance_page.system.title');
-        titleContainer.appendChild(title);
+        const title = Q('<h3>', { 
+            class: 'performance-section-title',
+            text: lang('performance_page.system.title')
+        }).get(0);
+        title.setAttribute('data-lang-key', 'performance_page.system.title');
+        Q(titleContainer).append(title);
         
         // Hardware info subtitle
-        const hwInfo = document.createElement('div');
-        hwInfo.className = 'performance-hw-info';
-        hwInfo.id = 'performance-hw-info';
-        hwInfo.textContent = '';
-        titleContainer.appendChild(hwInfo);
+        const hwInfo = Q('<div>', { 
+            class: 'performance-hw-info',
+            id: 'performance-hw-info',
+            text: ''
+        }).get(0);
+        Q(titleContainer).append(hwInfo);
         
-        header.appendChild(titleContainer);
+        Q(header).append(titleContainer);
 
         // Status indicator
-        const status = document.createElement('span');
-        status.className = 'performance-status';
-        status.id = 'performance-status';
-        status.textContent = SystemMonitor.isRunning() 
-            ? lang('performance_page.system.monitoring_active')
-            : lang('performance_page.system.monitoring_paused');
+        const status = Q('<span>', { 
+            class: 'performance-status',
+            id: 'performance-status',
+            text: SystemMonitor.isRunning() 
+                ? lang('performance_page.system.monitoring_active')
+                : lang('performance_page.system.monitoring_paused')
+        }).get(0);
         if (SystemMonitor.isRunning()) {
-            status.classList.add('active');
+            Q(status).addClass('active');
         }
-        header.appendChild(status);
+        Q(header).append(status);
 
-        content.appendChild(header);
+        Q(content).append(header);
 
         // Graphs container
-        const graphsContainer = document.createElement('div');
-        graphsContainer.className = 'performance-graphs';
-        graphsContainer.id = 'performance-graphs';
-        content.appendChild(graphsContainer);
+        const graphsContainer = Q('<div>', { 
+            class: 'performance-graphs',
+            id: 'performance-graphs'
+        }).get(0);
+        Q(content).append(graphsContainer);
 
         return content;
     },
@@ -636,10 +641,10 @@ const PerformancePage = {
         }
 
         // Update status indicator
-        const status = document.getElementById('performance-status');
-        if (status) {
-            status.textContent = lang('performance_page.system.monitoring_active');
-            status.classList.add('active');
+        const status = Q('#performance-status');
+        if (status.get(0)) {
+            status.text(lang('performance_page.system.monitoring_active'));
+            status.addClass('active');
         }
     },
 
@@ -647,17 +652,17 @@ const PerformancePage = {
      * Create a graph card with info panel below
      */
     _createGraphCard: function(graphInstance, infoId) {
-        const card = document.createElement('div');
-        card.className = 'performance-graph-card';
+        const card = Q('<div>', { class: 'performance-graph-card' }).get(0);
         
         // Graph
-        card.appendChild(graphInstance.getElement());
+        Q(card).append(graphInstance.getElement());
         
         // Info panel
-        const infoPanel = document.createElement('div');
-        infoPanel.className = 'performance-info-panel';
-        infoPanel.id = infoId;
-        card.appendChild(infoPanel);
+        const infoPanel = Q('<div>', { 
+            class: 'performance-info-panel',
+            id: infoId
+        }).get(0);
+        Q(card).append(infoPanel);
         
         return { card, infoPanel };
     },
@@ -687,10 +692,10 @@ const PerformancePage = {
      * Initialize system monitoring graphs
      */
     _initSystemGraphs: async function() {
-        const container = document.getElementById('performance-graphs');
+        const container = Q('#performance-graphs').get(0);
         if (!container) return;
 
-        container.innerHTML = '';
+        Q(container).empty();
         this._systemGraphs = { cpu: null, memory: null, gpus: [] };
         this._infoPanels = { cpu: null, memory: null, gpus: [] };
 
@@ -719,7 +724,7 @@ const PerformancePage = {
         
         const cpuCard = this._createGraphCard(this._systemGraphs.cpu, 'cpu-info');
         this._infoPanels.cpu = cpuCard.infoPanel;
-        container.appendChild(cpuCard.card);
+        Q(container).append(cpuCard.card);
 
         // System Memory graph
         this._systemGraphs.memory = new Graph('system-memory', {
@@ -743,7 +748,7 @@ const PerformancePage = {
         
         const memCard = this._createGraphCard(this._systemGraphs.memory, 'memory-info');
         this._infoPanels.memory = memCard.infoPanel;
-        container.appendChild(memCard.card);
+        Q(container).append(memCard.card);
 
         // Get initial stats or use latest
         let stats = SystemMonitor.getLatestStats();
@@ -785,7 +790,7 @@ const PerformancePage = {
                     }
                     
                     const gpuUsageCard = this._createGraphCard(gpuUsageGraph, `gpu-${index}-usage-info`);
-                    container.appendChild(gpuUsageCard.card);
+                    Q(container).append(gpuUsageCard.card);
 
                     // GPU Memory graph
                     const gpuMemGraph = new Graph(`gpu-${index}-memory`, {
@@ -810,7 +815,7 @@ const PerformancePage = {
                     }
                     
                     const gpuMemCard = this._createGraphCard(gpuMemGraph, `gpu-${index}-memory-info`);
-                    container.appendChild(gpuMemCard.card);
+                    Q(container).append(gpuMemCard.card);
 
                     this._systemGraphs.gpus.push({ usage: gpuUsageGraph, memory: gpuMemGraph });
                     this._infoPanels.gpus.push({ 
@@ -829,8 +834,8 @@ const PerformancePage = {
      * Update hardware info header
      */
     _updateHwInfo: function(stats) {
-        const hwInfoEl = document.getElementById('performance-hw-info');
-        if (!hwInfoEl) return;
+        const hwInfoEl = Q('#performance-hw-info');
+        if (!hwInfoEl.get(0)) return;
         
         const parts = [];
         
@@ -849,7 +854,7 @@ const PerformancePage = {
             parts.push(`Driver: ${stats.gpus[0].driver_version}`);
         }
         
-        hwInfoEl.textContent = parts.join(' | ');
+        hwInfoEl.text(parts.join(' | '));
     },
 
     /**
@@ -896,7 +901,7 @@ const PerformancePage = {
                 ? `${stats.cpu_cores} / ${stats.cpu_threads}` 
                 : 'N/A';
             
-            this._infoPanels.cpu.innerHTML = `
+            Q(this._infoPanels.cpu).html(`
                 <div class="info-row">
                     <span class="info-label">${lang('performance_page.system.speed')}:</span>
                     <span class="info-value">${speedText}</span>
@@ -909,7 +914,7 @@ const PerformancePage = {
                     <span class="info-label">${lang('performance_page.system.temperature')}:</span>
                     <span class="info-value">${tempText}</span>
                 </div>
-            `;
+            `);
         }
         
         // Memory info
@@ -917,7 +922,7 @@ const PerformancePage = {
             const totalText = this._formatMemory(stats.memory_total_mb);
             const availableText = this._formatMemory(stats.memory_available_mb);
             
-            this._infoPanels.memory.innerHTML = `
+            Q(this._infoPanels.memory).html(`
                 <div class="info-row">
                     <span class="info-label">${lang('performance_page.system.max_memory')}:</span>
                     <span class="info-value">${totalText}</span>
@@ -926,7 +931,7 @@ const PerformancePage = {
                     <span class="info-label">${lang('performance_page.system.available')}:</span>
                     <span class="info-value">${availableText}</span>
                 </div>
-            `;
+            `);
         }
         
         // GPU info
@@ -942,7 +947,7 @@ const PerformancePage = {
                     const clockMem = this._formatValue(gpu.clock_memory_mhz, ' MHz');
                     const fanText = this._formatValue(gpu.fan_speed, '%');
                     
-                    this._infoPanels.gpus[index].usage.innerHTML = `
+                    Q(this._infoPanels.gpus[index].usage).html(`
                         <div class="info-row">
                             <span class="info-label">${lang('performance_page.system.temperature')}:</span>
                             <span class="info-value">${tempText}</span>
@@ -963,14 +968,14 @@ const PerformancePage = {
                             <span class="info-label">${lang('performance_page.system.fan')}:</span>
                             <span class="info-value">${fanText}</span>
                         </div>
-                    `;
+                    `);
                     
                     // GPU Memory panel
                     const totalText = this._formatMemory(gpu.memory_total_mb);
                     const freeText = this._formatMemory(gpu.memory_free_mb);
                     const usedText = this._formatMemory(gpu.memory_used_mb);
                     
-                    this._infoPanels.gpus[index].memory.innerHTML = `
+                    Q(this._infoPanels.gpus[index].memory).html(`
                         <div class="info-row">
                             <span class="info-label">${lang('performance_page.system.dedicated_memory')}:</span>
                             <span class="info-value">${totalText}</span>
@@ -983,7 +988,7 @@ const PerformancePage = {
                             <span class="info-label">${lang('performance_page.system.available')}:</span>
                             <span class="info-value">${freeText}</span>
                         </div>
-                    `;
+                    `);
                 }
             });
         }

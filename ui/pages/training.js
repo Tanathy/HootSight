@@ -48,7 +48,7 @@ const TrainingPage = {
      */
     build: async function(container) {
         // Clear container
-        container.innerHTML = '';
+        Q(container).empty();
         this._container = container;
         this._widgets = {};
         this._pendingDependencies = [];
@@ -74,10 +74,11 @@ const TrainingPage = {
         const trainingSchema = schema?.properties?.training;
 
         if (!trainingSchema) {
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'error-message';
-            errorDiv.textContent = 'Training schema not available';
-            container.appendChild(errorDiv);
+            const errorDiv = Q('<div>', { 
+                class: 'error-message',
+                text: 'Training schema not available'
+            }).get(0);
+            Q(container).append(errorDiv);
             return;
         }
 
@@ -101,7 +102,7 @@ const TrainingPage = {
         // Bind widget dependencies after all widgets are built
         this._bindDependencies();
 
-        container.appendChild(this._tabs.getElement());
+        Q(container).append(this._tabs.getElement());
     },
 
     /**
@@ -111,7 +112,6 @@ const TrainingPage = {
     _showNoProjectMessage: function(container) {
         const wrapper = Q('<div>', { class: 'no-project-message' }).get(0);
         
-        const icon = Q('<div>', { class: 'no-project-icon', text: '!' }).get(0);
         const title = Q('<h2>', { text: lang('training_page.no_project.title') }).get(0);
         title.setAttribute('data-lang-key', 'training_page.no_project.title');
         const desc = Q('<p>', { text: lang('training_page.no_project.description') }).get(0);
@@ -129,44 +129,42 @@ const TrainingPage = {
             }
         });
         
-        wrapper.appendChild(icon);
-        wrapper.appendChild(title);
-        wrapper.appendChild(desc);
-        wrapper.appendChild(btn);
-        container.appendChild(wrapper);
+        Q(wrapper).append(title).append(desc).append(btn);
+        Q(container).append(wrapper);
     },
 
     /**
      * Setup header action buttons (called by app.js after page build)
      */
     setupHeaderActions: function() {
-        const headerActions = document.getElementById('header-actions');
-        if (!headerActions) return;
+        HeaderActions.clear().add([
+            {
+                id: 'training-load-defaults',
+                label: lang('training_page.load_defaults_button'),
+                labelLangKey: 'training_page.load_defaults_button',
+                type: 'secondary',
+                onClick: () => this._loadSystemDefaults()
+            },
+            {
+                id: 'training-load-project',
+                label: lang('training_page.load_project_button'),
+                labelLangKey: 'training_page.load_project_button',
+                type: 'secondary',
+                onClick: () => this._loadProjectDefaults()
+            },
+            {
+                id: 'training-save',
+                label: lang('training_page.save_button'),
+                labelLangKey: 'training_page.save_button',
+                type: 'primary',
+                onClick: () => this._saveProjectConfig()
+            }
+        ]);
 
-        // Load System Defaults button
-        this._loadDefaultsBtn = Q('<button>', {
-            class: 'btn btn-secondary',
-            text: lang('training_page.load_defaults_button')
-        }).get(0);
-        this._loadDefaultsBtn.setAttribute('data-lang-key', 'training_page.load_defaults_button');
-        Q(this._loadDefaultsBtn).on('click', () => this._loadSystemDefaults());
-        headerActions.appendChild(this._loadDefaultsBtn);
-
-        // Load Project Defaults button
-        this._loadProjectBtn = Q('<button>', {
-            class: 'btn btn-secondary',
-            text: lang('training_page.load_project_button')
-        }).get(0);
-        Q(this._loadProjectBtn).on('click', () => this._loadProjectDefaults());
-        headerActions.appendChild(this._loadProjectBtn);
-
-        // Save button
-        this._saveBtn = Q('<button>', {
-            class: 'btn btn-primary',
-            text: lang('training_page.save_button')
-        }).get(0);
-        Q(this._saveBtn).on('click', () => this._saveProjectConfig());
-        headerActions.appendChild(this._saveBtn);
+        // Store references for later use (e.g., feedback)
+        this._loadDefaultsBtn = HeaderActions.get('training-load-defaults')?.getElement();
+        this._loadProjectBtn = HeaderActions.get('training-load-project')?.getElement();
+        this._saveBtn = HeaderActions.get('training-save')?.getElement();
     },
 
     /**
@@ -226,14 +224,12 @@ const TrainingPage = {
      * Show temporary feedback on a button
      */
     _showFeedback: function(btn, langKey, isError = false) {
-        const originalText = btn.textContent;
-        const originalClass = btn.className;
+        const originalText = Q(btn).text();
         
-        btn.textContent = lang(langKey);
+        Q(btn).text(lang(langKey));
         
         setTimeout(() => {
-            btn.textContent = originalText;
-            btn.className = originalClass;
+            Q(btn).text(originalText);
         }, 2000);
     },
 
@@ -249,7 +245,7 @@ const TrainingPage = {
 
         // Disable button during save
         this._saveBtn.disabled = true;
-        this._saveBtn.textContent = lang('training_page.saving');
+        Q(this._saveBtn).text(lang('training_page.saving'));
 
         try {
             // Get training section from current config
@@ -262,10 +258,10 @@ const TrainingPage = {
             
             if (result.status === 'success') {
                 // Show success feedback
-                this._saveBtn.textContent = lang('training_page.saved');
+                Q(this._saveBtn).text(lang('training_page.saved'));
                 
                 setTimeout(() => {
-                    this._saveBtn.textContent = lang('training_page.save_button');
+                    Q(this._saveBtn).text(lang('training_page.save_button'));
                     this._saveBtn.disabled = false;
                 }, 2000);
             } else {
@@ -273,10 +269,10 @@ const TrainingPage = {
             }
         } catch (err) {
             console.error('Failed to save project config:', err);
-            this._saveBtn.textContent = lang('training_page.save_error');
+            Q(this._saveBtn).text(lang('training_page.save_error'));
             
             setTimeout(() => {
-                this._saveBtn.textContent = lang('training_page.save_button');
+                Q(this._saveBtn).text(lang('training_page.save_button'));
                 this._saveBtn.disabled = false;
             }, 3000);
         }
@@ -290,17 +286,17 @@ const TrainingPage = {
      * @returns {HTMLElement}
      */
     _buildTabContent: function(groupName, schema, basePath = 'training') {
-        const content = document.createElement('div');
-        content.className = 'tab-content-wrapper';
+        const content = Q('<div>', { class: 'tab-content-wrapper' }).get(0);
 
         // Collect fields belonging to this group
         const fields = this._getFieldsForGroup(groupName, schema, basePath);
 
         if (fields.length === 0) {
-            const emptyMsg = document.createElement('p');
-            emptyMsg.className = 'text-muted';
-            emptyMsg.textContent = lang('training_page.no_settings');
-            content.appendChild(emptyMsg);
+            const emptyMsg = Q('<p>', { 
+                class: 'text-muted',
+                text: lang('training_page.no_settings')
+            }).get(0);
+            Q(content).append(emptyMsg);
             return content;
         }
 
@@ -314,7 +310,7 @@ const TrainingPage = {
                 // Handle both HTMLElement and widget objects with getElement()
                 const el = widget.getElement?.() || widget;
                 if (el instanceof HTMLElement) {
-                    content.appendChild(el);
+                    Q(content).append(el);
                 }
             }
         });
@@ -550,15 +546,15 @@ const TrainingPage = {
         const dynamicConfig = this._dynamicParamConfigs[field.key] || this._dynamicParamConfigs[field.path];
         if (dynamicConfig) {
             // Create wrapper to hold dropdown + dynamic params
-            const wrapper = document.createElement('div');
-            wrapper.className = 'type-selector-wrapper';
-            wrapper.appendChild(dropdown.getElement());
+            const wrapper = Q('<div>', { class: 'type-selector-wrapper' }).get(0);
+            Q(wrapper).append(dropdown.getElement());
 
             // Create dynamic params container
-            const paramsContainer = document.createElement('div');
-            paramsContainer.className = 'dynamic-params-container';
-            paramsContainer.id = `${field.key}-params`;
-            wrapper.appendChild(paramsContainer);
+            const paramsContainer = Q('<div>', {
+                class: 'dynamic-params-container',
+                id: `${field.key}-params`
+            }).get(0);
+            Q(wrapper).append(paramsContainer);
 
             // Build initial params
             this._buildDynamicParams(paramsContainer, currentValue, dynamicConfig);
@@ -585,7 +581,7 @@ const TrainingPage = {
      */
     _buildDynamicParams: function(container, selectedType, dynamicConfig) {
         // Clear existing params
-        container.innerHTML = '';
+        Q(container).empty();
 
         // Get defaults for this type from config
         const defaults = Config.get(dynamicConfig.configPath);
@@ -608,7 +604,7 @@ const TrainingPage = {
             
             const widget = this._buildParamWidget(paramKey, defaultValue, currentValue, paramPath, paramTypes);
             if (widget) {
-                container.appendChild(widget);
+                Q(container).append(widget);
             }
         });
     },
@@ -617,17 +613,17 @@ const TrainingPage = {
      * Build a single parameter widget based on value type
      */
     _buildParamWidget: function(key, defaultValue, currentValue, configPath, paramTypes) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'widget widget-param';
+        const wrapper = Q('<div>', { class: 'widget widget-param' }).get(0);
 
         // Label
-        const label = document.createElement('label');
-        label.className = 'widget-label';
-        label.textContent = key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        const label = Q('<label>', {
+            class: 'widget-label',
+            text: key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+        }).get(0);
 
         // Check if this param has a defined type in schema (dropdown)
         if (paramTypes && paramTypes[key] && paramTypes[key].widget === 'dropdown') {
-            wrapper.appendChild(label);
+            Q(wrapper).append(label);
             
             const options = paramTypes[key].enum;
             const optionLabels = {};
@@ -645,7 +641,7 @@ const TrainingPage = {
                 Config.set(configPath, newValue);
             });
             
-            wrapper.appendChild(dropdown.getElement());
+            Q(wrapper).append(dropdown.getElement());
             return wrapper;
         }
 
@@ -653,7 +649,7 @@ const TrainingPage = {
         
         if (valueType === 'boolean') {
             // Switch for boolean
-            wrapper.classList.add('widget-param-boolean');
+            Q(wrapper).addClass('widget-param-boolean');
             
             const switchWidget = new Switch(`param-${key}`, {
                 label: label.textContent,
@@ -666,10 +662,10 @@ const TrainingPage = {
             
             // Use the switch element directly
             const switchEl = switchWidget.getElement();
-            wrapper.appendChild(switchEl);
+            Q(wrapper).append(switchEl);
         }
         else if (valueType === 'number') {
-            wrapper.appendChild(label);
+            Q(wrapper).append(label);
             
             // Number widget - smart step calculation
             const isInteger = Number.isInteger(defaultValue);
@@ -710,24 +706,25 @@ const TrainingPage = {
             });
             
             // Add just the controls, not the full widget with label
-            const controls = numWidget.getElement().querySelector('.number-widget-controls');
+            const controls = Q(numWidget.getElement()).find('.number-widget-controls').get(0);
             if (controls) {
-                wrapper.appendChild(controls);
+                Q(wrapper).append(controls);
             } else {
-                wrapper.appendChild(numWidget.getElement());
+                Q(wrapper).append(numWidget.getElement());
             }
         }
         else if (Array.isArray(defaultValue)) {
-            wrapper.appendChild(label);
+            Q(wrapper).append(label);
             
             // Array input (comma separated)
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'widget-input';
-            input.value = Array.isArray(currentValue) ? currentValue.join(', ') : defaultValue.join(', ');
-            input.placeholder = defaultValue.join(', ');
+            const input = Q('<input>', {
+                type: 'text',
+                class: 'widget-input',
+                value: Array.isArray(currentValue) ? currentValue.join(', ') : defaultValue.join(', '),
+                placeholder: defaultValue.join(', ')
+            }).get(0);
             
-            input.addEventListener('change', () => {
+            Q(input).on('change', () => {
                 const parts = input.value.split(',').map(s => s.trim());
                 const parsed = parts.map(p => {
                     const num = parseFloat(p);
@@ -735,37 +732,39 @@ const TrainingPage = {
                 });
                 Config.set(configPath, parsed);
             });
-            wrapper.appendChild(input);
+            Q(wrapper).append(input);
         }
         else if (defaultValue === null) {
-            wrapper.appendChild(label);
+            Q(wrapper).append(label);
             
             // Nullable - text input
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'widget-input';
-            input.value = currentValue ?? '';
-            input.placeholder = 'null';
+            const input = Q('<input>', {
+                type: 'text',
+                class: 'widget-input',
+                value: currentValue ?? '',
+                placeholder: 'null'
+            }).get(0);
             
-            input.addEventListener('change', () => {
+            Q(input).on('change', () => {
                 const val = input.value.trim() === '' ? null : input.value;
                 Config.set(configPath, val);
             });
-            wrapper.appendChild(input);
+            Q(wrapper).append(input);
         }
         else {
-            wrapper.appendChild(label);
+            Q(wrapper).append(label);
             
             // String input
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'widget-input';
-            input.value = currentValue ?? defaultValue ?? '';
+            const input = Q('<input>', {
+                type: 'text',
+                class: 'widget-input',
+                value: currentValue ?? defaultValue ?? ''
+            }).get(0);
             
-            input.addEventListener('change', () => {
+            Q(input).on('change', () => {
                 Config.set(configPath, input.value);
             });
-            wrapper.appendChild(input);
+            Q(wrapper).append(input);
         }
 
         return wrapper;
@@ -915,21 +914,22 @@ const TrainingPage = {
      * Build fixed-size number array widget (e.g., RGB values for normalize mean/std)
      */
     _buildNumberArray: function(field, options, configValue) {
-        const container = document.createElement('div');
-        container.className = 'widget widget-array-inline';
-        container.id = field.key;
+        const container = Q('<div>', {
+            class: 'widget widget-array-inline',
+            id: field.key
+        }).get(0);
 
         // Label
         if (options.label) {
-            const label = document.createElement('label');
-            label.className = 'widget-label';
-            label.textContent = options.label;
-            container.appendChild(label);
+            const label = Q('<label>', {
+                class: 'widget-label',
+                text: options.label
+            }).get(0);
+            Q(container).append(label);
         }
 
         // Inputs row
-        const inputsRow = document.createElement('div');
-        inputsRow.className = 'array-inputs-row';
+        const inputsRow = Q('<div>', { class: 'array-inputs-row' }).get(0);
         
         const arraySize = field.minItems || 3;
         const currentValue = Array.isArray(configValue) ? configValue : (field.default || []);
@@ -951,8 +951,8 @@ const TrainingPage = {
             });
             
             const widgetEl = numberWidget.getElement();
-            widgetEl.classList.add('array-item');
-            inputsRow.appendChild(widgetEl);
+            Q(widgetEl).addClass('array-item');
+            Q(inputsRow).append(widgetEl);
             inputs.push(numberWidget);
             
             // Update config on change
@@ -962,14 +962,15 @@ const TrainingPage = {
             });
         }
 
-        container.appendChild(inputsRow);
+        Q(container).append(inputsRow);
 
         // Description
         if (options.description) {
-            const desc = document.createElement('div');
-            desc.className = 'widget-description';
-            desc.textContent = options.description;
-            container.appendChild(desc);
+            const desc = Q('<div>', {
+                class: 'widget-description',
+                text: options.description
+            }).get(0);
+            Q(container).append(desc);
         }
 
         return {
@@ -989,19 +990,20 @@ const TrainingPage = {
      * Build nested object widget (collapsible group)
      */
     _buildNested: function(field, options) {
-        const container = document.createElement('div');
-        container.className = 'widget widget-nested';
-        container.id = field.key;
+        const container = Q('<div>', {
+            class: 'widget widget-nested',
+            id: field.key
+        }).get(0);
 
         // Header (collapsible)
-        const header = document.createElement('div');
-        header.className = 'nested-header';
-        header.textContent = options.label;
-        container.appendChild(header);
+        const header = Q('<div>', {
+            class: 'nested-header',
+            text: options.label
+        }).get(0);
+        Q(container).append(header);
 
         // Content
-        const content = document.createElement('div');
-        content.className = 'nested-content';
+        const content = Q('<div>', { class: 'nested-content' }).get(0);
 
         // Build child widgets
         if (field.properties) {
@@ -1016,13 +1018,13 @@ const TrainingPage = {
                 if (childWidget) {
                     const el = childWidget.getElement?.() || childWidget;
                     if (el instanceof HTMLElement) {
-                        content.appendChild(el);
+                        Q(content).append(el);
                     }
                 }
             }
         }
 
-        container.appendChild(content);
+        Q(container).append(content);
 
         return { getElement: () => container };
     },
@@ -1046,8 +1048,7 @@ const TrainingPage = {
      * @returns {HTMLElement}
      */
     _buildAugmentationTab: function() {
-        const content = document.createElement('div');
-        content.className = 'tab-content-wrapper augmentation-tab-split';
+        const content = Q('<div>', { class: 'tab-content-wrapper augmentation-tab-split' }).get(0);
 
         // Get augmentation defaults from config
         const augDefaults = Config.get('augmentations.defaults', {});
@@ -1068,7 +1069,8 @@ const TrainingPage = {
             class: 'augmentation-section-title', 
             text: lang('training_page.augmentation.train_title') 
         }).get(0);
-        leftPanel.appendChild(trainLabel);
+        trainLabel.setAttribute('data-lang-key', 'training_page.augmentation.train_title');
+        Q(leftPanel).append(trainLabel);
 
         const trainPipeline = Config.get('training.augmentation.train', []);
         const trainBuilder = new AugmentationBuilder('augmentation-train', {
@@ -1084,18 +1086,19 @@ const TrainingPage = {
         });
         
         this._widgets['training.augmentation.train'] = trainBuilder;
-        leftPanel.appendChild(trainBuilder.getElement());
+        Q(leftPanel).append(trainBuilder.getElement());
 
         // Spacer
         const spacer = Q('<div>', { class: 'augmentation-section-spacer' }).get(0);
-        leftPanel.appendChild(spacer);
+        Q(leftPanel).append(spacer);
 
         // Validation augmentation builder
         const valLabel = Q('<h3>', { 
             class: 'augmentation-section-title', 
             text: lang('training_page.augmentation.val_title') 
         }).get(0);
-        leftPanel.appendChild(valLabel);
+        valLabel.setAttribute('data-lang-key', 'training_page.augmentation.val_title');
+        Q(leftPanel).append(valLabel);
 
         const valPipeline = Config.get('training.augmentation.val', []);
         const valBuilder = new AugmentationBuilder('augmentation-val', {
@@ -1111,9 +1114,9 @@ const TrainingPage = {
         });
         
         this._widgets['training.augmentation.val'] = valBuilder;
-        leftPanel.appendChild(valBuilder.getElement());
+        Q(leftPanel).append(valBuilder.getElement());
 
-        content.appendChild(leftPanel);
+        Q(content).append(leftPanel);
 
         // === RIGHT PANEL: Preview ===
         const rightPanel = Q('<div>', { class: 'augmentation-preview-panel' }).get(0);
@@ -1123,10 +1126,11 @@ const TrainingPage = {
         const previewImage = Q('<img>', { class: 'augmentation-preview-image', alt: 'Preview' }).get(0);
         previewImage.src = ''; // Empty initially
         const previewPlaceholder = Q('<div>', { class: 'augmentation-preview-placeholder' }).get(0);
-        previewPlaceholder.innerHTML = '<span>' + lang('training_page.augmentation.preview_placeholder') + '</span>';
-        previewBox.appendChild(previewImage);
-        previewBox.appendChild(previewPlaceholder);
-        rightPanel.appendChild(previewBox);
+        const placeholderSpan = Q('<span>', { text: lang('training_page.augmentation.preview_placeholder') }).get(0);
+        Q(previewPlaceholder).append(placeholderSpan);
+        Q(previewBox).append(previewImage);
+        Q(previewBox).append(previewPlaceholder);
+        Q(rightPanel).append(previewBox);
         
         // Store references for preview functionality
         this._previewImage = previewImage;
@@ -1139,28 +1143,31 @@ const TrainingPage = {
         
         const randomBtn = new ActionButton('aug-random', {
             label: lang('training_page.augmentation.btn_random'),
+            labelLangKey: 'training_page.augmentation.btn_random',
             className: 'btn btn-secondary',
             onClick: () => this._loadRandomPreviewImage()
         });
         
         const trainBtn = new ActionButton('aug-train', {
             label: lang('training_page.augmentation.btn_train'),
+            labelLangKey: 'training_page.augmentation.btn_train',
             className: 'btn btn-primary',
             onClick: () => this._applyAugmentationPreview('train')
         });
         
         const valBtn = new ActionButton('aug-val', {
             label: lang('training_page.augmentation.btn_val'),
+            labelLangKey: 'training_page.augmentation.btn_val',
             className: 'btn btn-secondary',
             onClick: () => this._applyAugmentationPreview('val')
         });
         
-        buttonGroup.appendChild(randomBtn.getElement());
-        buttonGroup.appendChild(trainBtn.getElement());
-        buttonGroup.appendChild(valBtn.getElement());
-        rightPanel.appendChild(buttonGroup);
+        Q(buttonGroup).append(randomBtn.getElement());
+        Q(buttonGroup).append(trainBtn.getElement());
+        Q(buttonGroup).append(valBtn.getElement());
+        Q(rightPanel).append(buttonGroup);
 
-        content.appendChild(rightPanel);
+        Q(content).append(rightPanel);
 
         return content;
     },
@@ -1170,28 +1177,27 @@ const TrainingPage = {
      * @returns {HTMLElement}
      */
     _buildPresetsTab: function() {
-        const content = document.createElement('div');
-        content.className = 'tab-content-wrapper presets-tab';
+        const content = Q('<div>', { class: 'tab-content-wrapper presets-tab' }).get(0);
 
-        const header = document.createElement('div');
-        header.className = 'presets-header';
+        const header = Q('<div>', { class: 'presets-header' }).get(0);
         
-        const title = document.createElement('h2');
-        title.textContent = lang('training_page.presets.title');
-        title.setAttribute('data-lang-key', 'training_page.presets.title');
+        const title = Q('<h2>', {
+            text: lang('training_page.presets.title'),
+            'data-lang-key': 'training_page.presets.title'
+        }).get(0);
         
-        const description = document.createElement('p');
-        description.className = 'presets-description';
-        description.textContent = lang('training_page.presets.description');
-        description.setAttribute('data-lang-key', 'training_page.presets.description');
+        const description = Q('<p>', {
+            class: 'presets-description',
+            text: lang('training_page.presets.description'),
+            'data-lang-key': 'training_page.presets.description'
+        }).get(0);
         
-        header.appendChild(title);
-        header.appendChild(description);
-        content.appendChild(header);
+        Q(header).append(title);
+        Q(header).append(description);
+        Q(content).append(header);
 
         // Search and filter controls container
-        const controlsContainer = document.createElement('div');
-        controlsContainer.className = 'presets-controls';
+        const controlsContainer = Q('<div>', { class: 'presets-controls' }).get(0);
 
         // Search input using TextInput widget
         this._searchWidget = new TextInput('presets-search', {
@@ -1201,17 +1207,15 @@ const TrainingPage = {
             default: ''
         });
         
-        const searchWrapper = document.createElement('div');
-        searchWrapper.className = 'presets-search-wrapper';
-        searchWrapper.appendChild(this._searchWidget.getElement());
+        const searchWrapper = Q('<div>', { class: 'presets-search-wrapper' }).get(0);
+        Q(searchWrapper).append(this._searchWidget.getElement());
         
         // Search stats
-        const searchStats = document.createElement('span');
-        searchStats.className = 'presets-search-stats';
-        searchWrapper.appendChild(searchStats);
+        const searchStats = Q('<span>', { class: 'presets-search-stats' }).get(0);
+        Q(searchWrapper).append(searchStats);
         this._presetsSearchStats = searchStats;
         
-        controlsContainer.appendChild(searchWrapper);
+        Q(controlsContainer).append(searchWrapper);
 
         // Only Compatible switch
         this._compatibleOnlySwitch = new Switch('presets-compatible-only', {
@@ -1221,12 +1225,11 @@ const TrainingPage = {
             default: false
         });
         
-        controlsContainer.appendChild(this._compatibleOnlySwitch.getElement());
-        content.appendChild(controlsContainer);
+        Q(controlsContainer).append(this._compatibleOnlySwitch.getElement());
+        Q(content).append(controlsContainer);
 
-        const presetsContainer = document.createElement('div');
-        presetsContainer.className = 'presets-container';
-        content.appendChild(presetsContainer);
+        const presetsContainer = Q('<div>', { class: 'presets-container' }).get(0);
+        Q(content).append(presetsContainer);
 
         // Store references
         this._presetsContainer = presetsContainer;
@@ -1328,12 +1331,12 @@ const TrainingPage = {
 
         // Update stats
         if (query || onlyCompatible) {
-            stats.textContent = lang('training_page.presets.search_results')
+            Q(stats).text(lang('training_page.presets.search_results')
                 ?.replace('{count}', visibleCount)
                 ?.replace('{total}', this._presetsData.length)
-                || `${visibleCount} / ${this._presetsData.length}`;
+                || `${visibleCount} / ${this._presetsData.length}`);
         } else {
-            stats.textContent = '';
+            Q(stats).text('');
         }
     },
 
@@ -1344,11 +1347,15 @@ const TrainingPage = {
     _loadPresets: async function(container) {
         const projectName = Config.getActiveProject();
         if (!projectName) {
-            container.innerHTML = '<p class="error-message">' + lang('training_page.no_project.description') + '</p>';
+            Q(container).empty();
+            const errorMsg = Q('<p>', { class: 'error-message', text: lang('training_page.no_project.description') }).get(0);
+            Q(container).append(errorMsg);
             return;
         }
 
-        container.innerHTML = '<p class="loading-message">' + lang('training_page.presets.loading') + '</p>';
+        Q(container).empty();
+        const loadingMsg = Q('<p>', { class: 'loading-message', text: lang('training_page.presets.loading') }).get(0);
+        Q(container).append(loadingMsg);
 
         try {
             // Load presets and dataset type in parallel
@@ -1364,11 +1371,13 @@ const TrainingPage = {
             this._currentDatasetType = currentDatasetType;
 
             if (!data.presets || data.presets.length === 0) {
-                container.innerHTML = '<p class="info-message">' + lang('training_page.presets.no_presets') + '</p>';
+                Q(container).empty();
+                const infoMsg = Q('<p>', { class: 'info-message', text: lang('training_page.presets.no_presets') }).get(0);
+                Q(container).append(infoMsg);
                 return;
             }
 
-            container.innerHTML = '';
+            Q(container).empty();
             
             // Store presets data for search
             this._presetsData = data.presets;
@@ -1379,12 +1388,14 @@ const TrainingPage = {
                 }, currentDatasetType);
                 // Add preset ID to card for search filtering
                 card.dataset.presetId = preset.id;
-                container.appendChild(card);
+                Q(container).append(card);
             });
 
         } catch (error) {
             console.error('Failed to load presets:', error);
-            container.innerHTML = '<p class="error-message">' + lang('training_page.presets.apply_error') + '</p>';
+            Q(container).empty();
+            const errorMsg = Q('<p>', { class: 'error-message', text: lang('training_page.presets.apply_error') }).get(0);
+            Q(container).append(errorMsg);
         }
     },
 

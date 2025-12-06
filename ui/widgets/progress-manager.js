@@ -12,10 +12,10 @@ const ProgressManager = {
      */
     init: function() {
         // Find or create the container
-        const headerProgress = document.querySelector('.header-progress');
+        const headerProgress = Q('.header-progress').get();
         if (headerProgress) {
             // Clear existing static content
-            headerProgress.innerHTML = '';
+            Q(headerProgress).empty();
             this._container = headerProgress;
         }
     },
@@ -35,7 +35,7 @@ const ProgressManager = {
             // Create new progress bar
             bar = this._createProgressBar(id, options);
             this._progressBars.set(id, bar);
-            this._container.appendChild(bar.element);
+            Q(this._container).append(bar.element);
         }
 
         // Update values
@@ -62,9 +62,9 @@ const ProgressManager = {
     hide: function(id) {
         const bar = this._progressBars.get(id);
         if (bar) {
-            bar.element.classList.add('hiding');
+            Q(bar.element).addClass('hiding');
             setTimeout(() => {
-                bar.element.remove();
+                Q(bar.element).remove();
                 this._progressBars.delete(id);
             }, 300);
         }
@@ -83,32 +83,22 @@ const ProgressManager = {
      * Create a new progress bar element
      */
     _createProgressBar: function(id, options) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'header-progress-item';
-        wrapper.dataset.progressId = id;
+        const wrapper = Q('<div>', { class: 'header-progress-item', 'data-progress-id': id });
 
-        const labelEl = document.createElement('span');
-        labelEl.className = 'progress-label';
-        labelEl.textContent = options.label || id;
+        const labelEl = Q('<span>', { class: 'progress-label', text: options.label || id }).get();
 
-        const barContainer = document.createElement('div');
-        barContainer.className = 'progress-bar';
+        const barContainer = Q('<div>', { class: 'progress-bar' });
 
-        const fill = document.createElement('div');
-        fill.className = 'progress-fill';
+        const fill = Q('<div>', { class: 'progress-fill' }).get();
         fill.style.width = '0%';
-        barContainer.appendChild(fill);
+        barContainer.append(fill);
 
-        const statusEl = document.createElement('span');
-        statusEl.className = 'progress-status';
-        statusEl.textContent = options.status || '';
+        const statusEl = Q('<span>', { class: 'progress-status', text: options.status || '' }).get();
 
-        wrapper.appendChild(labelEl);
-        wrapper.appendChild(barContainer);
-        wrapper.appendChild(statusEl);
+        wrapper.append(labelEl).append(barContainer.get()).append(statusEl);
 
         return {
-            element: wrapper,
+            element: wrapper.get(),
             label: labelEl,
             fill: fill,
             statusEl: statusEl,
@@ -122,7 +112,7 @@ const ProgressManager = {
      */
     _updateProgressBar: function(bar, options) {
         if (options.label !== undefined) {
-            bar.label.textContent = options.label;
+            Q(bar.label).text(options.label);
         }
         if (options.progress !== undefined) {
             bar.progress = Math.min(100, Math.max(0, options.progress));
@@ -130,14 +120,14 @@ const ProgressManager = {
             
             // Add completion class
             if (bar.progress >= 100) {
-                bar.element.classList.add('complete');
+                Q(bar.element).addClass('complete');
             } else {
-                bar.element.classList.remove('complete');
+                Q(bar.element).removeClass('complete');
             }
         }
         if (options.status !== undefined) {
             bar.status = options.status;
-            bar.statusEl.textContent = options.status;
+            Q(bar.statusEl).text(options.status);
         }
     },
 
@@ -159,7 +149,7 @@ const ProgressManager = {
 
 // Auto-init when DOM is ready
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => ProgressManager.init());
+    Q(document).on('DOMContentLoaded', () => ProgressManager.init());
 } else {
     ProgressManager.init();
 }
