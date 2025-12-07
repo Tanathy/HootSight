@@ -378,7 +378,7 @@ const ProjectsPage = {
                 // Reload projects list
                 await this.loadProjects();
             } else {
-                Modal.alert(result.message || lang('projects_page.new_project.error'));
+                Modal.alert(langMsg(result, lang('projects_page.new_project.error')));
             }
         } catch (err) {
             console.error('Failed to create project:', err);
@@ -415,7 +415,7 @@ const ProjectsPage = {
                 this._deleteProjectBtn.setDisabled(true);
                 this._renameProjectBtn.setDisabled(true);
             } else {
-                Modal.alert(result.message || lang('projects_page.delete_project.error'));
+                Modal.alert(langMsg(result, lang('projects_page.delete_project.error')));
             }
         } catch (err) {
             console.error('Failed to delete project:', err);
@@ -450,7 +450,7 @@ const ProjectsPage = {
                 // Reload projects list
                 await this.loadProjects();
             } else {
-                Modal.alert(result.message || lang('projects_page.rename_project.error'));
+                Modal.alert(langMsg(result, lang('projects_page.rename_project.error')));
             }
         } catch (err) {
             console.error('Failed to rename project:', err);

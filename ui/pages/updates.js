@@ -138,7 +138,7 @@ const UpdatesPage = {
                 break;
             case 'error':
                 stateClass = 'status-error';
-                statusText = this._updateData?.message || lang('updates_ui.status_failed');
+                statusText = langMsg(this._updateData, lang('updates_ui.status_failed'));
                 statusKey = 'updates_ui.status_failed';
                 break;
         }

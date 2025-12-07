@@ -143,19 +143,6 @@ def _list_doc_entries(docs_root: Path) -> List[Dict[str, str]]:
     return entries
 
 
-def _localize_schema(obj: Any) -> Any:
-    if isinstance(obj, str):
-        if obj.startswith("schema."):
-            return lang(obj)
-        return obj
-    elif isinstance(obj, dict):
-        return {key: _localize_schema(value) for key, value in obj.items()}
-    elif isinstance(obj, list):
-        return [_localize_schema(item) for item in obj]
-    else:
-        return obj
-
-
 _augmentation_preview_cache: Dict[str, Image.Image] = {}
 
 
@@ -258,28 +245,24 @@ def _get_dataset_editor_project(project_name: str) -> ProjectIndex:
     try:
         return dataset_repository.get_index(project_name)
     except ProjectNotFoundError as exc:
-        message = lang("dataset_editor.api.project_not_found", project=project_name)
-        raise HTTPException(status_code=404, detail=message) from exc
+        raise HTTPException(status_code=404, detail={"messageKey": "dataset_editor.api.project_not_found", "messageParams": {"project": project_name}}) from exc
 
 
 def _raise_image_not_found(project_name: str, exc: ImageNotFoundError) -> NoReturn:
-    message = lang("dataset_editor.api.image_not_found", project=project_name)
-    raise HTTPException(status_code=404, detail=message) from exc
+    raise HTTPException(status_code=404, detail={"messageKey": "dataset_editor.api.image_not_found", "messageParams": {"project": project_name}}) from exc
 
 
 def _validate_dataset_editor_page_size(page_size: int) -> None:
     if page_size not in DATASET_EDITOR_SETTINGS.page_sizes:
         allowed = ", ".join(str(size) for size in DATASET_EDITOR_SETTINGS.page_sizes)
-        message = lang("dataset_editor.api.invalid_page_size", allowed=allowed)
-        raise HTTPException(status_code=400, detail=message)
+        raise HTTPException(status_code=400, detail={"messageKey": "dataset_editor.api.invalid_page_size", "messageParams": {"allowed": allowed}})
 
 
 def _validate_dataset_editor_build_size(size: int) -> None:
     allowed = _dataset_editor_allowed_build_sizes()
     if size not in allowed:
         allowed_label = ", ".join(str(value) for value in sorted(allowed))
-        message = lang("dataset_editor.api.invalid_size", allowed=allowed_label)
-        raise HTTPException(status_code=400, detail=message)
+        raise HTTPException(status_code=400, detail={"messageKey": "dataset_editor.api.invalid_size", "messageParams": {"allowed": allowed_label}})
 
 
 def create_app() -> FastAPI:
@@ -336,8 +319,8 @@ def create_app() -> FastAPI:
             schema_path = os.path.join("config", "config_schema.json")
             with open(schema_path, "r", encoding="utf-8") as f:
                 schema = json.load(f)
-            localized_schema = _localize_schema(schema)
-            return {"schema": localized_schema}
+            # Return raw schema - frontend handles localization via lang keys
+            return {"schema": schema}
         except Exception as ex:
             error(f"Schema loading failed: {ex}")
             return {"error": str(ex)}
@@ -431,26 +414,22 @@ def create_app() -> FastAPI:
     @app.get("/docs/page")
     def docs_page(path: str = Query(..., min_length=1)) -> Dict[str, Any]:
         if docs_root is None:
-            message = lang("docs.api.missing_root")
             warning("Documentation directory is not configured; cannot serve documentation page")
-            return {"status": "error", "message": message}
+            return {"status": "error", "messageKey": "docs.api.missing_root"}
 
         target = _resolve_doc_path(docs_root, path)
         if target is None or not target.is_file():
-            message = lang("docs.api.not_found", path=path)
             warning(f"Documentation page '{path}' not found")
-            return {"status": "error", "message": message}
+            return {"status": "error", "messageKey": "docs.api.not_found", "messageParams": {"path": path}}
 
         try:
             content = target.read_text(encoding="utf-8")
         except UnicodeDecodeError as exc:
-            message = lang("docs.api.decode_error", path=target.name)
             error(f"Documentation decode failed for {target}: {exc}")
-            return {"status": "error", "message": message}
+            return {"status": "error", "messageKey": "docs.api.decode_error", "messageParams": {"path": target.name}}
         except Exception as exc:
-            message = lang("docs.api.read_failed", error=str(exc))
             error(f"Documentation read failed for {target}: {exc}")
-            return {"status": "error", "message": message}
+            return {"status": "error", "messageKey": "docs.api.read_failed", "messageParams": {"error": str(exc)}}
 
         rel_path = target.relative_to(docs_root).as_posix()
         title = _derive_doc_title(target)
@@ -597,38 +576,32 @@ def create_app() -> FastAPI:
                 name_value = str(name_candidate).strip()
 
         if not name_value:
-            message = lang("projects.api.create_missing")
-            return {"status": "error", "message": message}
+            return {"status": "error", "messageKey": "projects.api.create_missing"}
 
         if len(name_value) < min_length or len(name_value) > max_length:
-            message = lang("projects.api.create_length", min=min_length, max=max_length)
-            return {"status": "error", "message": message}
+            return {"status": "error", "messageKey": "projects.api.create_length", "messageParams": {"min": min_length, "max": max_length}}
 
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", name_value):
-            message = lang("projects.api.create_invalid")
-            return {"status": "error", "message": message}
+            return {"status": "error", "messageKey": "projects.api.create_invalid"}
 
         project_path = (projects_root / name_value).resolve()
         try:
             project_path.relative_to(projects_root)
         except ValueError:
-            message = lang("projects.api.create_invalid")
-            return {"status": "error", "message": message}
+            return {"status": "error", "messageKey": "projects.api.create_invalid"}
 
         if project_path.exists():
-            message = lang("projects.api.create_exists", name=name_value)
-            return {"status": "error", "message": message}
+            return {"status": "error", "messageKey": "projects.api.create_exists", "messageParams": {"name": name_value}}
 
         try:
             project_path.mkdir(parents=False, exist_ok=False)
             for subdir in ("dataset", "data_source", "model", "heatmaps", "validation"):
                 (project_path / subdir).mkdir(parents=True, exist_ok=True)
 
-            success(lang("projects.api.create_success", name=name_value))
+            success(f"Project created: {name_value}")
         except Exception as ex:  # noqa: BLE001 - ensure structured error response
             error(f"Project creation failed for {name_value}: {ex}")
-            message = lang("projects.api.create_error", error=str(ex))
-            return {"status": "error", "message": message}
+            return {"status": "error", "messageKey": "projects.api.create_error", "messageParams": {"error": str(ex)}}
 
         project_details = None
         try:
@@ -648,7 +621,8 @@ def create_app() -> FastAPI:
 
         response: Dict[str, Any] = {
             "status": "success",
-            "message": lang("projects.api.create_success", name=name_value)
+            "messageKey": "projects.api.create_success",
+            "messageParams": {"name": name_value}
         }
         if project_details is not None:
             response["project"] = project_details
@@ -675,7 +649,7 @@ def create_app() -> FastAPI:
 
         # Validate project name
         if not project_name or not project_name.strip():
-            return {"status": "error", "message": lang("projects.api.delete_invalid")}
+            return {"status": "error", "messageKey": "projects.api.delete_invalid"}
 
         project_path = (projects_root / project_name).resolve()
         
@@ -683,25 +657,26 @@ def create_app() -> FastAPI:
         try:
             project_path.relative_to(projects_root)
         except ValueError:
-            return {"status": "error", "message": lang("projects.api.delete_invalid")}
+            return {"status": "error", "messageKey": "projects.api.delete_invalid"}
 
         if not project_path.exists():
-            return {"status": "error", "message": lang("projects.api.delete_not_found", name=project_name)}
+            return {"status": "error", "messageKey": "projects.api.delete_not_found", "messageParams": {"name": project_name}}
 
         if not project_path.is_dir():
-            return {"status": "error", "message": lang("projects.api.delete_not_found", name=project_name)}
+            return {"status": "error", "messageKey": "projects.api.delete_not_found", "messageParams": {"name": project_name}}
 
         try:
             # Remove the entire project directory
             shutil.rmtree(project_path)
-            success(lang("projects.api.delete_success", name=project_name))
+            success(f"Project deleted: {project_name}")
             return {
                 "status": "success",
-                "message": lang("projects.api.delete_success", name=project_name)
+                "messageKey": "projects.api.delete_success",
+                "messageParams": {"name": project_name}
             }
         except Exception as ex:
             error(f"Project deletion failed for {project_name}: {ex}")
-            return {"status": "error", "message": lang("projects.api.delete_error", error=str(ex))}
+            return {"status": "error", "messageKey": "projects.api.delete_error", "messageParams": {"error": str(ex)}}
 
     @app.post("/projects/{project_name}/rename")
     def rename_project(project_name: str, payload: Dict[str, Any] = Body(...)) -> Dict[str, Any]:
@@ -723,10 +698,10 @@ def create_app() -> FastAPI:
         try:
             old_path.relative_to(projects_root)
         except ValueError:
-            return {"status": "error", "message": lang("projects.api.rename_invalid")}
+            return {"status": "error", "messageKey": "projects.api.rename_invalid"}
 
         if not old_path.exists() or not old_path.is_dir():
-            return {"status": "error", "message": lang("projects.api.rename_not_found", name=project_name)}
+            return {"status": "error", "messageKey": "projects.api.rename_not_found", "messageParams": {"name": project_name}}
 
         # Get and validate new name
         new_name = ""
@@ -738,34 +713,35 @@ def create_app() -> FastAPI:
                 new_name = str(name_candidate).strip()
 
         if not new_name:
-            return {"status": "error", "message": lang("projects.api.rename_missing")}
+            return {"status": "error", "messageKey": "projects.api.rename_missing"}
 
         if len(new_name) < min_length or len(new_name) > max_length:
-            return {"status": "error", "message": lang("projects.api.create_length", min=min_length, max=max_length)}
+            return {"status": "error", "messageKey": "projects.api.create_length", "messageParams": {"min": min_length, "max": max_length}}
 
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", new_name):
-            return {"status": "error", "message": lang("projects.api.create_invalid")}
+            return {"status": "error", "messageKey": "projects.api.create_invalid"}
 
         new_path = (projects_root / new_name).resolve()
         try:
             new_path.relative_to(projects_root)
         except ValueError:
-            return {"status": "error", "message": lang("projects.api.rename_invalid")}
+            return {"status": "error", "messageKey": "projects.api.rename_invalid"}
 
         if new_path.exists():
-            return {"status": "error", "message": lang("projects.api.create_exists", name=new_name)}
+            return {"status": "error", "messageKey": "projects.api.create_exists", "messageParams": {"name": new_name}}
 
         try:
             old_path.rename(new_path)
-            success(lang("projects.api.rename_success", old=project_name, new=new_name))
+            success(f"Project renamed: {project_name} -> {new_name}")
             return {
                 "status": "success",
-                "message": lang("projects.api.rename_success", old=project_name, new=new_name),
+                "messageKey": "projects.api.rename_success",
+                "messageParams": {"old": project_name, "new": new_name},
                 "new_name": new_name
             }
         except Exception as ex:
             error(f"Project rename failed for {project_name}: {ex}")
-            return {"status": "error", "message": lang("projects.api.rename_error", error=str(ex))}
+            return {"status": "error", "messageKey": "projects.api.rename_error", "messageParams": {"error": str(ex)}}
 
     @app.get("/projects/{project_name}")
     def project_details(project_name: str) -> Dict[str, Any]:
@@ -1038,16 +1014,13 @@ def create_app() -> FastAPI:
         project = _get_dataset_editor_project(project_name)
         decoded = Path(urllib.parse.unquote(path))
         if decoded.is_absolute():
-            message = lang("dataset_editor.api.invalid_image_path")
-            raise HTTPException(status_code=400, detail=message)
+            raise HTTPException(status_code=400, detail={"messageKey": "dataset_editor.api.invalid_image_path"})
         target = (project.data_source_dir / decoded).resolve()
         data_source_dir = project.data_source_dir.resolve()
         if data_source_dir not in target.parents and target != data_source_dir:
-            message = lang("dataset_editor.api.invalid_image_path")
-            raise HTTPException(status_code=400, detail=message)
+            raise HTTPException(status_code=400, detail={"messageKey": "dataset_editor.api.invalid_image_path"})
         if not target.exists() or not target.is_file():
-            message = lang("dataset_editor.api.image_missing")
-            raise HTTPException(status_code=404, detail=message)
+            raise HTTPException(status_code=404, detail={"messageKey": "dataset_editor.api.image_missing"})
         return FileResponse(target)
 
     @app.post("/training/start")
@@ -1097,7 +1070,7 @@ def create_app() -> FastAPI:
             return check_for_updates()
         except Exception as ex:  # noqa: BLE001 - ensure JSON response
             error(f"System update check failed: {ex}")
-            return {"status": "error", "message": lang("updates.api.check_failed", error=str(ex))}
+            return {"status": "error", "messageKey": "updates.api.check_failed", "messageParams": {"error": str(ex)}}
 
     @app.post("/system/updates/apply")
     def system_updates_apply(payload: Optional[Dict[str, Any]] = Body(default=None)) -> Dict[str, Any]:
@@ -1110,7 +1083,7 @@ def create_app() -> FastAPI:
             return apply_updates(selected_paths)
         except Exception as ex:  # noqa: BLE001 - ensure JSON response
             error(f"System update apply failed: {ex}")
-            return {"status": "error", "message": lang("updates.api.apply_failed", error=str(ex))}
+            return {"status": "error", "messageKey": "updates.api.apply_failed", "messageParams": {"error": str(ex)}}
 
     @app.get("/projects/{project_name}/heatmap")
     def project_heatmap(
@@ -1194,9 +1167,8 @@ def create_app() -> FastAPI:
     ) -> Dict[str, Any]:
         phase = str(payload.get("phase", "")).lower()
         if phase not in {"train", "val"}:
-            message = lang("augmentation.preview_invalid_phase", phase=phase or "?")
             warning(f"Invalid augmentation preview phase '{phase}' requested for project {project_name}")
-            return {"status": "error", "message": message}
+            return {"status": "error", "messageKey": "augmentation.preview_invalid_phase", "messageParams": {"phase": phase or "?"}}
 
         transforms_cfg = payload.get("transforms")
         if not isinstance(transforms_cfg, list):
@@ -1218,9 +1190,8 @@ def create_app() -> FastAPI:
             image_path = _select_preview_image(project_name, phase)
         
         if not image_path:
-            message = lang("augmentation.preview_no_images", project=project_name)
             warning(f"No preview images available for project {project_name}")
-            return {"status": "error", "message": message}
+            return {"status": "error", "messageKey": "augmentation.preview_no_images", "messageParams": {"project": project_name}}
 
         try:
             cache_key = image_path
@@ -1251,11 +1222,10 @@ def create_app() -> FastAPI:
             augmented_base64 = _encode_image_to_base64(augmented_image)
         except Exception as exc:
             error(f"Augmentation preview failed for {project_name}: {exc}")
-            message = lang("augmentation.preview_failed", error=str(exc))
-            return {"status": "error", "message": message}
+            return {"status": "error", "messageKey": "augmentation.preview_failed", "messageParams": {"error": str(exc)}}
 
         rel_path = os.path.relpath(image_path, os.path.join("projects", project_name)).replace("\\", "/")
-        info(lang("augmentation.preview_generated", project=project_name, phase=phase))
+        info(f"Augmentation preview generated for {project_name} ({phase})")
         return {
             "status": "success",
             "phase": phase,

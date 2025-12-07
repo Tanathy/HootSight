@@ -204,6 +204,29 @@ const Lang = {
     },
 
     /**
+     * Get localized message from API response
+     * Handles both old format (message) and new format (messageKey + messageParams)
+     * @param {Object} response - API response object
+     * @param {string} fallback - Fallback message if no message found
+     * @returns {string} - Localized message
+     */
+    getApiMessage: function(response, fallback = '') {
+        if (!response) return fallback;
+        
+        // New format: messageKey + optional messageParams
+        if (response.messageKey) {
+            return this.get(response.messageKey, response.messageParams || {});
+        }
+        
+        // Old format: direct message string (backwards compatibility)
+        if (response.message) {
+            return response.message;
+        }
+        
+        return fallback;
+    },
+
+    /**
      * Check if a key exists
      * @param {string} key - Dot-notation key
      * @returns {boolean}
@@ -229,6 +252,16 @@ const Lang = {
  */
 function lang(key, params = {}) {
     return Lang.get(key, params);
+}
+
+/**
+ * Shorthand function for Lang.getApiMessage()
+ * @param {Object} response - API response object
+ * @param {string} fallback - Fallback message if no message found
+ * @returns {string} - Localized message
+ */
+function langMsg(response, fallback = '') {
+    return Lang.getApiMessage(response, fallback);
 }
 
 // Export for module systems

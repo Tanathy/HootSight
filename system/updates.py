@@ -8,7 +8,7 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 import requests
 
 from system.log import error, info, success, warning
-from system.coordinator_settings import lang, SETTINGS
+from system.coordinator_settings import SETTINGS
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 REMOTE_CONFIG_PATH = "config/system_config.json"
@@ -142,7 +142,7 @@ def _build_plan(
             {
                 "path": path,
                 "status": "missing" if local_hash is None else "outdated",
-                "status_label": lang(status_key),
+                "statusLangKey": status_key,
                 "local_checksum": local_hash,
                 "remote_checksum": remote_hash,
             }
@@ -182,21 +182,18 @@ def check_for_updates(selected_paths: Optional[Iterable[str]] = None) -> Dict[st
         error(f"Update check failed: {exc}")
         return {
             "status": "error",
-            "message": lang("updates.api.check_failed", error=str(exc)),
+            "messageKey": "updates.api.check_failed",
+            "messageParams": {"error": str(exc)},
             "checked_at": timestamp,
         }
 
     count = len(entries)
     info(f"Update check complete: {count} file(s) to update.")
 
-    if count:
-        message = lang("updates.api.check_success", count=count)
-    else:
-        message = lang("updates.api.check_no_updates")
-
     return {
         "status": "success",
-        "message": message,
+        "messageKey": "updates.api.check_success" if count else "updates.api.check_no_updates",
+        "messageParams": {"count": count} if count else {},
         "has_updates": bool(count),
         "files": entries,
         "orphaned": orphaned,
@@ -242,7 +239,8 @@ def apply_updates(selected_paths: Optional[Iterable[str]] = None) -> Dict[str, A
         error(f"Update plan failed: {exc}")
         return {
             "status": "error",
-            "message": lang("updates.api.apply_failed", error=str(exc)),
+            "messageKey": "updates.api.apply_failed",
+            "messageParams": {"error": str(exc)},
             "checked_at": timestamp,
         }
 
@@ -250,7 +248,7 @@ def apply_updates(selected_paths: Optional[Iterable[str]] = None) -> Dict[str, A
         info("No updates to apply.")
         return {
             "status": "noop",
-            "message": lang("updates.api.apply_nothing"),
+            "messageKey": "updates.api.apply_nothing",
             "updated": [],
             "failed": [],
             "orphaned": orphaned,
@@ -286,15 +284,18 @@ def apply_updates(selected_paths: Optional[Iterable[str]] = None) -> Dict[str, A
     if failed:
         warning(f"Partial update completed: {len(updated)} updated, {len(failed)} failed.")
         status = "partial"
-        message = lang("updates.api.apply_partial", updated=len(updated), failed=len(failed))
+        message_key = "updates.api.apply_partial"
+        message_params = {"updated": len(updated), "failed": len(failed)}
     else:
         success(f"Update complete: {len(updated)} file(s) updated.")
         status = "success"
-        message = lang("updates.api.apply_success", updated=len(updated))
+        message_key = "updates.api.apply_success"
+        message_params = {"updated": len(updated)}
 
     return {
         "status": status,
-        "message": message,
+        "messageKey": message_key,
+        "messageParams": message_params,
         "updated": updated,
         "failed": failed,
         "orphaned": orphaned,

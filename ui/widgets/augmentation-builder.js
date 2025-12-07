@@ -16,7 +16,9 @@ class AugmentationBuilder {
         this.options = {
             phase: options.phase || 'train',
             label: options.label || '',
+            labelLangKey: options.labelLangKey || null,
             description: options.description || '',
+            descriptionLangKey: options.descriptionLangKey || null,
             augmentationDefaults: options.augmentationDefaults || {},
             currentPipeline: options.currentPipeline || []
         };
@@ -69,11 +71,17 @@ class AugmentationBuilder {
         
         if (this.options.label) {
             const labelEl = Q('<div>', { class: 'augmentation-builder-label', text: this.options.label }).get(0);
+            if (this.options.labelLangKey) {
+                labelEl.setAttribute('data-lang-key', this.options.labelLangKey);
+            }
             Q(this.element).append(labelEl);
         }
         
         if (this.options.description) {
             const descEl = Q('<div>', { class: 'widget-description', text: this.options.description }).get(0);
+            if (this.options.descriptionLangKey) {
+                descEl.setAttribute('data-lang-key', this.options.descriptionLangKey);
+            }
             Q(this.element).append(descEl);
         }
         
@@ -128,11 +136,13 @@ class AugmentationBuilder {
         
         Q(header).append(switchContainer);
         
-        // Title
+        // Title with localization support
+        const langKey = `augmentations.${augName}`;
         const title = Q('<span>', { 
             class: 'augmentation-item-title',
-            text: this._formatAugmentationName(augName)
+            text: lang(langKey) || this._formatAugmentationName(augName)
         }).get(0);
+        title.setAttribute('data-lang-key', langKey);
         Q(header).append(title);
         
         Q(item.get()).append(header);
@@ -203,23 +213,27 @@ class AugmentationBuilder {
      * Create appropriate widget based on value type
      */
     _createParamWidget(augName, paramKey, defaultValue, currentValue) {
-        const label = this._formatParamName(paramKey);
+        const labelLangKey = `params.${paramKey}`;
+        const labelText = lang(labelLangKey);
+        // Fallback to formatted name if no translation
+        const label = labelText === labelLangKey ? this._formatParamName(paramKey) : labelText;
         const widgetId = `${this.id}-${augName}-${paramKey}`;
         
         // Handle null values - show as optional number
         if (defaultValue === null) {
-            return this._createNullableNumberWidget(widgetId, augName, paramKey, label, currentValue);
+            return this._createNullableNumberWidget(widgetId, augName, paramKey, label, labelLangKey, currentValue);
         }
         
         // Handle arrays - create multiple number inputs
         if (Array.isArray(defaultValue)) {
-            return this._createArrayWidget(widgetId, augName, paramKey, label, defaultValue, currentValue);
+            return this._createArrayWidget(widgetId, augName, paramKey, label, labelLangKey, defaultValue, currentValue);
         }
         
         // Handle booleans - use Switch
         if (typeof defaultValue === 'boolean') {
             const widget = new Switch(widgetId, {
                 label: label,
+                labelLangKey: labelLangKey,
                 default: currentValue
             });
             
@@ -238,6 +252,7 @@ class AugmentationBuilder {
             
             const widget = new NumberInput(widgetId, {
                 label: label,
+                labelLangKey: labelLangKey,
                 default: currentValue,
                 step: step,
                 integer: isInteger,
@@ -265,6 +280,7 @@ class AugmentationBuilder {
                 
                 const widget = new Dropdown(widgetId, {
                     label: label,
+                    labelLangKey: labelLangKey,
                     options: enumOptions,
                     optionLabels: optionLabels,
                     default: currentValue
@@ -280,6 +296,7 @@ class AugmentationBuilder {
                 // Free text - use TextInput widget
                 const widget = new TextInput(widgetId, {
                     label: label,
+                    labelLangKey: labelLangKey,
                     default: currentValue
                 });
                 
@@ -298,12 +315,13 @@ class AugmentationBuilder {
     /**
      * Create a nullable number widget (shows empty when null)
      */
-    _createNullableNumberWidget(widgetId, augName, paramKey, label, currentValue) {
+    _createNullableNumberWidget(widgetId, augName, paramKey, label, labelLangKey, currentValue) {
         // Use TextInput widget with null handling
         const displayValue = currentValue !== null ? String(currentValue) : '';
         
         const widget = new TextInput(widgetId, {
             label: label,
+            labelLangKey: labelLangKey,
             default: displayValue,
             placeholder: 'null'
         });
@@ -325,7 +343,7 @@ class AugmentationBuilder {
     /**
      * Create array widget (multiple number inputs in a row)
      */
-    _createArrayWidget(widgetId, augName, paramKey, label, defaultValue, currentValue) {
+    _createArrayWidget(widgetId, augName, paramKey, label, labelLangKey, defaultValue, currentValue) {
         const arr = Array.isArray(currentValue) ? currentValue : defaultValue;
         
         // Create a wrapper with custom getElement
@@ -340,6 +358,9 @@ class AugmentationBuilder {
         
         // Label
         const labelEl = Q('<label>', { class: 'widget-label', text: label }).get(0);
+        if (labelLangKey) {
+            labelEl.setAttribute('data-lang-key', labelLangKey);
+        }
         Q(wrapper.element).append(labelEl);
         
         // Inputs container

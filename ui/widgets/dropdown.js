@@ -166,10 +166,13 @@ class Dropdown {
             // Use lang() for localization, fallback to key if lang not available
             const text = typeof lang === 'function' ? lang(descKey) : descKey;
             Q(this.dynamicDescEl).text(text);
+            // Add lang key for live translation
+            this.dynamicDescEl.setAttribute('data-lang-key', descKey);
             this.dynamicDescEl.style.display = '';
         } else {
             // No description for this value, hide the element
             Q(this.dynamicDescEl).text('');
+            this.dynamicDescEl.removeAttribute('data-lang-key');
             this.dynamicDescEl.style.display = 'none';
         }
     }

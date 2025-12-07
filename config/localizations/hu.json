@@ -11,11 +11,187 @@
       "missing": "Hiányzó",
       "outdated": "Elavult",
       "orphaned": "Árva"
+    },
+    "api": {
+      "check_failed": "Frissítések ellenőrzése sikertelen: {error}",
+      "check_success": "{count} frissítés érhető el",
+      "check_no_updates": "Nincs elérhető frissítés",
+      "apply_failed": "Frissítések alkalmazása sikertelen: {error}",
+      "apply_nothing": "Nincs alkalmazandó frissítés",
+      "apply_partial": "Részleges frissítés: {updated} frissítve, {failed} sikertelen",
+      "apply_success": "Frissítés kész: {updated} fájl frissítve"
     }
+  },
+  "projects": {
+    "api": {
+      "create_missing": "Projekt név megadása kötelező",
+      "create_length": "A projekt név {min} és {max} karakter közötti kell legyen",
+      "create_invalid": "Érvénytelen projekt név",
+      "create_exists": "A(z) '{name}' nevű projekt már létezik",
+      "create_error": "Projekt létrehozása sikertelen: {error}",
+      "create_success": "A(z) '{name}' nevű projekt sikeresen létrehozva",
+      "delete_invalid": "Érvénytelen projekt név",
+      "delete_not_found": "A(z) '{name}' nevű projekt nem található",
+      "delete_success": "A(z) '{name}' nevű projekt sikeresen törölve",
+      "delete_error": "Projekt törlése sikertelen: {error}",
+      "rename_invalid": "Érvénytelen projekt név",
+      "rename_not_found": "A(z) '{name}' nevű projekt nem található",
+      "rename_missing": "Új projekt név megadása kötelező",
+      "rename_success": "Projekt sikeresen átnevezve: '{name}'",
+      "rename_error": "Projekt átnevezése sikertelen: {error}"
+    }
+  },
+  "dataset_editor": {
+    "api": {
+      "project_not_found": "A(z) '{project}' nevű projekt nem található",
+      "image_not_found": "Nem található kép a(z) '{project}' projektben",
+      "invalid_page_size": "Érvénytelen oldalméret. Engedélyezett: {allowed}",
+      "invalid_size": "Érvénytelen méret. Engedélyezett: {allowed}",
+      "invalid_image_path": "Érvénytelen kép elérési út",
+      "image_missing": "A kép fájl nem található"
+    }
+  },
+  "docs": {
+    "api": {
+      "missing_root": "Dokumentáció gyökérmappa nincs beállítva",
+      "not_found": "A(z) '{path}' dokumentum nem található",
+      "decode_error": "A(z) '{path}' dekódolása sikertelen",
+      "read_failed": "Dokumentum olvasása sikertelen: {error}"
+    }
+  },
+  "augmentation": {
+    "preview_invalid_phase": "Érvénytelen augmentációs fázis: {phase}",
+    "preview_no_images": "Nem található kép a(z) '{project}' projektben",
+    "preview_failed": "Előnézet generálása sikertelen: {error}"
+  },
+  "augmentations": {
+    "random_crop": "Véletlenszerű vágás",
+    "random_resized_crop": "Véletlenszerű átméretezett vágás",
+    "center_crop": "Középre vágás",
+    "random_horizontal_flip": "Véletlenszerű vízszintes tükrözés",
+    "random_vertical_flip": "Véletlenszerű függőleges tükrözés",
+    "random_rotation": "Véletlenszerű forgatás",
+    "color_jitter": "Színremegés",
+    "random_grayscale": "Véletlenszerű szürkeárnyalatos",
+    "random_erasing": "Véletlenszerű kitörlés",
+    "normalize": "Normalizálás",
+    "random_invert": "Véletlenszerű invertálás",
+    "random_posterize": "Véletlenszerű poszterizálás",
+    "random_solarize": "Véletlenszerű szolarizálás",
+    "random_adjust_sharpness": "Véletlenszerű élességállítás",
+    "random_autocontrast": "Véletlenszerű automatikus kontraszt",
+    "random_equalize": "Véletlenszerű kiegyenlítés",
+    "random_perspective": "Véletlenszerű perspektíva"
   },
   "common": {
     "project_label": "Projekt:",
     "cancel": "Mégse"
+  },
+  "params": {
+    "lr": "Tanulási Ráta",
+    "betas": "Béták",
+    "eps": "Epszilon",
+    "weight_decay": "Súlycsökkenés",
+    "amsgrad": "AMSGrad",
+    "momentum": "Momentum",
+    "dampening": "Csillapítás",
+    "nesterov": "Nesterov",
+    "alpha": "Alfa",
+    "centered": "Középre Igazított",
+    "etas": "Éták",
+    "step_sizes": "Lépésméretek",
+    "lr_decay": "LR Csökkenés",
+    "initial_accumulator_value": "Kezdeti Akkumulátor",
+    "rho": "Ró",
+    "max_iter": "Max Iterációk",
+    "max_eval": "Max Kiértékelések",
+    "tolerance_grad": "Gradiens Tolerancia",
+    "tolerance_change": "Változás Tolerancia",
+    "history_size": "Előzmény Méret",
+    "line_search_fn": "Vonalkeresési Függvény",
+    "lambd": "Lambda",
+    "t0": "T0",
+    "momentum_decay": "Momentum Csökkenés",
+    "step_size": "Lépésméret",
+    "gamma": "Gamma",
+    "milestones": "Mérföldkövek",
+    "T_max": "T Max",
+    "eta_min": "Eta Min",
+    "T_0": "T0",
+    "T_mult": "T Szorzó",
+    "mode": "Mód",
+    "factor": "Faktor",
+    "patience": "Türelem",
+    "threshold": "Küszöb",
+    "threshold_mode": "Küszöb Mód",
+    "cooldown": "Lehűlés",
+    "min_lr": "Min LR",
+    "base_lr": "Alap LR",
+    "max_lr": "Max LR",
+    "step_size_up": "Felfelé Lépésméret",
+    "step_size_down": "Lefelé Lépésméret",
+    "scale_fn": "Skála Függvény",
+    "scale_mode": "Skála Mód",
+    "cycle_momentum": "Ciklus Momentum",
+    "base_momentum": "Alap Momentum",
+    "max_momentum": "Max Momentum",
+    "total_steps": "Összes Lépés",
+    "epochs": "Epochok",
+    "steps_per_epoch": "Lépések Epochonként",
+    "pct_start": "Kezdési Százalék",
+    "anneal_strategy": "Hűtési Stratégia",
+    "div_factor": "Osztási Faktor",
+    "final_div_factor": "Végső Osztási Faktor",
+    "three_phase": "Három Fázis",
+    "total_iters": "Összes Iteráció",
+    "power": "Hatványkitevő",
+    "start_factor": "Kezdő Faktor",
+    "end_factor": "Végső Faktor",
+    "lr_lambda": "LR Lambda",
+    "reduction": "Redukció",
+    "p": "P",
+    "margin": "Margó",
+    "swap": "Csere",
+    "size_average": "Méret Átlag",
+    "reduce": "Redukálás",
+    "delta": "Delta",
+    "beta": "Béta",
+    "blank": "Üres",
+    "zero_infinity": "Nulla Végtelen",
+    "log_input": "Log Bemenet",
+    "full": "Teljes",
+    "gain": "Erősítés",
+    "a": "A",
+    "b": "B",
+    "mean": "Átlag",
+    "std": "Szórás",
+    "val": "Érték",
+    "sparsity": "Ritkaság",
+    "groups": "Csoportok",
+    "nonlinearity": "Nemlinearitás",
+    "size": "Méret",
+    "padding": "Kitöltés",
+    "pad_if_needed": "Kitöltés Ha Szükséges",
+    "fill": "Kitöltőérték",
+    "padding_mode": "Kitöltési Mód",
+    "scale": "Skála",
+    "ratio": "Arány",
+    "interpolation": "Interpoláció",
+    "degrees": "Fokok",
+    "expand": "Kiterjesztés",
+    "center": "Középpont",
+    "translate": "Eltolás",
+    "shear": "Nyírás",
+    "distortion_scale": "Torzítási Skála",
+    "brightness": "Fényerő",
+    "contrast": "Kontraszt",
+    "saturation": "Telítettség",
+    "hue": "Színárnyalat",
+    "value": "Érték",
+    "inplace": "Helyben",
+    "bits": "Bitek",
+    "sharpness_factor": "Élesség Faktor",
+    "transforms": "Transzformációk"
   },
   "nav": {
     "projects": "Projektek",
@@ -418,14 +594,14 @@
     "memory_batch_size_limits_large_description": "Nagy batch méret figyelmeztetési küszöb",
     "training_description": "Tanítási konfiguráció",
     "training_model_type_title": "Modell típus",
-    "training_model_type_description": "Modellarchitektúra családja",
+    "training_model_type_description": "Válaszd ki a neurális hálózat architektúra családját. Minden architektúra egyedi jellemzőkkel bír a pontosság, inferencia sebesség, memóriahasználat és modellfájl méret tekintetében. A választásod a telepítési célponttól (szerver, mobil, edge eszköz) és pontossági követelményektől függjön.",
     "training_model_type_enum_descriptor": {
-      "resnet": "ResNet - Mély residual hálók",
-      "resnext": "ResNeXt - Aggregált residual transzformációk",
-      "mobilenet": "MobileNet - Hatékony mobil hálók",
-      "shufflenet": "ShuffleNet - Könnyű, gyors hálók",
-      "squeezenet": "SqueezeNet - Ultra kompakt hálók",
-      "efficientnet": "EfficientNet - Összetetten skálázott hálók"
+      "resnet": "ResNet (Residual Networks) - Az alapvető mélytanulási architektúra, ami bevezette a skip kapcsolatokat, megoldva az eltűnő gradiens problémát és lehetővé téve nagyon mély hálózatok (akár 152 réteg) tanítását. A ResNet az ipari benchmark bizonyított megbízhatósággal számtalan alkalmazásban. Kiváló egyensúlyt kínál pontosság és számítási költség között. A ResNet50 a legnépszerűbb változat, ~76% ImageNet top-1 pontossággal. Ideális: általános képosztályozás, transfer learning alap, orvosi képalkotás, minőségellenőrzés, arcfelismerés. Válaszd a ResNet18/34-et gyorsabb inferenciához, ResNet101/152-t amikor a maximális pontosság kritikus.",
+      "resnext": "ResNeXt (Residual Networks with Aggregated Transformations) - A ResNet továbbfejlesztése, ami bevezeti a kardinalitást (párhuzamos útvonalak száma) új dimenzióként a mélység és szélesség mellett. Csoportos konvolúciókat használ gazdagabb jellemzőreprezentációk tanulásához. 1-2%-kal magasabb pontosságot ér el mint az egyenértékű ResNet modellek hasonló számítási költséggel. A 32x4d konfiguráció 32 párhuzamos útvonalat jelent 4-dimenziós transzformációkkal. Ideális: finomított vizuális felismerés (madárfajok, autómodellek), komplex többattribútumos osztályozás, divat/stílus elemzés, textúrafelismerés, esetek amikor a ResNet pontossága eléri a platót. Legjobb amikor extra pontosságra van szükség nagyobb architektúraváltás nélkül.",
+      "mobilenet": "MobileNet (Mobile Networks) - Kifejezetten mobil és beágyazott eszközökre tervezve, depthwise separable konvolúciókkal amelyek drasztikusan csökkentik a számítást. A MobileNetV3 neurális architektúra keresést (NAS) és squeeze-and-excitation blokkokat tartalmaz. A ResNet50 pontosságának 75-80%-át éri el, miközben 3-5x gyorsabb és 10x kisebb modellmérettel. Tipikus inferencia: <10ms modern telefonokon. Ideális: iOS/Android appok, Raspberry Pi, Jetson Nano, valós idejű videófeldolgozás, AR/VR alkalmazások, drón-látás, IoT szenzorok, okoskamerák, kiskereskedelmi analitika. Válaszd a V3-Small-t ultra-gyors inferenciához, V3-Large-ot jobb pontossághoz miközben mobil-barát marad.",
+      "shufflenet": "ShuffleNet - Maximális hatékonyságra tervezve CPU-n és alacsony fogyasztású eszközökön channel shuffle műveletekkel és pointwise group konvolúciókkal. Kiváló sebesség-pontosság kompromisszumot ér el az információ hatékony keverésével a csatornacsoportok között. Még a MobileNetnél is gyorsabb csak-CPU eszközökön. Modellméretek az ultra-könnyűtől (x0.5, ~1MB) a képesebbig (x2.0, ~7MB). Ideális: szigorú késleltetési követelmények (<5ms), robotikai látás, viselhető eszközök, mindig-aktív okoskamerák, forgalomfigyelés, ipari vizsgálat erőforrás-korlátozott hardveren, elemmel működő eszközök. Nem ajánlott maximális pontosságot vagy finom részletfelismerést igénylő feladatokhoz.",
+      "squeezenet": "SqueezeNet - A legkompaktabb architektúra, AlexNet-szintű pontosságot ér el 50x kevesebb paraméterrel innovatív Fire modulok (squeeze és expand rétegek) használatával. Modellméret akár ~5MB (vagy ~0.5MB mély tömörítéssel). Extrém modell-tömörítésre tervezve elfogadható pontosság megtartásával. Ideális: mikrokontrollerek <10MB tárolóval, FPGA telepítés, over-the-air modellfrissítések sávszélesség-korlátozott eszközökön, beágyazott rendszerek szigorú memóriakorlátokkal, mindig-aktív látásalkalmazások ahol az energiafogyasztás kritikus. A SqueezeNet 1.1 2.4x gyorsabb mint az 1.0. Nem ajánlott komplex feladatokhoz vagy nagy adathalmazokhoz - a korlátozott kapacitás alultanulást okoz.",
+      "efficientnet": "EfficientNet - Legmodernebb architektúra összetett skálázással, ami egyenletesen skálázza a hálózat mélységét, szélességét és felbontását fix arányokkal, amelyeket neurális architektúra keresésből származtattak. Kategóriájában legjobb pontosságot ér el, miközben 8-10x hatékonyabb mint korábbi architektúrák. Az EfficientNet-B0 eléri a ResNet50 pontosságát 5x kevesebb paraméterrel. A B4-B7 változatok akár 84%+ ImageNet pontosságot érnek el. Az EfficientNetV2 gyorsabb tanítást kínál progresszív tanulással. Ideális: maximális pontossági követelmények, orvosi képelemzés (röntgen, MRI, patológia), finomított felismerés (fajfelismerés, hibadetektálás), műholdas/légi képek, tudományos képalkotás, művészeti hitelesítés, kriminalisztikai elemzés. Az arany standard amikor a pontosság a legfontosabb."
     },
     "training_model_name_title": "Modell név",
     "training_model_name_description": "Konkrét modellváltozat",
@@ -476,22 +652,22 @@
     "training_augmentation_train_description": "Augmentációk a tanítási adatokhoz",
     "training_augmentation_val_title": "Validációs augmentáció",
     "training_augmentation_val_description": "Augmentációk a validációs adatokhoz",
-    "training_optimizer_type_title": "Optimalizáló típus",
-    "training_optimizer_type_description": "Optimalizáló algoritmus",
+    "training_optimizer_type_title": "Optimalizalo tipus",
+    "training_optimizer_type_description": "Az optimalizalasi algoritmus hatarozza meg, hogyan frissulnek a modell sulyai a tanitas soran. Minden optimalizalonak mas jellemzoi vannak a konvergencia sebessegere, stabilitasara es memoriahasznalatara vonatkozoan. A helyes valasztas fugg a modell meretetol, az adathalmaztol es a tanitasi celoktol.",
     "training_optimizer_type_enum_descriptor": {
-      "sgd": "SGD - Stochastic Gradient Descent",
-      "adam": "Adam - Adaptive Moment Estimation",
-      "adamw": "AdamW - Adam leválasztott súlycsökkenéssel",
-      "adamax": "Adamax - Adam végtelen normával",
-      "nadam": "NAdam - Adam Nesterov-momentummal",
-      "radam": "RAdam - Rectified Adam",
-      "rmsprop": "RMSprop - Root Mean Square Propagation",
-      "rprop": "Rprop - Resilient Propagation",
-      "adagrad": "Adagrad - Adaptive Gradient",
-      "adadelta": "Adadelta - Adaptive Delta",
-      "sparse_adam": "Sparse Adam - Adam ritka tenzorokhoz",
-      "lbfgs": "L-BFGS - Limited-memory BFGS",
-      "asgd": "ASGD - Averaged SGD"
+      "sgd": "SGD (Stochastic Gradient Descent) - A klasszikus, alapveto optimalizalo. A sulyokat a negativ gradiens iranyaba mozgatja, a tanulasi ratával skalazva. Momentummal gyorsabb konvergenciat es simabb frissiteseket biztosit. Egyszeru, memoriahatekonyes jol ismert. Legjobb: nagylepteku tanitas, reprodukalhatosag, elotreniroztt modellek finomhangolasa, ConvNet-ek megfelelő LR utemezéssel. Varhato eredmenyek: megbizhato konvergencia, gyakran a legjobb vegso pontossag megfelelő hangolassal. Gondos tanulasi rata valasztast es tipikusan LR ütemezoet igenyel.",
+      "adam": "Adam (Adaptive Moment Estimation) - Egyesiti a momentumot (elso momentum) az RMSprop adaptiv tanulasi ratajaval (masodik momentum). Parameterenkenti tanulasi ratakat tart fenn, amelyek a gradiens tortenete alapjan alkalmazkodnak. Gyors konvergencia minimalis hiperparamter hangolassal. Legjobb: gyors prototipalashoz, transformerekhez, NLP feladatokhoz, ritka gradiensekhez, ha jo eredmenyt akarsz kiterjedt hangolas nelkul. Varhato eredmenyek: gyors kezdeti konvergencia, jo alapertelmezett teljesitmeny. Nehany vizualis feladaton valamivel gyengebb altalanositast nyujthat, mint a jol hangolt SGD.",
+      "adamw": "AdamW (Adam levalasztott sulycsokkentessel) - Kijavitja az Adam sulycsokkenest megvalositasat azaltal, hogy levalasztja a gradiens frissitesekrol. Ez a HELYES modja az L2 regularizacio alkalmazasanak adaptiv optimalizaloknal. Ajanlott a standard Adam helyett a legtobb esetben. Legjobb: barmely feladathoz, ahol Adam-et hasznalnal, kulonosen sulycsokkentessel/regularizacioval, transformerekhez, modern architekturakhoz. Varhato eredmenyek: jobb altalanositasa mint az Adam, hatekonysabb regularizacio, gyakran a legjobb alapertelmezett valasztas melytenulashoz.",
+      "adamax": "Adamax - Adam valtozat, amely vegtelen normat (max) hasznal L2 norma helyett a masodik momentumhoz. Stabilabb nagy vagy ritka gradienseknel. Kevesbe erzekeny a tanulasi rata valasztasra. Legjobb: beagyazasok nagy szotarral, NLP feladatok, amikor az Adam instabil viselkedest mutat, ritka vagy zajos gradiensek. Varhato eredmenyek: stabilabb tanitas mint az Adam szelsoseges esetekben, hasonlo konvergencia sebesseg.",
+      "nadam": "NAdam (Nesterov-gyorsitott Adam) - Nesterov momentumot eprit be az Adam-be, elore tekinto gradiens szamitast biztositva. Egyesiti a gyors adaptiv tanulast a jobb momentummal. Legjobb: feladatok, amelyek profitalnak a Nesterov momentumbol, RNN-ek, szekvencia modellek, amikor gyorsabb konvergenciat szeretnel mint Adam. Varhato eredmenyek: valamivel gyorsabb konvergencia mint Adam, jobb gradiens zaj kezeles.",
+      "radam": "RAdam (Rectified Adam) - Kezeli az Adam variancia problemajat a korai tanitasban egy korrekcios tag bevezetesevenl. Automatikus bemelegittest biztosit explicit LR bemelegitesi utemterv nelkul. Stabilabb korai tanitas. Legjobb: nullarol indulo tanitas bemelegites nelkul, amikor az Adam ingadozo korai viselkedest mutat, automatizalt pipeline-ok ahol a manualis bemelegites hangolas nem lehetseges. Varhato eredmenyek: stabil tanitas az elso lepestol, nem kell bemelegites, hasonlo vegso teljesitmeny mint Adam.",
+      "rmsprop": "RMSprop (Root Mean Square Propagation) - A tanulasi ratat elosztja a legutobbi gradiens ertekek mozgo atlaganak negyzetgyokevel. Parameterenkent adaptiv tanulasi rata. Az Adam elofutara momentum komponens nelkul. Legjobb: RNN-ek es rekurrens architekturak, nem-stacioner celok, online tanulas. Varhato eredmenyek: jo rekurrens halozatokhoz, kevesbe hatekony mint az Adam a legtobb CNN feladathoz.",
+      "rprop": "Rprop (Resilient Propagation) - Csak a gradiensek elojelet hasznalja, az erteket nem. Minden parameternek sajat adaptiv lepesmerete van, amely no, ha a gradiens elojele konzisztens, es csokken elojelvaltaskor. Legjobb: csak teljes batch tanitas, kis adathalmazok amelyek befernek a memoriaba, amikor a gradiens ertekek megbizhatatlanak. Varhato eredmenyek: gyors konvergencia teljes batch-hez, NEM alkalmas mini-batch tanitasra (nem fog mukodni).",
+      "adagrad": "Adagrad (Adaptive Gradient) - Osszegyujti az osszes korabbi negyzetes gradienst, a gyakran frissitett parametereknek kisebb tanulasi ratat adva. Jo ritka feature-okhoz. Legjobb: ritka adatok (NLP, ajanlasok), nagyon kulonbozo gyakorisagu feature-ok, amikor egyes parametereknek sokkal kisebb frissitesekre van szukseguk. Varhato eredmenyek: jol kezeli a ritka gradienseket. Hatrany: a tanulasi rata folyamatosan csokken, tul korán leallithatja a tanulast suru feladatokon.",
+      "adadelta": "Adadelta - Kezeli az Adagrad csökkeno tanulasi ratajat azaltal, hogy ablakozott akkumulalt gradienseket hasznal az osszes korabbi gradiens helyett. Nem kell kezdeti tanulasi ratat beallitani. Legjobb: amikor nem akarod hangolni a tanulasi ratat, Adagrad folytatas tanulasi rata csokkenes nelkul. Varhato eredmenyek: fenntartottabb tanulas mint Adagrad, de altalaban az Adam csalad felulmarja.",
+      "sparse_adam": "Sparse Adam - Adam valtozat ritka gradiens tenzorokhoz optimalizalva. Csak azokat a parametereket frissiti, amelyek nem nulla gradienst kaptak. Memoriahatekonyas nagy beagyazasi tablakhoz. Legjobb: nagy beagyazasi retegek, ritka NLP feladatok, ajanlo rendszerek hatalmas elem katalogussal. Varhato eredmenyek: ugyanaz mint Adam, de jobb memoriahatekonysaggal ritka frissitesekhez.",
+      "lbfgs": "L-BFGS (Limited-memory BFGS) - Masodrendu optimalizalo, amely korlátozott memóriaval becsli a Hesse-matrixot. Eros, de teljes batch gradienseket igenyel. Legjobb: kis adathalmazok, neural stílus transzfer, fizikai informált halozatok, amikor teljes batch gradiensek szamithatoak. Varhato eredmenyek: nagyon gyors konvergencia ahol alkalmazhato. NEM alkalmas mini-batch tanitasra vagy nagy adathalmazokra.",
+      "asgd": "ASGD (Averaged SGD) - A parameterek futó átlagát tartja fenn a tanitas soran, es az átlagolt sulyokat hasznalja a vegso modellhez. Elmeleti konvergencia garantákat biztosít. Legjobb: konvex vagy majdnem konvex problemak, amikor elmeleti garantakat szeretnel, egyszeru modellek. Varhato eredmenyek: jo konvergencia egyszeru modellek esetén, kevésbé hatekony mely halozatokhoz az Adam/SGD momentummal osszhasonlitva."
     },
     "training_optimizer_lr_title": "Optimalizáló LR",
     "training_optimizer_lr_description": "Optimalizáló tanulási rátája",
@@ -499,21 +675,21 @@
     "training_optimizer_weight_decay_description": "Optimalizáló súlycsökkenése",
     "training_optimizer_params_title": "Optimalizáló paraméterek",
     "training_optimizer_params_description": "Optimalizálóra jellemző paraméterek",
-    "training_scheduler_type_title": "Ütemező típus",
-    "training_scheduler_type_description": "Tanulási ráta ütemező",
+    "training_scheduler_type_title": "Utemezo tipus",
+    "training_scheduler_type_description": "A tanulasi rata utemezese szabalyozza, hogyan valtozik a tanulasi rata a tanitas soran. A megfelelo utemezes dràmaian javithatja a konvergenciat, a vegso pontossagot es a tanitasi stabilitast. Különbözo ütemezok kulonbozo tanitasi sceariokhoz es modell architekturakhoz alkalmasak.",
     "training_scheduler_type_enum_descriptor": {
-      "step_lr": "Step LR - Csökkentés faktorral minden N epók után",
-      "multi_step_lr": "Multi-Step LR - Csökkentés megadott epóknál",
-      "exponential_lr": "Exponential LR - Exponenciális csökkenés",
-      "cosine_annealing_lr": "Cosine Annealing - Koszinusz alapú csökkenés",
-      "cosine_annealing_warm_restarts": "Cosine meleg újraindításokkal",
-      "reduce_lr_on_plateau": "Reduce on Plateau - Csökkentés, ha a metrika platóra ér",
-      "cyclic_lr": "Cyclic LR - Ingadozó tanulási ráta",
-      "one_cycle_lr": "One Cycle - Gyors konvergencia politika",
-      "polynomial_lr": "Polynomial LR - Polinomiális csökkenés",
-      "linear_lr": "Linear LR - Lineáris bemelegítés/csökkenés",
-      "lambda_lr": "Lambda LR - Egyedi csökkenési függvény",
-      "multiplicative_lr": "Multiplicative LR - Multiplikatív csökkenés"
+      "step_lr": "Step LR - Csokkenti a tanulasi ratat fix faktorral (gamma) minden N epok utan. Egyszeru es kiszamithato. Legjobb: standard tanitasi utemtervek, ha nagyjából tudod, mikor csökkentsd az LR-t, alapvonali kislerletek. Varhato eredmenyek: egyenletes tanitas periodikus ugrasokkal a vesztesegben LR eséskor, majd tovabi javulas. Tipikusan 0.1-szeresre csokkentjük minden 30-50 epokkel.",
+      "multi_step_lr": "Multi-Step LR - Csokkenti a tanulasi ratat megadott epok merfolkoknel. Több kontroll, mint a Step LR. Legjobb: ha pontosan tudod, mely epokokban kell az LR-nek esnie, publikalt tanitasi utemtervek reprodukalasakor, finomhangolt kontroll. Varhato eredmenyek: hasonlo a Step LR-hez, de egyedi idozitessel. Gyakori minta: csökkentes a teljes epokszam 60%-ánál es 80%-anal.",
+      "exponential_lr": "Exponential LR - A tanulasi ratat minden epoknal gamma-val szorozza a folyamatos sima csokkenes erdekeben. Legjobb: fokozatos finomhangolas, amikor a lepcsozetes esések tul hirtelenek, hosszu tanitasi futasok. Varhato eredmenyek: sima, folyamatos LR csokkenes. Gondos gamma valasztast igenyel (tipikusan 0.95-0.99), hogy ne csökkenjen túl gyorsan.",
+      "cosine_annealing_lr": "Cosine Annealing - A tanulasi rata koszinusz gorbet kovet a kezdeti es minimum ertek között. Sima csokkenes ami a vege fele lassul. Nagyon nepszeru modern tanitashoz. Legjobb: fix hosszusagu tanitas, legjobb vegso pontossag eleresekor, legtobb CNN tanitashoz, verseny modellekhez. Varhato eredmenyek: kituno vegso pontossag, sima tanitas. A minimum felé közeledő finom csökkenes finomabb konvergenciát tesz lehetove.",
+      "cosine_annealing_warm_restarts": "Cosine meleg ujrainditasokkal - Koszinusz meghuzas periodikus visszaallitassal a kezdeti LR-re. Minden ujrainditas kulonbozo vesztesegfelulet regiokat derít fel. Legjobb: lokalis minimumokbol valo menekules, ensemble-szeru egymodellu tanitas, amikor az egyszeri koszinusz platohoz ér. Varhato eredmenyek: jobb optimumot talalhat mint az egyszeri csokkenes, minden ujrainditas javithat vagy masképp derihet fel. Jo hosszabb tanitashoz.",
+      "reduce_lr_on_plateau": "Reduce on Plateau - Figyel egy metrikat (altalaban val_loss) es csökkenti az LR-t, ha leall a javulas. Adaptiv es nem igenyel epoktervezest. Legjobb: ha nem tudod az optimalis utemetervt, valtozo hosszusagu tanitas, ha a validacios veszteseg viselkedese kiszamithatatlan. Varhato eredmenyek: automatikus alkalmazkodas a tanitasi dinamikahoz. Tovabb tanithat, de automatikusan megtalalja a jo LR-t.",
+      "cyclic_lr": "Cyclic LR - A tanulasi rata oszcillal a minimum és maximum hatarok között. Triangularis, triangular2 vagy exp_range szabályzatok hasznalhatok. Legjobb: lokalis minimumokbol valo menekules, több LR tartomány felderitese, szuperkonvergencia kísérletek. Varhato eredmenyek: periodikus veszteseg oszcillacio, potencialisan jobb altalanosittas. Gondos hatarvalasztast igenyel.",
+      "one_cycle_lr": "One Cycle - Alacsonyan kezd, felmegy a max LR-re, majd lemegy. Szuperkonvergenciat tesz lehetove nagyon magas tanulasi ratakkal. Legjobb: gyors tanitas magas LR-rel, jo pontossag gyors elerese, korlátozott tanulasi ido. Varhato eredmenyek: gyors konvergencia, gyakran megfelel vagy felulmulja a hosszabb utemterveket kevesebb ido alatt. Megfelelo max LR valasztast igenyel (LR tartomany teszt ajanlott).",
+      "polynomial_lr": "Polynomial LR - Polinomialis fuggvennyel csokkenti a tanulasi ratat a megadott hatvannyal. Hatvany=1 linearis, magasabb hatvanyok eleinte gyorsabban csokkennek. Legjobb: finomhangolt kontroll a csokkenes gorbe alakjan, adott publikalt utemtervek kovetesehez. Varhato eredmenyek: testreszabhato csokkenes alak. Hatvany=2 (negyzetes) gyorsabb korai csokkenest es lassabb keso csokkenest ad.",
+      "linear_lr": "Linear LR - Egyszeru linearis interpolacio a kezdo es veg tanulasi ratak kozott. Bemelegites (novekvo) vagy csokkenes (csokkeno) megvalositasara. Legjobb: bemelegitesi fazisok, egyszeru ertelmezheto utemtervek, mas ütemezokkel kombinalalva. Varhato eredmenyek: kiszamithato, egyenletes LR valtozas. Gyakran az elso néhany epok bemelegítesre hasznaljak.",
+      "lambda_lr": "Lambda LR - Felhasznalo altal definialt fuggveny hatarozza meg az LR-t minden epokban. Maximalis rugalmassag. Legjobb: egyedi utemtervek, kutatas kísérletek, ha nincs beepitett utemezo ami megfelel. Varhato eredmenyek: amit a fuggvenyed definal. Egyedi lambda fuggveny programozasat igenyeli.",
+      "multiplicative_lr": "Multiplicative LR - Az aktualis LR-t szorozza a felhasznalo fuggvenye altal visszaadott faktorral minden epokban. Kumulativ hatas. Legjobb: egyedi csokkenes mintak, ha az utemtervet az aktualis LR-tol akarod fuggeteni. Varhato eredmenyek: a multiplikativ fuggvenyed fuggvenye. Hasznos egyedi adaptiv utemtervek megvalositasahoz."
     },
     "training_scheduler_step_size_title": "Lépésköz",
     "training_scheduler_step_size_description": "Ütemező lépésköze (epók)",
@@ -521,28 +697,28 @@
     "training_scheduler_gamma_description": "Tanulási ráta csökkentési tényező",
     "training_scheduler_params_title": "Ütemező paraméterek",
     "training_scheduler_params_description": "Ütemezőre jellemző paraméterek",
-    "training_loss_type_title": "Veszteségfüggvény típus",
-    "training_loss_type_description": "Veszteségfüggvény",
+    "training_loss_type_title": "Veszteségfüggveny tipus",
+    "training_loss_type_description": "A veszteségfüggvenyek mérik, mennyire illeszkednek a modell predikcióiai a valódi értékekhez. A veszteségfuggveny valasztasa alapvetoeen meghatàrozza, mit tanul a modell. Különbözo vesztesegeknek kulonbozo gradiensei, erzekenyséégei es viselkedesei vannak. A rossz valasztas taniitasi hibat, gyenge altalanositast vagy elfogult elorejelzeseket okozhat.",
     "training_loss_type_enum_descriptor": {
-      "cross_entropy": "Cross Entropy - Standard osztályozási veszteség",
-      "nll_loss": "NLL Loss - Negatív log-valószínűség",
-      "bce_loss": "BCE Loss - Bináris keresztentrópia",
-      "bce_with_logits": "BCE with Logits - BCE szigmoiddal",
-      "multi_margin": "Multi-Margin - Hinge alapú többosztályos",
-      "multi_label_margin": "Multi-Label Margin - Többcímkés hinge",
-      "multi_label_soft_margin": "Multi-Label Soft Margin - Lágy többcímkés",
-      "mse_loss": "MSE Loss - Négyzetes középérték hiba",
-      "l1_loss": "L1 Loss - Átlagos abszolút hiba",
-      "smooth_l1": "Smooth L1 - Huber-szerű veszteség",
-      "huber_loss": "Huber Loss - Robusztus regresszió",
-      "kl_div": "KL Divergence - Eloszlásillesztés",
-      "margin_ranking": "Margin Ranking - Páronkénti rangsorolás",
-      "hinge_embedding": "Hinge Embedding - Beágyazási veszteség",
-      "triplet_margin": "Triplet Margin - Metrikatanulás",
-      "cosine_embedding": "Cosine Embedding - Koszinusz hasonlóság",
-      "ctc_loss": "CTC Loss - Szekvencia-szekvencia",
-      "poisson_nll": "Poisson NLL - Diszkrét számadat veszteség",
-      "gaussian_nll": "Gaussian NLL - Regresszió bizonytalansággal"
+      "cross_entropy": "Cross Entropy - Standard veszteség több osztalyos klasszifikaciohoz. Egyesiti a log-softmax es NLL veszteséget. Erosen bunteti a magabiztos hibás elorejelzeseket. Legjobb: kep klasszifikacio, legtobb több-osztalyos problema, kolcsonosen kizaro kategoriak. Vàrhato eredmenyek: jol kalibralt valoszínusegek, gyors konvergencia kiegyensúlyozott adatokon. NEGATIV HATASOK: Kuzdhet osztalykiegyensúlyozatlansaggal (ritka osztalyok figyelmen kivul maradnak), nagyon erzekeny a cimke zajra (felre cimkezett mintak nagy gradienseket okoznak), tulzott magabiztossag eloszlaston kivuli adatokon.",
+      "nll_loss": "NLL Loss (Negativ Log-Valoszinuseg) - Log-valoszinusegeket var bemenetként (elotte log_softmax alkalmazasa). Matematikailag egyenertek a cross_entropy-val, ha log_softmax-szal kombinalva. Legjobb: ha explicit log-softmax szukseges mas celokra, egyedi valoszinuseg kezeles. Varhato eredmenyek: ugyanaz mint cross_entropy. NEGATIV HATASOK: Ugyanazok mint cross_entropy. Emellett a log_softmax elfelejtese csendes hibat okoz rossz gradiensekkel.",
+      "bce_loss": "BCE Loss (Binaris Keresztentropia) - Binariss klasszifikaciohoz vagy több-címkes problemakhoz. Valoszinusegeket var (elotte sigmoid alkalmazasa). Minden kimenet fuggetlen binaris dontes. Legjobb: binaris klasszifikacio, több-címkes klasszifikacio, ahol az elemek tobbszoros címkevel rendelkezhetnek. Varhato eredmenyek: fuggetlen valoszinuseg osztalyonkent, jo több-címkes feladatokhoz. NEGATIV HATASOK: Numerikusan instabil szelsoseges predikcioknal (hasznalj bce_with_logits-ot helyette), erzekeny osztalykiegyensulyozatlansagra több-címkes beallitasokban, gondos kuszobertek valasztast igenyel a predikciokhoz.",
+      "bce_with_logits": "BCE with Logits - Numerikusan stabil BCE, ami egyesiti a sigmoid-ot és BCE-t egy muveletben. Elonyben reszesitendo a kulon sigmoid + BCE helyett. Legjobb: minden eset, ahol BCE veszteseget használnal, binaris es több-címkes klasszifikacio. Varhato eredmenyek: stabil tanitas, ugyanaz az eredmeny mint BCE, de robusztusabb. NEGATIV HATASOK: Ugyanazok a konceptualis problemak mint BCE (osztalykiegyensulyozatlansag, kuszobertek valasztas), de numerikusan stabil. Tovabbra is küzd szélsoséges pozitiv/negativ kiegyensulyozatlansaggal.",
+      "multi_margin": "Multi-Margin Loss - Hinge-alapu veszteseg több-osztalyos SVM-stílusu klasszifikaciohoz. Margenst hoz letre a helyes osztaly es a tobbi kozott. Legjobb: SVM-stílusu osztalyozok, ha maximalis margo elvalasztast szeretnel, robusztus klasszifikacio. Varhato eredmenyek: nagyobb margók osztalyok kozott, potencialisan robusztusabb a kiugro ertekekre mint a cross_entropy. NEGATIV HATASOK: Nehezebb a margen paramétert hangolni, nem general kalibralt valószinusegeket (a kimenetek nem értelmezhetok bizalomkent), lassabban konvergalhat mint a cross_entropy.",
+      "multi_label_margin": "Multi-Label Margin Loss - Margó-alapu veszteseg több-cimkes klasszifikaciohoz. Biztositja, hogy a pozitiv cimkek magasabban pontszamoznak mint a negativ cimkek egy margennel. Legjobb: több-cimkes rangsorolas, ahol a relativ sorrend szamit, több-cimkes SVM-ek. Varhato eredmenyek: pozitiv cimkek konzisztensen a negativak feltt pontszamoznak. NEGATIV HATASOK: Nem biztosit kalibralt valoszinusegeket, erzekeny a margen hiperparameterre, gondot okozhat, ha a pozitiv es negativ cimkek nagyon kulonbozo gyakorisaguak.",
+      "multi_label_soft_margin": "Multi-Label Soft Margin - Sigmoid keresztentropia több-cimkeshez, minden cimket fuggetlen binariskent kezelve. Lenyegeben BCE minden cimkere. Legjobb: több-cimkes klasszifikacio, standard valasztas több-cimkes problemakhoz. Varhato eredmenyek: hasonlo a BCE-hez, jol kezeli a tobbszoros cimkeket. NEGATIV HATASOK: Minden cimke fuggetlenul tanul, figyelmen kivul hagyva a címke összefuggeseket, a kiegyensulyozatlan cimkek dominalalhatjak a tanitast, kovetkezetlen cimke kombinaciokat josolhat.",
+      "mse_loss": "MSE Loss (Atlagos Negyzetes Hiba) - Negyzetes kulonbseg a predikciok és célértekek kozott. Standard regresszios veszteseg. Erosen bunteti a nagy hibakat (kvadratikus). Legjobb: regresszios feladatok, folytonos ertekek elorejelzese, Gauss eloszlasu hibaknal. Varhato eredmenyek: predikciok az átlag kore csoportosulnak, erzekeny kiugro ertekekre. NEGATIV HATASOK: Nagyon erzekeny kiugro ertekekre (egyetlen kiugro ertek dominalja a veszteseget), atlagertekeket jósol ketertelmuu esetekben, gradiens robbanast okozhat nagy hibakkal a tanitas elejen.",
+      "l1_loss": "L1 Loss (Atlagos Abszolut Hiba) - Abszolut kulonbseg predikciok es celertekek kozott. Linearis buntetes, robusztusabb kiugro ertekekre mint az MSE. Legjobb: regresszio kiugro ertekekkel, median predikciok, robusztus becsles. Varhato eredmenyek: predikciok kozelebb a medianhoz, kevesbe befoyasolva kiugro ertekekrl. NEGATIV HATASOK: Nem-sima gradiens nullanal (megszakadas), instabil frissiteseket okozhat a helyes predikciok kozeleben, lassabb konvergencia mint MSE tiszta adatokon.",
+      "smooth_l1": "Smooth L1 Loss - Egyesiti az L1-et es L2-t: kvadratikus amikor a hiba kicsi, linearis amikor nagy. Mindketto elonyei. Legjobb: objektum detekció (hatolo doboz regresszio), robusztus regresszio, MSE elonyei kiugro ertek erzekenysheg nelkul. Varhato eredmenyek: stabil tanitas, robusztus kiugro ertekekre, sima gradiensek. NEGATIV HATASOK: Beta parameter hangolast igenyel az atmeneti ponthoz, meg mindig valamelyest erzekeny kiugro ertekekre (csak kevesbe mint MSE), hiperparamter bonyolultsagot ad hozza.",
+      "huber_loss": "Huber Loss - Hasonlo a Smooth L1-hez. Kvadratikus kis hibakra, linearis nagyokra. Robusztus regresszio standard. Legjobb: regresszio potencialis kiugro ertekekkel, pénzugyi elorejelzesek, minden regresszio ahol kiugro ertekek lehetsegesek. Varhato eredmenyek: robusztus predikciok, sima konvergencia. NEGATIV HATASOK: A delta parameter hangolast igenyel a hiba skalajàhoz, rossz delta tisztan L1 vagy MSE egyenertekuve teszi, megszuntetve az elonyoket.",
+      "kl_div": "KL Divergence (Kullback-Leibler) - Meri, mennyire tér el egy valoszinusegi eloszlas a masiktol. Eloszlas illesztesre hasznalt. Legjobb: tudas desztillacio, VAE regularizacio, kimenet illesztese cel eloszlashoz. Varhato eredmenyek: a kimeneti eloszlas közelít a cel eloszlashoz. NEGATIV HATASOK: Aszimmetrikus (KL(P||Q) != KL(Q||P)), vegtelen ha a celnak nullai vannak ahol a predikcioanak nincsenek, gondos log-valoszinuseg kezeleest igenyel, mod-kereso viselkedés kihhagyatja a többmodus celokat.",
+      "margin_ranking": "Margin Ranking Loss - Parok rangsorolasat tanitja: x1 magasabban rangsoroljon mint x2, ha y=1. Margó-alapu parus rangsorolas. Legjobb: rangsorolas tanulas, ajanlo rendszerek, amikor a relativ sorrend fontosabb mint az abszolut ertekek. Varhato eredmenyek: helyesen rangsorolt parok margen elvalasztassal. NEGATIV HATASOK: Par generalast igenyel (kvadratikus bonyolultsag), nem optimalizal kozvetlenul lista-szintu rangsorolasi metrikkara, margen parameter hangolast igenyel, erzekeny a par mintatveteli strategiara.",
+      "hinge_embedding": "Hinge Embedding Loss - Beagyazasok tanulasahoz, ahol hasonlo elemek kozel legyenek, kulonbozok tavol. Hinge loss megfogalmazast hasznal. Legjobb: beagyazas tanulas, hasonlosag tanulas, metrikus tanulas parokkal. Varhato eredmenyek: ertelmes beagyazasi ter margen elvalasztassal. NEGATIV HATASOK: Nehez a margen hangolasa, osszeomolhatnak a beagyazasok ha a margen tul nagy, gondos pozitiv/negativ par banyaszatot igenyel.",
+      "triplet_margin": "Triplet Margin Loss - Horgony, pozitiv es negativ mintakat vesz. Beagyazasokat tanit ahol a horgony kozelebb van a pozitivhoz mint a negativhoz egy margennyel. Legjobb: arcfelismeres, kep kereso, finom hasonlossag. Varhato eredmenyek: eros beagyazasi ter hasonlosag keresoshez. NEGATIV HATASOK: Koltsèges hàrmas banyaszatot igenyel, sok harmas uninformativva válik (tul konny), a tanitas lassú lehet, a margen és banyaszati strategia kritikus a sikerhez, szukseg lehet nehez negativ banyaszatra.",
+      "cosine_embedding": "Cosine Embedding Loss - Beagyazasokat tanit koszinusz hasonlossaggal. Hasonlo paroknak magas koszinusz hasonlosaguk legyen, kulonbozoknek alacsony. Legjobb: szoveg beagyazasok, amikor a magnitudo nem szamit, szemantikus hasonlosagi feladatok. Varhato eredmenyek: irany-alapu hasonlosag a beagyazasi terben. NEGATIV HATASOK: Figyelmen kivul hagyja a magnitudo informaciot (neha fontos), erzekeny az inicializalasra, gondot okozhat finom megkulonboztetesekkeel.",
+      "ctc_loss": "CTC Loss (Connectionist Temporal Classification) - Szekvencia-szekvencia feladatokhoz ahol az illesztes ismeretlen. Osszegzi az osszes ervenyes illesztest. Legjobb: beszedfelismeres, OCR, keziras felismeres, barmely szekvencia feladat explicit illesztes nelkul. Varhato eredmenyek: implicit illesztest tanul, valtozo hosszt kezel. NEGATIV HATASOK: Feltetelezi, hogy a kimeneti szekvencia rövidebb mint a bemenet, szamitasilag kolts3ges, küzdhet hosszu szekvenciakkal, ures token kezelest igenyel, csucsos kimeneti eloszlasok felismeresi hibakat okozhatnak.",
+      "poisson_nll": "Poisson NLL Loss - Negativ log-valoszinuseg Poisson-eloszlasu celertekekre felteteleeve. Nem-negativ egesz szam darabszam adatokhoz. Legjobb: esemeny szamlalas, rata becsles, barmely nem-negativ szam predikció. Varhato eredmenyek: megfelelo szam adatokhoz, jobban kezeli a nulla-inflaciot mint MSE. NEGATIV HATASOK: Feltetelezi, hogy a variancia egyenlo az atlaggal (a valos adat gyakran tul-diszperz), pozitiv predikciot igenyel (exp transzformacio), nem alkalmas folytonos celertekekre.",
+      "gaussian_nll": "Gaussian NLL Loss - NLL Gauss celertekekere feltételezve. A modell atlagot es szorast is prediktal, lehetove teve a bizonytalansag becslest. Legjobb: regresszio bizonytalanssaggal, konfidencia intervallumok, heteroszkedasztikus regresszio. Varhato eredmenyek: kalibralt bizonytaalnsag becslések a predikciok mellett. NEGATIV HATASOK: Magas szorast josolhat a buntetes elkerulese erdekeben (szoras osszeomlas), gondos inicializalast igenyel a szoras fejnek, megduplazza a kimeneti meretet, instabil lehet a tanitas rossz szoras predikció inicializalassal."
     },
     "training_loss_reduction_title": "Veszteség redukció",
     "training_loss_reduction_description": "Veszteség redukciós mód",
@@ -807,6 +983,107 @@
     "content_moderation_safety": {
       "name": "Tartalommoderáció / Biztonság",
       "description": "Nem megfelelő, veszélyes vagy szabályszegő tartalom felismerése a képeken. Többcímkés megközelítést használ, így egyszerre több szabálysértést is tud jelezni. Kritikus minden olyan platformnak, ahol felhasználók töltenek fel tartalmat. FELHASZNÁLÁSI TERÜLETEK: NSFW/felnőtt tartalom felismerése, erőszak/vér ábrázolásának szűrése, gyűlölet-szimbólumok felismerése, spam képek detektálása, gyerekvédelem, márkabiztonság hirdetésekhez, platformszabályok betartatása, munkahelyi környezetnek megfelelő tartalom szűrése, korhatáros tartalom jelölése. TÁMOGATOTT MODELLEK: ResNet/ResNeXt (megbízható detekció), EfficientNet (magas pontosság), MobileNet valós idejű pásztázáshoz. Tanítsd változatos megsértési mintákkal. KIMENET: Biztonsági jelzők bizalmi pontszámokkal, például {adult: 0.95, violence: 0.12, spam: 0.03}. Használj konzervatív küszöböket, és edge case-eknél kombináld emberi ellenőrzéssel. A csalókhoz alkalmazkodva érdemes folyamatosan frissíteni a modellt."
+    },
+    "document_classification": {
+      "name": "Dokumentum / Szöveges kép osztályozás",
+      "description": "Dokumentumképek, űrlapok és szöveget tartalmazó vizuális tartalom osztályozása. Magas frekvenciájú részletekre és dokumentumokra jellemző strukturált elrendezésekre optimalizált. FELHASZNÁLÁSI TERÜLETEK: dokumentumtípus-osztályozás (számla, nyugta, személyi igazolvány, útlevél, űrlap, bizonyítvány), kézírás vs nyomtatott szöveg felismerése, nyelv/írásmód azonosítás, dokumentum-tájolás felismerése, űrlapmező-detektálás, csekk-feldolgozás, levélválogatás, jogi dokumentumok kategorizálása, orvosi dokumentumok osztályozása. TÁMOGATOTT MODELLEK: ResNet (strukturált tartalomhoz jó), EfficientNet (finom szöveges részleteket megragadja), MobileNet nagy volumenű feldolgozáshoz. A standard 224px bemenet általában elegendő. KIMENET: Dokumentumkategória, ami lehetővé teszi az automatikus irányítást, archiválást és feldolgozási folyamatokat. Kombináld OCR-rel a teljes dokumentum-megértéshez."
+    },
+    "efficientnet_balanced_scaling": {
+      "name": "EfficientNet család - Kiegyensúlyozott skálázás",
+      "description": "EfficientNet architektúrára (B0-B7, V2-S/M/L) optimalizálva, ami compound scaling-et használ: a mélységet, szélességet és felbontást fix arányokkal egyenletesen skálázza. Az EfficientNetek a korábbi architektúráknál 8-10x hatékonyabbak, miközben state-of-the-art pontosságot érnek el. Ideális: maximális pontosságot igénylő feladatokhoz, orvosi képelemzéshez (röntgen, MRI, patológia), finomított felismeréshez (madárfajok, autómodellek, növénybetegségek), tudományos képalkotáshoz, műholdas/légi képekhez, minőségellenőrzéshez finom hibákkal, művészeti hitelesítéshez, hamisítás-felismeréshez, dermoszkópiához, retina-vizsgálathoz, élelmiszer-minőség értékeléshez. Az EfficientNet-B0 a ResNet50 pontosságát éri el 5x kevesebb paraméterrel. B4-B7 akkor, ha a pontosság kritikus, függetlenül a számítási igénytől. Az EfficientNetV2 variánsok progresszív tanulással gyorsabb tanítást kínálnak. A pontosság-kritikus alkalmazások arany standardja."
+    },
+    "fast_mobile_inference": {
+      "name": "Gyors mobil inferencia",
+      "description": "Könnyűsúlyú modellek maximális inferencia-sebességre és minimális erőforrás-használatra optimalizálva. Némi pontosságot felcserél 3-10x gyorsabb előrejelzésekért és kisebb modellfájlokért. FELHASZNÁLÁSI TERÜLETEK: mobilalkalmazások (iOS/Android), beágyazott rendszerek (Raspberry Pi, Jetson Nano), valós idejű videófeldolgozás, edge AI eszközök, IoT szenzorok, okoskamerák, drón-látás, AR/VR alkalmazások, böngésző-alapú inferencia, millió kép batch-feldolgozása, késleltetés-kritikus alkalmazások (<10ms válaszidő). TÁMOGATOTT MODELLEK: MobileNetV3 (legjobb sebesség/pontosság arány), ShuffleNet (nagyon gyors), SqueezeNet (legkisebb fájlméret ~5MB), sebesség-kritikus telepítéshez kerüld a ResNet/EfficientNet modelleket. KIMENET: Ugyanazok az osztályozási eredmények, de telepítésre optimalizálva - kisebb modellfájlok, gyorsabb inferencia, alacsonyabb memóriahasználat. Ideális hardver-korlátokkal rendelkező produkciós rendszerekhez."
+    },
+    "feature_extraction_embedding": {
+      "name": "Jellemzőkinyerés / Beágyazástanulás",
+      "description": "Modellek tanítása értelmes jellemzővektorok (embeddings) előállítására, ahol a hasonló képek a vektortér közeli pontjaira képeződnek le. A tanult reprezentációk hasonlóság-alapú alkalmazásokat tesznek lehetővé explicit osztályozás nélkül. FELHASZNÁLÁSI TERÜLETEK: vizuális keresőmotorok, fordított képkeresés, duplikátum/közeli duplikátum felismerés, képklaszterezés, tartalom-alapú ajánlás, arcfelismerő rendszerek, termékegyeztetés, védjegy-hasonlóság keresés, plágiumfelismerés, vizuális analógiák. TÁMOGATOTT MODELLEK: ResNet50 (ipari standard embeddings), EfficientNet (kompakt hatékony embeddings), ResNeXt (gazdag jellemzők). A jellemzőket az utolsó előtti rétegből nyerd ki. KIMENET: Fix méretű vektor (512-2048 dimenzió) képenként. Hasonlítsd össze koszinusz-hasonlósággal vagy euklideszi távolsággal. Indexelhető gyors hasonlóság-kereséshez (FAISS, Annoy)."
+    },
+    "finegrained_recognition": {
+      "name": "Finomított vizuális felismerés",
+      "description": "Nagyon hasonló alkategóriák megkülönböztetése, ami finom vizuális különbségekre való odafigyelést igényel. Nagyobb bemeneti felbontást és mélyebb hálózatokat használ a finom részletek megragadásához. FELHASZNÁLÁSI TERÜLETEK: madárfaj-azonosítás (200+ faj), autó márka/modell/évjárat felismerés, növény/virágfaj osztályozás, kutya/macska fajta azonosítás, repülőgéptípus felismerés, gombafajok (biztonsági szempontból kritikus), halfajok horgászalkalmazásokhoz, rovarhatározás, divatmárka-felismerés, betűtípus-azonosítás. TÁMOGATOTT MODELLEK: EfficientNet-B4+ (legjobb finom részletekhez), ResNeXt (finom mintákat ragad meg), ResNet101/152 (bevált teljesítő). Nagyobb bemeneti méretek (380-528px) ajánlottak. Finomított feladatokhoz kerüld a könnyűsúlyú modelleket. KIMENET: Specifikus alkategória bizalmi szinttel, pl. Labrador Retriever: 94%, nem csak kutya. Magas minőségű tanítóképekre és szakértői címkékre van szükség."
+    },
+    "highres_detail_preservation": {
+      "name": "Nagyfelbontású / Részletmegőrzés",
+      "description": "Tanítás nagyobb bemeneti képekkel (380-528px+) a pontos osztályozáshoz kritikus finom vizuális részletek megőrzéséhez. Több GPU memóriát igényel, de megragadja a standard 224px felbontásnál elvesző információt. FELHASZNÁLÁSI TERÜLETEK: textúra/szövet elemzés, gyártási hibák felismerése (karcolások, repedések), műholdas/légi képek elemzése, művészeti hitelesítés, felületi vizsgálat, nyomtatott áramkör ellenőrzése, drágakő-minősítés, nyomtatási minőség értékelése, kriminalisztikai képelemzés. TÁMOGATOTT MODELLEK: EfficientNet-B4/B5/B6 (magasabb felbontásokra tervezve), ResNeXt (részlet-orientált). Kerüld a könnyűsúlyú modelleket - elveszítik a részletezettség előnyeit. 8GB+ VRAM szükséges. KIMENET: Osztályozások finom részletek alapján, amelyek standard felbontásnál láthatatlanok. Lényeges, ha finom vizuális különbségek határozzák meg a helyes osztályt."
+    },
+    "image_quality_assessment": {
+      "name": "Képminőség-értékelés",
+      "description": "Képek technikai és perceptuális minőségének értékelése. Felismeri az elmosódást, zajt, expozíciós problémákat, és értékeli az összesített esztétikai megjelenést. FELHASZNÁLÁSI TERÜLETEK: fotógaléria minőségi pontozás, automatikus fotóválogatás eseményekhez, elmosódás/mozgás felismerés, expozíció értékelés, nyomtatásra alkalmasság kiértékelése, közösségi média poszt optimalizálás, kamera/objektív tesztelés, képválogatás publikációkhoz, fotóverseny-előszűrés, ingatlanfotó minőségellenőrzés. TÁMOGATOTT MODELLEK: EfficientNet (legjobb minőségértékelés), ResNet (technikai minőség), MobileNet valós idejű minőségszűréshez felvétel közben. Közepes felbontású bemenet elegendő. KIMENET: Minőségi osztályozás (kiváló/jó/elfogadható/gyenge) vagy numerikus pontszám. Értékelhető külön a technikai minőség (élesség, zaj, expozíció) és/vagy az esztétikai vonzerő."
+    },
+    "medical_scientific_analysis": {
+      "name": "Orvosi / Tudományos képelemzés",
+      "description": "Magas precizitású osztályozás orvosi, tudományos és diagnosztikai képalkotáshoz, ahol a pontosság és megbízhatóság kiemelkedő fontosságú. Konzervatív tanítási beállítások kiterjedt validálással. FELHASZNÁLÁSI TERÜLETEK: röntgen-elemzés (tüdőgyulladás, törések, tuberkulózis), CT/MRI felvétel osztályozás, szövettani metszetek szűrése, retinabetegség-felismerés, bőrelváltozás-osztályozás, sejttípus-azonosítás, mikroszkópia-elemzés, műholdképek osztályozása, anyagtudományi képalkotás, gyógyszeripari minőségellenőrzés. TÁMOGATOTT MODELLEK: EfficientNet (legjobb pontosság, jól kalibrált), ResNeXt (komplex minták felismerése), ResNet (bevált orvosi képalkotási gerinc). Mindig validáld domain szakértőkkel. KIMENET: Diagnosztikai osztályozás magas megbízhatósággal - döntésTÁMOGATÁSnak szánt, nem a szakmai vélemény helyettesítésére. Klinikai használat előtt kiterjedt validálás szükséges."
+    },
+    "mobilenet_edge_deployment": {
+      "name": "MobileNet család - Edge telepítés",
+      "description": "MobileNet V2/V3 architektúrákra optimalizálva, amelyek depthwise separable konvolúciókat és invertált reziduálokat használnak maximális hatékonysághoz. A MobileNetV3 neurális architektúra-keresést (NAS) és squeeze-and-excitation blokkokat tartalmaz. Ideális: mobilalkalmazás-telepítéshez, valós idejű inferenciához telefonokon/tableteken, edge AI eszközökhöz, Raspberry Pi/Jetson telepítéshez, okoskamerákhoz, megfigyelőrendszerekhez, kiskereskedelmi analitikához, autonóm robotokhoz, drón-látáshoz, AR/VR alkalmazásokhoz, viselhető eszközökhöz, okosotthon eszközökhöz, ipari IoT-hez. MobileNetV3-Small ultra-gyors inferenciához (<5ms), V3-Large jobb pontossághoz, miközben még mobil-barát. A ResNet50-nél 3-5x gyorsabb inferenciát ér el annak ~75-80%-os pontosságával. Tökéletes, amikor a késleltetés fontosabb a csúcspontosságnál."
+    },
+    "multi_object_detection": {
+      "name": "Jelenetfelismerés / Objektumjelenlét",
+      "description": "Jelenet-szintű osztályozás és objektum-jelenlét detektálás lokalizáció nélkül (nincs befoglaló doboz). Meghatározza, milyen objektumok/fogalmak vannak jelen a képen, vagy osztályozza az általános jelenettípust. FELHASZNÁLÁSI TERÜLETEK: jelenetfelismerés (strand, hegy, város, belső, külső), szobatípus-osztályozás (konyha, hálószoba, iroda), általános objektum-jelenlét (tartalmaz_autót, van_ember, étel_látszik), környezet-osztályozás, kontextus-megértés más AI rendszerekhez, képszervezés jelenet alapján. TÁMOGATOTT MODELLEK: ResNet (bevált jelenet-osztályozó), EfficientNet (jó jelenet-jellemzők), minden modell megfelelő. A YOLO/RCNN-nel ellentétben ez képszintű, nem példányszintű. KIMENET: Jelenetkategória VAGY többcímkés jelenlét-indikátorok. Egyszerűbb és gyorsabb a teljes objektumdetektálásnál, ha csak azt kell tudni, MI van jelen, nem azt, HOL."
+    },
+    "multi_object_multi_attribute": {
+      "name": "Komplex többattribútumú elemzés",
+      "description": "Átfogó többattribútumú elemzés, ami számos egyidejű tulajdonságot von ki minden képből. Komplex kapcsolatokat tanul az attribútumok között. FELHASZNÁLÁSI TERÜLETEK: e-kereskedelmi termékkatalogizálás (méret, szín, anyag, stílus, márka, állapot), személy/karakter elemzés (kor, nem, ruházat, kiegészítők, póz, érzelem), jármű-vizsgálat (márka, modell, évjárat, szín, sérülés, módosítások), ingatlanlistás elemzés (szobatípus, jellemzők, állapot, stílus, világítás), divatelemzés. TÁMOGATOTT MODELLEK: ResNeXt (legjobb attribútum-kapcsolatokhoz), EfficientNet (sok attribútum hatékonyan), ResNet (megbízható többkimenetű). Mélyebb modellek több attribútumot kezelnek. KIMENET: Gazdag attribútum-szótár bizalmi pontszámokkal az összes definiált jellemzőre. Egyetlen modell jósol 10-50+ attribútumot egyidejűleg."
+    },
+    "multilabel_boolean": {
+      "name": "Többcímkés osztályozás (Boolean címkék)",
+      "description": "Több bináris (igen/nem) címke hozzárendelése minden képhez. Minden attribútum független döntés 0.5 küszöbbel. Egyszerűbb a valószínűség-alapúnál, ha csak jelenlét/hiány döntések kellenek. FELHASZNÁLÁSI TERÜLETEK: képcímkéző rendszerek (van_ember, külső, éjszakai_jelenet), tartalommoderációs jelzők (erőszak, meztelenség, spam), termékattribútumok (piros, bőr, van_logó), dokumentum-tulajdonságok (aláírt, van_pecsét, színes), orvosi kép jelzők (van_daganat, abnormális, ellenőrzés_szükséges). TÁMOGATOTT MODELLEK: Mind a 6 architektúra jól működik - válassz telepítési igény alapján. ResNet/EfficientNet pontossághoz, MobileNet/ShuffleNet/SqueezeNet sebességhez/mérethez. KIMENET: Boolean címkék képenként, pl. {van_ember: true, külső: true, éjszaka: false}. Tiszta igen/nem döntések minden definiált attribútumra."
+    },
+    "multilabel_probability": {
+      "name": "Többcímkés osztályozás (Valószínűségi pontszámok)",
+      "description": "Több címke hozzárendelése valószínűségi pontszámokkal (0.0-1.0) minden képhez. Minden címke független - egy kép bármilyen címkekombinációval rendelkezhet változó bizalmi szintekkel. FELHASZNÁLÁSI TERÜLETEK: tartalom-ajánló rendszerek, ahol relevanciaszám kell, esztétikai minőségértékelés több dimenzióban, érzelemfelismerés (boldog: 0.85, meglepett: 0.32), közösségi média hashtag-javaslat relevanciaszámokkal, zenei hangulat-címkézés, film-műfaj jóslás, e-kereskedelmi termékattribútum-pontozás, hírképek kategorizálása. TÁMOGATOTT MODELLEK: ResNet/ResNeXt (pontos valószínűségek), EfficientNet (legjobb kalibráció), MobileNet/ShuffleNet (valós idejű címkézés), SqueezeNet (edge telepítés). KIMENET: Címke-szótár valószínűségi pontszámokkal, pl. {külső: 0.94, napos: 0.78, emberek: 0.45}. Lehetővé teszi alkalmazásfüggő küszöbértékek finomhangolását."
+    },
+    "resnet_deep_learning": {
+      "name": "ResNet család - Mély jellemzőtanulás",
+      "description": "A ResNet architektúra családra (ResNet18/34/50/101/152) optimalizálva, ami reziduális skip kapcsolatokkal forradalmasította a deep learninget. A ResNetek lehetővé teszik nagyon mély hálózatok (akár 152 réteg) tanítását degradáció nélkül. Ideális: általános képosztályozáshoz, transfer learning alapként, objektumfelismeréshez, jelenetfelismeréshez, arcfelismeréshez, jármű-azonosításhoz, növény/állat fajfelismeréshez, termékkategorizáláshoz, műholdkép-elemzéshez, röntgen/CT vizsgálat osztályozáshoz, minőségellenőrzési vizsgálathoz. A ResNetek az ipari standard gerinchálózatok a pontosság, sebesség és megbízhatóság kiváló egyensúlya miatt. A ResNet50 gyakran a legjobb kiindulópont. Kisebb variánsok (18/34) sebesség-kritikus alkalmazásokhoz, mélyebbek (101/152) amikor a pontosság a legfontosabb. Alaposan tesztelt és jól dokumentált architektúra bőséges előtanított súlyokkal."
+    },
+    "resnext_aggregated_networks": {
+      "name": "ResNeXt család - Aggregált reziduális hálózatok",
+      "description": "ResNeXt architektúrára (ResNeXt50/101, 32x4d, 32x8d, 64x4d kardinalitásokkal) optimalizálva, ami a ResNetet bővíti split-transform-merge paradigmával csoportosított konvolúciók használatával. A ResNeXt a kardinalitást új skálázási dimenzióként vezeti be a mélység és szélesség mellett. Ideális: komplex többosztályos osztályozáshoz, finomított vizuális felismeréshez, többattribútumos detektáláshoz, divat/ruházat osztályozáshoz, jármű márka/modell felismeréshez, ételfelismeréshez, művészeti stílus osztályozáshoz, textúraelemzéshez, anyagosztályozáshoz, részletes termékkategorizáláshoz. 1-2%-kal magasabb pontosságot ér el az egyenértékű ResNeteknél hasonló számítási igénnyel. A 32x4d variáns a legjobb pontosság/sebesség arány, 32x8d és 64x4d maximális pontossághoz. Ideális, amikor a ResNet pontossága eléri a platót, és extra teljesítményre van szükség architektúraváltás nélkül."
+    },
+    "shufflenet_lightweight_speed": {
+      "name": "ShuffleNet - Könnyűsúlyú sebességbajnok",
+      "description": "ShuffleNet V2 architektúrára optimalizálva, ami channel shuffle műveleteket használ a csatornacsoportok közötti hatékony információcserére. A ShuffleNet kiváló sebesség-pontosság kompromisszumot ér el pointwise group konvolúciókkal és channel shuffle-lel. Ideális: valós idejű mobilalkalmazásokhoz, szigorú késleltetési követelményekkel rendelkező beágyazott rendszerekhez, edge AI eszközökhöz, IoT szenzorokhoz, robotikai látáshoz, drón-alapú felismeréshez, viselhető eszközökhöz, okoskamerákhoz, forgalomfigyeléshez, kiskereskedelmi analitikához, erőforrás-korlátozott hardveren futó ipari vizsgálatokhoz. A ShuffleNet variánsok az ultra-könnyűtől (x0.5) a képesebbig (x2.0) terjednek, mind gyors inferenciával. Ideális, ha az inferencia-sebesség kritikus és a modellméretnek minimálisnak kell lennie. Nem ajánlott maximális pontosságot vagy finom részletfelismerést igénylő feladatokhoz.",
+      "configs": {
+        "tiny": "Nagyon kis adathalmazok (50-500 kép). Erős regularizáció, agresszív augmentáció, legkisebb ShuffleNet variáns. Magas túltanulási kockázat - korai leállítás elengedhetetlen.",
+        "large": "Nagy adathalmazok (10k-30k kép). Csökkentett regularizáció, nagyobb ShuffleNet variánsok használhatók. Magasabb tanulási ráták és nagyobb batch-ek hatékonyak.",
+        "huge": "Hatalmas adathalmazok (30k-50k kép). Minimális regularizáció szükséges. Nagyobb ShuffleNet variánsok eredményesen taníthatók.",
+        "massive": "Masszív adathalmazok (50k-100k kép). Gyors tanulási ráták, nagy batch-ek, minimális regularizáció. ShuffleNet x1.5 vagy x2.0 ajánlott.",
+        "giant": "Óriási adathalmazok (100k+ kép). Maximális ShuffleNet kapacitás (x2.0). Tanítható tisztán vagy finomhangolható agresszív beállításokkal."
+      }
+    },
+    "small_dataset_fewshot": {
+      "name": "Kis adathalmaz / Few-shot tanulás",
+      "description": "Nagyon korlátozott adattal (összesen vagy osztályonként 50-500 kép) való tanításra optimalizálva. Agresszív regularizációt, előtanított súlyokat és gondos tanulási ráta ütemezést használ a túltanulás megelőzésére. FELHASZNÁLÁSI TERÜLETEK: prototípus/MVP fejlesztés, ritka objektum osztályozás, egyedi vállalati adathalmazok, niche alkalmazások (ritka betegségek, speciális berendezések), személyes projektek, akadémiai kutatás korlátozott mintákkal, új termékkategóriák teljes adathalmaz-gyűjtés előtt. TÁMOGATOTT MODELLEK: ResNet18/34 (stabil kis adattal), EfficientNet-B0/B1 (jó általánosítás), MobileNetV3-Small (ha sebesség kell). Kerüld a nagyon mély modelleket (ResNet152, EfficientNet-B7), amelyek könnyen túltanulnak. KIMENET: Elfogadható osztályozás korlátozott adat ellenére. Számíts 70-85% pontosságra - bővítsd az adatokat és gyűjts több mintát a javuláshoz. A transfer learning elengedhetetlen."
+    },
+    "squeezenet_ultra_compact": {
+      "name": "SqueezeNet - Ultra kompakt hálózatok",
+      "description": "SqueezeNet architektúrára optimalizálva, ami AlexNet-szintű pontosságot ér el 50x kevesebb paraméterrel Fire modulok (squeeze és expand rétegek) használatával. A SqueezeNet extrém modell-tömörítésre tervezve, miközben elfogadható pontosságot tart fenn. Ideális: ultra-alacsony memóriájú eszközökhöz, mikrokontrollerekhez, FPGA telepítéshez, modell-tömörítési kutatáshoz, sávszélesség-korlátozott edge eszközökhöz, <5MB tárolóval rendelkező beágyazott rendszerekhez, intelligens szenzorokhoz, mindig-aktív látásalkalmazásokhoz, elemmel működő eszközökhöz, ahol a modellméret közvetlenül befolyásolja az energiafogyasztást. A SqueezeNet 1.1 2.4x gyorsabb az 1.0-nál ugyanazzal a pontossággal. Ideális, ha a modellméret az elsődleges korlát. Nem ajánlott magas pontosságot vagy komplex jellemző-hierarchiákat igénylő feladatokhoz.",
+      "configs": {
+        "tiny": "Nagyon kis adathalmazok (50-500 kép). Erős regularizáció elengedhetetlen ennél a már-kompakt architektúránál. Korai leállítás kritikus a túltanulás megelőzéséhez.",
+        "small": "Kis adathalmazok (500-2.5k kép). Mérsékelt regularizáció előtanított Fire modulokkal. A SqueezeNet hatékonyan tanul korlátozott adatból.",
+        "medium": "Közepes adathalmazok (2.5k-10k kép). Standard hiperparaméterek jól működnek. A SqueezeNet kompakt mérete nagyobb batch-méreteket tesz lehetővé.",
+        "large": "Nagy adathalmazok (10k-30k kép). Csökkentett regularizáció. SqueezeNet 1.0 használható valamivel nagyobb kapacitásért.",
+        "huge": "Hatalmas adathalmazok (30k-50k kép). Minimális regularizáció. A SqueezeNet itt eléri kapacitáshatárait - fontold meg nagyobb architektúrákat jobb pontosságért.",
+        "massive": "Masszív adathalmazok (50k-100k kép). A SqueezeNet alultanulhat - ez a preset az architektúrát a határáig tolja. Fontold meg az EfficientNetet jobb eredményekért.",
+        "giant": "Óriási adathalmazok (100k+ kép). A SqueezeNet NEM ajánlott ekkora adathalmazokhoz - a korlátozott kapacitás alultanulást okoz. Csak akkor használd, ha a modellméret abszolút kritikus."
+      }
+    },
+    "style_aesthetic_classification": {
+      "name": "Stílus / Esztétikai osztályozás",
+      "description": "Képek osztályozása vizuális stílus, művészi tulajdonságok, hangulat vagy esztétikai jellemzők alapján. A globális képjellemzőkre (színpaletta, kompozíció, textúra) koncentrál konkrét objektumok helyett. FELHASZNÁLÁSI TERÜLETEK: fotóminőség-pontozás (professzionális vs amatőr), művészeti stílus felismerés (impresszionista, kubista, modern, absztrakt), belsőépítészeti stílus (minimalista, rusztikus, ipari, bohém), divatstílus-osztályozás, képhangulat-felismerés (vidám, melankolikus, drámai), vizuális tartalom-kurálás, fotózási stílus (portré, tájkép, makró, utcai). TÁMOGATOTT MODELLEK: EfficientNet (jól ragadja meg a globális jellemzőket), ResNeXt (stílusmintázatok), ResNet (megbízható alap). Minden modell hatékonyan tanulhat stílusjegyeket. KIMENET: Stíluskategória vagy esztétikai minőségi pontszám tartalomszűréshez, ajánláshoz, kuráláshoz és kreatív alkalmazásokhoz."
+    },
+    "configs": {
+      "tiny": "Nagyon kis adathalmazok (50-500 kép). Erős regularizáció, agresszív augmentáció, kisebb modellek. Magas túltanulási kockázat - korai leállítás elengedhetetlen.",
+      "small": "Kis adathalmazok (500-2.5k kép). Mérsékelt regularizáció előtanított súlyokkal. Egyensúly a tanulási kapacitás és túltanulás-megelőzés között.",
+      "medium": "Közepes adathalmazok (2.5k-10k kép). Standard hiperparaméterek jó augmentációval. Kiegyensúlyozott tanítási megközelítés jól működik.",
+      "large": "Nagy adathalmazok (10k-30k kép). Csökkentett regularizáció, nagyobb modellek használhatók. Magasabb tanulási ráták és nagyobb batch-ek hatékonyak.",
+      "huge": "Hatalmas adathalmazok (30k-50k kép). Minimális regularizáció szükséges. Mély hálózatok eredményesen taníthatók standard augmentációval.",
+      "massive": "Masszív adathalmazok (50k-100k kép). Nagyon mély hálózatok teljes mértékben támogatottak. Gyors tanulási ráták, nagy batch-ek, minimális regularizáció.",
+      "giant": "Óriási adathalmazok (100k+ kép). Maximális modellkapacitás kihasználva. Tanítható tisztán vagy finomhangolható agresszív beállításokkal."
     }
   }
 }

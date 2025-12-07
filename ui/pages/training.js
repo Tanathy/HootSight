@@ -614,11 +614,20 @@ const TrainingPage = {
     _buildParamWidget: function(key, defaultValue, currentValue, configPath, paramTypes) {
         const wrapper = Q('<div>', { class: 'widget widget-param' }).get(0);
 
+        // Lang key for this parameter
+        const labelLangKey = `params.${key}`;
+        const labelText = lang(labelLangKey);
+        // Fallback to formatted key if no translation
+        const displayLabel = labelText === labelLangKey 
+            ? key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+            : labelText;
+
         // Label
         const label = Q('<label>', {
             class: 'widget-label',
-            text: key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+            text: displayLabel
         }).get(0);
+        label.setAttribute('data-lang-key', labelLangKey);
 
         // Check if this param has a defined type in schema (dropdown)
         if (paramTypes && paramTypes[key] && paramTypes[key].widget === 'dropdown') {
@@ -651,7 +660,8 @@ const TrainingPage = {
             Q(wrapper).addClass('widget-param-boolean');
             
             const switchWidget = new Switch(`param-${key}`, {
-                label: label.textContent,
+                label: displayLabel,
+                labelLangKey: labelLangKey,
                 default: currentValue
             });
             
@@ -893,8 +903,7 @@ const TrainingPage = {
         }
         
         const widget = new AutoOrNumber(field.key, {
-            label: options.label || '',
-            description: options.description || '',
+            ...options,
             min: min,
             max: max,
             default: value,
@@ -924,6 +933,9 @@ const TrainingPage = {
                 class: 'widget-label',
                 text: options.label
             }).get(0);
+            if (options.labelLangKey) {
+                label.setAttribute('data-lang-key', options.labelLangKey);
+            }
             Q(container).append(label);
         }
 
@@ -969,6 +981,9 @@ const TrainingPage = {
                 class: 'widget-description',
                 text: options.description
             }).get(0);
+            if (options.descriptionLangKey) {
+                desc.setAttribute('data-lang-key', options.descriptionLangKey);
+            }
             Q(container).append(desc);
         }
 
@@ -999,7 +1014,23 @@ const TrainingPage = {
             class: 'nested-header',
             text: options.label
         }).get(0);
+        // Add lang key for live translation
+        if (options.labelLangKey) {
+            header.setAttribute('data-lang-key', options.labelLangKey);
+        }
         Q(container).append(header);
+
+        // Description if present
+        if (options.description) {
+            const desc = Q('<div>', {
+                class: 'nested-description',
+                text: options.description
+            }).get(0);
+            if (options.descriptionLangKey) {
+                desc.setAttribute('data-lang-key', options.descriptionLangKey);
+            }
+            Q(container).append(desc);
+        }
 
         // Content
         const content = Q('<div>', { class: 'nested-content' }).get(0);
@@ -1076,6 +1107,7 @@ const TrainingPage = {
             phase: 'train',
             label: '',
             description: lang('training_page.augmentation.train_description'),
+            descriptionLangKey: 'training_page.augmentation.train_description',
             augmentationDefaults: configurableDefaults,
             currentPipeline: trainPipeline
         });
@@ -1104,6 +1136,7 @@ const TrainingPage = {
             phase: 'val',
             label: '',
             description: lang('training_page.augmentation.val_description'),
+            descriptionLangKey: 'training_page.augmentation.val_description',
             augmentationDefaults: configurableDefaults,
             currentPipeline: valPipeline
         });
