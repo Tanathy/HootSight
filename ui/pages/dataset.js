@@ -1739,6 +1739,11 @@ const DatasetPage = {
      * Start build
      */
     _startBuild: async function() {
+        // Disable build button to prevent double-clicks
+        if (this._buildBtnWidget) {
+            this._buildBtnWidget.setDisabled(true);
+        }
+        
         try {
             // Show progress bar
             ProgressManager.show('build', {
@@ -1752,6 +1757,11 @@ const DatasetPage = {
         } catch (err) {
             console.error('Failed to start build:', err);
             ProgressManager.hide('build');
+            
+            // Re-enable build button on error
+            if (this._buildBtnWidget) {
+                this._buildBtnWidget.setDisabled(false);
+            }
         }
     },
 
@@ -1778,7 +1788,11 @@ const DatasetPage = {
                     
                     setTimeout(() => {
                         ProgressManager.hide('build');
-                        Q(this._buildBtn).attr('disabled', false);
+                        
+                        // Re-enable build button using widget method
+                        if (this._buildBtnWidget) {
+                            this._buildBtnWidget.setDisabled(false);
+                        }
                         
                         if (status.status === 'success') {
                             // Show success notification (non-blocking)
@@ -1791,7 +1805,11 @@ const DatasetPage = {
             } catch (err) {
                 console.error('Poll error:', err);
                 ProgressManager.hide('build');
-                Q(this._buildBtn).attr('disabled', false);
+                
+                // Re-enable build button using widget method
+                if (this._buildBtnWidget) {
+                    this._buildBtnWidget.setDisabled(false);
+                }
             }
         };
         

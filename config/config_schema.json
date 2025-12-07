@@ -277,9 +277,14 @@
               "minItems": 1
             },
             "default": {
-              "Generic": [128, 256, 512, 768, 1024],
-              "YOLO": [416, 512, 640, 960],
-              "ResNet": [224, 256, 384, 448, 512]
+              "Generic": [64, 128, 224, 256, 320, 384, 512, 640, 768, 1024],
+              "YOLO": [320, 416, 512, 608, 640, 768, 896, 1024],
+              "ResNet": [160, 192, 224, 256, 288, 320, 384, 448, 512, 640, 768, 1024],
+              "ResNeXt": [160, 192, 224, 256, 288, 320, 384, 448, 512, 640, 768, 1024],
+              "EfficientNet": [224, 240, 260, 300, 380, 456, 528, 600, 672, 800, 1024],
+              "MobileNet": [96, 128, 160, 192, 224, 256, 320, 384, 512],
+              "SqueezeNet": [128, 192, 224, 256, 320, 384, 512],
+              "ShuffleNet": [128, 160, 192, 224, 256, 320, 384, 512]
             },
             "ui": { "widget": "nested", "order": 3, "visible": false }
           },
@@ -288,7 +293,7 @@
             "description": "schema.dataset_editor_default_size_description",
             "minimum": 32,
             "maximum": 4096,
-            "default": 512,
+            "default": 1024,
             "ui": { "widget": "slider", "order": 4, "step": 32 }
           },
           "build_workers": {
@@ -582,7 +587,7 @@
           "type": "integer",
           "title": "schema.training_input_size_title",
           "description": "schema.training_input_size_description",
-          "enum": [224, 256, 299, 384, 512],
+          "enum": [32, 64, 96, 128, 160, 192, 224, 256, 288, 299, 320, 352, 384, 416, 448, 480, 512, 528, 544, 576, 608, 640, 768, 896, 1024],
           "default": 224,
           "ui": { "widget": "dropdown", "group": "training.hyperparameters", "order": 5 }
         },
