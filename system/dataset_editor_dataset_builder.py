@@ -42,15 +42,17 @@ def compute_crop_box(width: int, height: int, bounds: BoundsModel) -> Tuple[int,
     return left, top, right, bottom
 
 class BuildCache:
-    """Build cache using project.db (SQLite) instead of shelve files."""
+    """Build cache using project.db (SQLite) - stores {relative_path: data_hash}."""
     def __init__(self, project: "ProjectIndex"):
         self._project_name = project.root.name
 
-    def snapshot(self) -> Dict[str, dict]:
+    def snapshot(self) -> Dict[str, str]:
+        """Returns {relative_path: data_hash}"""
         from system import project_db as cdb
         return cdb.build_cache_load(self._project_name)
 
-    def commit(self, updates: Dict[str, dict], deletions: Iterable[str]) -> None:
+    def commit(self, updates: Dict[str, str], deletions: Iterable[str]) -> None:
+        """Updates: {relative_path: data_hash}, deletions: list of relative_paths"""
         if not updates and not deletions:
             return
         from system import project_db as cdb
@@ -238,16 +240,16 @@ class IncrementalDatasetBuilder:
         self.project.ensure_loaded()
         output_dir = self.project.dataset_dir
         output_dir.mkdir(parents=True, exist_ok=True)
-        snapshot = self.cache.snapshot()
+        cache = self.cache.snapshot()  # {relative_path: data_hash}
         current_ids = set(self.project.items.keys())
-        deletions = sorted(set(snapshot.keys()) - current_ids)
+        deletions = sorted(set(cache.keys()) - current_ids)
 
-        planned: list[tuple[str, ImageRecord, dict]] = []
+        planned: list[tuple[str, ImageRecord, str]] = []  # (record_id, record, new_data_hash)
         for record_id, record in self.project.items.items():
-            meta = self._capture_metadata(record)
-            cached = snapshot.get(record_id)
-            if self._needs_rebuild(meta, cached, output_dir):
-                planned.append((record_id, record, meta))
+            new_data_hash = self._compute_data_hash(record)
+            cached_hash = cache.get(record_id)
+            if self._needs_rebuild(record_id, new_data_hash, cached_hash, output_dir):
+                planned.append((record_id, record, new_data_hash))
 
         total_tasks = len(planned) + len(deletions)
         start = time.perf_counter()
@@ -259,11 +261,10 @@ class IncrementalDatasetBuilder:
         skipped = 0
         deleted_count = 0
 
-        cache_updates: Dict[str, dict] = {}
+        cache_updates: Dict[str, str] = {}
 
         for record_id in deletions:
-            meta = snapshot.get(record_id)
-            self._remove_outputs(meta, output_dir)
+            self._remove_outputs(record_id, output_dir)
             deleted_count += 1
             if self.job:
                 self.job.set_current(record_id)
@@ -296,34 +297,34 @@ class IncrementalDatasetBuilder:
 
     def _process_plan(
         self,
-        plan: list[tuple[str, ImageRecord, dict]],
+        plan: list[tuple[str, ImageRecord, str]],
         output_dir: Path,
-    ) -> tuple[int, int, Dict[str, dict]]:
+    ) -> tuple[int, int, Dict[str, str]]:
         if not plan:
             return 0, 0, {}
 
         worker_count = min(len(plan), self.max_workers)
         processed = 0
         skipped = 0
-        updates: Dict[str, dict] = {}
+        updates: Dict[str, str] = {}
 
         if worker_count <= 1:
-            for record_id, record, meta in plan:
+            for record_id, record, data_hash in plan:
                 success = self._build_record_task(record_id, record, output_dir)
                 if success:
                     processed += 1
-                    updates[record_id] = meta
+                    updates[record_id] = data_hash
                 else:
                     skipped += 1
             return processed, skipped, updates
 
         with ThreadPoolExecutor(max_workers=worker_count, thread_name_prefix="dataset-build") as executor:
             future_map = {
-                executor.submit(self._build_record_task, record_id, record, output_dir): (record_id, meta)
-                for record_id, record, meta in plan
+                executor.submit(self._build_record_task, record_id, record, output_dir): (record_id, data_hash)
+                for record_id, record, data_hash in plan
             }
             for future in as_completed(future_map):
-                record_id, meta = future_map[future]
+                record_id, data_hash = future_map[future]
                 try:
                     success = future.result()
                 except Exception as exc:
@@ -331,7 +332,7 @@ class IncrementalDatasetBuilder:
                     success = False
                 if success:
                     processed += 1
-                    updates[record_id] = meta
+                    updates[record_id] = data_hash
                 else:
                     skipped += 1
 
@@ -351,49 +352,31 @@ class IncrementalDatasetBuilder:
             self.job.advance(success=True, deleted=False)
         return True
 
-    def _capture_metadata(self, record: ImageRecord) -> dict:
-        image_stat = record.image_path.stat()
-        annotation_stat = record.annotation_path.stat() if record.annotation_path.exists() else None
-        # Bounds are stored in DB, not files - include bounds data directly for change detection
+    def _compute_data_hash(self, record: ImageRecord) -> str:
+        """Compute data_hash from annotation + crop (pan, zoom)."""
         bounds_data = record.bounds.model_dump() if record.bounds else {}
-        return {
-            "image_mtime": image_stat.st_mtime,
-            "image_size": image_stat.st_size,
-            "annotation_mtime": annotation_stat.st_mtime if annotation_stat else 0.0,
-            "annotation_size": annotation_stat.st_size if annotation_stat else 0,
-            "bounds_data": bounds_data,  # Direct bounds data instead of file stat
-            "output_rel_path": record.relative_path,
-            "target_size": self.target_size,
-        }
+        zoom = bounds_data.get('zoom', 1.0)
+        center_x = bounds_data.get('center_x', 0.5)
+        center_y = bounds_data.get('center_y', 0.5)
+        
+        import hashlib
+        data_str = f"{record.annotation}|{zoom}|{center_x}|{center_y}"
+        return hashlib.sha256(data_str.encode('utf-8')).hexdigest()[:16]
 
-    def _needs_rebuild(self, meta: dict, cached: dict | None, output_dir: Path) -> bool:
-        if cached is None:
+    def _needs_rebuild(self, record_id: str, new_hash: str, cached_hash: str | None, output_dir: Path) -> bool:
+        if cached_hash is None:
             return True
-        if not meta:
+        if new_hash != cached_hash:
             return True
-        output_rel_path = meta.get("output_rel_path")
-        if not output_rel_path:
-            return True
-        output_image = output_dir / Path(output_rel_path)
+        # Check if output file exists
+        output_image = output_dir / Path(record_id)
         if not output_image.exists():
             return True
-        keys = [
-            "image_mtime",
-            "image_size",
-            "annotation_mtime",
-            "annotation_size",
-            "bounds_data",
-            "target_size",
-        ]
-        return any(cached.get(key) != meta.get(key) for key in keys)
+        return False
 
-    def _remove_outputs(self, meta: dict | None, output_dir: Path) -> None:
-        if not meta:
-            return
-        rel = meta.get("output_rel_path")
-        if not rel:
-            return
-        image_path = output_dir / Path(rel)
+    def _remove_outputs(self, record_id: str, output_dir: Path) -> None:
+        """Remove output files for a record."""
+        image_path = output_dir / Path(record_id)
         annotation_path = image_path.with_suffix(".txt")
         image_path.unlink(missing_ok=True)
         annotation_path.unlink(missing_ok=True)

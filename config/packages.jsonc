@@ -17,7 +17,6 @@
         "numpy",
         "python-multipart",
         "pillow",
-        "pynvml",
         "nvidia-ml-py",
         "pyyaml",
         "matplotlib",

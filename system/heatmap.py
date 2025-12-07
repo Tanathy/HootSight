@@ -100,7 +100,7 @@ def pick_sample_image(project_name: str, preferred_split: str = 'validation') ->
     return None
 
 
-def _build_preprocess() -> transforms.Compose:
+def _get_preprocess_params() -> dict:
     try:
         tr_cfg = SETTINGS['training']
     except Exception:
@@ -110,18 +110,40 @@ def _build_preprocess() -> transforms.Compose:
     if size is None:
         raise ValueError("training.input_size or training.input.image_size must be provided in config/config.json")
     size = int(size)
+    resize_target = int(max(size + 32, size))
     norm = input_block.get('normalize', tr_cfg.get('normalize'))
     if not isinstance(norm, dict):
         raise ValueError("training.normalize must be provided in config/config.json")
     mean = norm.get('mean', [0.485, 0.456, 0.406])
     std = norm.get('std', [0.229, 0.224, 0.225])
+    return {
+        'input_size': size,
+        'resize_target': resize_target,
+        'mean': mean,
+        'std': std,
+    }
 
-    return transforms.Compose([
-        transforms.Resize(max(size + 32, size)),
-        transforms.CenterCrop(size),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=mean, std=std)
-    ])
+
+def _prepare_model_input(image: Image.Image) -> Tuple[torch.Tensor, dict]:
+    params = _get_preprocess_params()
+    resize = transforms.Resize(params['resize_target'])
+    crop = transforms.CenterCrop(params['input_size'])
+    resized = resize(image)
+    cropped = crop(resized)
+    tensor = transforms.ToTensor()(cropped)
+    tensor = transforms.Normalize(mean=params['mean'], std=params['std'])(tensor)
+    tensor = tensor.unsqueeze(0)
+
+    crop_left = max((resized.width - params['input_size']) // 2, 0)
+    crop_top = max((resized.height - params['input_size']) // 2, 0)
+
+    meta = {
+        'original_size': image.size,
+        'resized_size': (resized.width, resized.height),
+        'crop_offset': (crop_left, crop_top),
+        'input_size': params['input_size'],
+    }
+    return tensor, meta
 
 
 def _create_model_from_checkpoint(checkpoint_path: str, map_location: Optional[str] = None):
@@ -311,19 +333,33 @@ def compute_gradcam(model: nn.Module, x: torch.Tensor, target_class: Optional[in
     return cam[0].detach().cpu()
 
 
-def overlay_heatmap_on_image(heatmap: torch.Tensor, image_rgb: Image.Image, alpha: float = 0.5) -> Image.Image:
-    W, H = image_rgb.size
+def overlay_heatmap_on_image(
+    heatmap: torch.Tensor,
+    image_rgb: Image.Image,
+    preprocess_meta: dict,
+    alpha: float = 0.5
+) -> Image.Image:
+    orig_w, orig_h = image_rgb.size
+    resized_w, resized_h = preprocess_meta['resized_size']
+    crop_left, crop_top = preprocess_meta['crop_offset']
+    input_size = preprocess_meta['input_size']
 
     heat_np = heatmap.numpy()
-    heat_resized = cv2.resize(heat_np, (W, H))
+    heat_square = cv2.resize(heat_np, (input_size, input_size))
 
-    heat_resized = (heat_resized * 255).astype(np.uint8)
+    full_resized = np.zeros((resized_h, resized_w), dtype=np.float32)
+    end_y = min(resized_h, crop_top + input_size)
+    end_x = min(resized_w, crop_left + input_size)
+    patch = heat_square[: end_y - crop_top, : end_x - crop_left]
+    full_resized[crop_top:end_y, crop_left:end_x] = patch
 
-    heatmap_colored = cv2.applyColorMap(heat_resized, cv2.COLORMAP_JET)
+    heat_original = cv2.resize(full_resized, (orig_w, orig_h), interpolation=cv2.INTER_LINEAR)
+    heat_uint8 = np.clip(heat_original * 255, 0, 255).astype(np.uint8)
+
+    heatmap_colored = cv2.applyColorMap(heat_uint8, cv2.COLORMAP_JET)
     heatmap_colored = cv2.cvtColor(heatmap_colored, cv2.COLOR_BGR2RGB)
 
     original_np = np.array(image_rgb)
-
     output = cv2.addWeighted(original_np, 1 - alpha, heatmap_colored, alpha, 0)
 
     return Image.fromarray(output)
@@ -341,8 +377,7 @@ def generate_heatmap(project_name: str, image_path: Optional[str] = None,
         raise FileNotFoundError("No valid image found for heatmap generation")
 
     pil_img = Image.open(image_path).convert('RGB')
-    preprocess = _build_preprocess()
-    x = cast(torch.Tensor, preprocess(pil_img)).unsqueeze(0)
+    x, preprocess_meta = _prepare_model_input(pil_img)
 
     wrapper, ckpt_path, _ckpt_data = _load_model_from_checkpoint(project_name)
 
@@ -354,7 +389,7 @@ def generate_heatmap(project_name: str, image_path: Optional[str] = None,
     x_grad = x.clone().requires_grad_(True)
     heat = compute_gradcam(wrapper.model, x_grad, target_class=tclass, target_layer=None)
 
-    overlay = overlay_heatmap_on_image(heat, pil_img, alpha=alpha)
+    overlay = overlay_heatmap_on_image(heat, pil_img, preprocess_meta, alpha=alpha)
     buf = io.BytesIO()
     overlay.save(buf, format='PNG')
     data = buf.getvalue()
@@ -394,8 +429,7 @@ def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
         raise FileNotFoundError("No valid image found for evaluation")
 
     pil_img = Image.open(image_path).convert('RGB')
-    preprocess = _build_preprocess()
-    x = cast(torch.Tensor, preprocess(pil_img)).unsqueeze(0)
+    x, preprocess_meta = _prepare_model_input(pil_img)
 
     if checkpoint_path:
         wrapper, ckpt_path, ckpt_data = _create_model_from_checkpoint(checkpoint_path)
@@ -446,7 +480,7 @@ def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
     x_grad = x.clone().requires_grad_(True)
     heat = compute_gradcam(wrapper.model, x_grad, target_class=pred_class, target_layer=None)
 
-    overlay = overlay_heatmap_on_image(heat, pil_img, alpha=0.5)
+    overlay = overlay_heatmap_on_image(heat, pil_img, preprocess_meta, alpha=0.5)
     buf = io.BytesIO()
     overlay.save(buf, format='PNG')
     png_data = buf.getvalue()

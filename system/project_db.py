@@ -91,14 +91,17 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
             height INTEGER DEFAULT 0,
             min_dimension INTEGER DEFAULT 0,
             tags_json TEXT,
-            crop_json TEXT
+            crop_json TEXT,
+            data_hash TEXT
         );
         
         -- Build cache for incremental builds
         CREATE TABLE IF NOT EXISTS build_cache (
             hash TEXT PRIMARY KEY,
-            data_json TEXT NOT NULL
+            relative_path TEXT NOT NULL,
+            data_hash TEXT
         );
+        CREATE INDEX IF NOT EXISTS idx_build_cache_relative_path ON build_cache(relative_path);
         
         -- Generic key-value store for extensibility
         CREATE TABLE IF NOT EXISTS metadata (
@@ -127,12 +130,32 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
     """)
     conn.commit()
 
-def compute_image_hash(relative_path: str) -> str:
+
+def compute_image_hash(image_path: str) -> str:
     """
-    Compute a stable hash for an image based on its relative path.
-    This provides a consistent ID that survives file moves within the same relative location.
+    Compute hash from image file content (binary data).
+    Used to uniquely identify images regardless of filename/path.
     """
-    return hashlib.sha256(relative_path.encode('utf-8')).hexdigest()[:16]
+    from pathlib import Path
+    path = Path(image_path)
+    if not path.exists():
+        return hashlib.sha256(image_path.encode('utf-8')).hexdigest()[:16]
+    
+    with open(path, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest()[:16]
+
+
+def compute_data_hash(annotation: str, crop: dict) -> str:
+    """
+    Compute hash from annotation content + crop/pan/zoom values.
+    Used to detect changes in tags or crop settings.
+    """
+    zoom = crop.get('zoom', 1.0) if crop else 1.0
+    center_x = crop.get('center_x', 0.5) if crop else 0.5
+    center_y = crop.get('center_y', 0.5) if crop else 0.5
+    
+    data_str = f"{annotation}|{zoom}|{center_x}|{center_y}"
+    return hashlib.sha256(data_str.encode('utf-8')).hexdigest()[:16]
 
 
 # =============================================================================
@@ -291,6 +314,10 @@ def snapshot_upsert(project_name: str, records: Dict[str, dict]) -> None:
     rows = []
     for relative_path, data in records.items():
         hash_id = compute_image_hash(relative_path)
+        tags = data.get('tags', [])
+        crop = data.get('crop', {})
+        annotation = ', '.join(tags) if tags else ''
+        data_hash = compute_data_hash(annotation, crop)
         rows.append((
             hash_id,
             relative_path,
@@ -301,15 +328,16 @@ def snapshot_upsert(project_name: str, records: Dict[str, dict]) -> None:
             data.get('width', 0),
             data.get('height', 0),
             data.get('min_dimension', 0),
-            _dump_json(data.get('tags', [])),
-            _dump_json(data.get('crop', {})),
+            _dump_json(tags),
+            _dump_json(crop),
+            data_hash,
         ))
     
     cursor.executemany("""
         INSERT INTO snapshots (hash, relative_path, relative_dir, filename, extension,
                                category, width, height, min_dimension, tags_json,
-                               crop_json)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                               crop_json, data_hash)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(hash) DO UPDATE SET
             relative_path=excluded.relative_path,
             relative_dir=excluded.relative_dir,
@@ -320,7 +348,8 @@ def snapshot_upsert(project_name: str, records: Dict[str, dict]) -> None:
             height=excluded.height,
             min_dimension=excluded.min_dimension,
             tags_json=excluded.tags_json,
-            crop_json=excluded.crop_json
+            crop_json=excluded.crop_json,
+            data_hash=excluded.data_hash
     """, rows)
     conn.commit()
 
@@ -337,7 +366,7 @@ def snapshot_load_all(project_name: str) -> Dict[str, dict]:
         cursor.execute("""
             SELECT hash, relative_path, relative_dir, filename, extension,
                    category, width, height, min_dimension, tags_json,
-                   crop_json
+                   crop_json, data_hash
             FROM snapshots
         """)
         
@@ -366,6 +395,7 @@ def snapshot_load_all(project_name: str) -> Dict[str, dict]:
                 'min_dimension': row['min_dimension'],
                 'tags': tags,
                 'crop': crop,
+                'data_hash': row['data_hash'],
             }
         return result
     except Exception as ex:
@@ -386,7 +416,7 @@ def snapshot_get(project_name: str, relative_path: str) -> Optional[dict]:
         cursor.execute("""
             SELECT hash, relative_path, relative_dir, filename, extension,
                    category, width, height, min_dimension, tags_json,
-                   crop_json
+                   crop_json, data_hash
             FROM snapshots WHERE hash = ?
         """, (hash_id,))
         row = cursor.fetchone()
@@ -416,13 +446,14 @@ def snapshot_get(project_name: str, relative_path: str) -> Optional[dict]:
             'min_dimension': row['min_dimension'],
             'tags': tags,
             'crop': crop,
+            'data_hash': row['data_hash'],
         }
     except Exception as ex:
         warning(f"Failed to get snapshot for {relative_path}: {ex}")
         return None
 
 
-def snapshot_update_crop(project_name: str, relative_path: str, crop: dict) -> bool:
+def snapshot_update_crop(project_name: str, relative_path: str, crop: dict, annotation: str = '') -> bool:
     """Update only the crop data for an existing snapshot. Returns True if updated."""
     hash_id = compute_image_hash(relative_path)
     db_path = _get_db_path(project_name)
@@ -432,9 +463,22 @@ def snapshot_update_crop(project_name: str, relative_path: str, crop: dict) -> b
     try:
         conn = _get_connection(project_name)
         cursor = conn.cursor()
+        
+        # If no annotation provided, fetch current tags to compute data_hash
+        if not annotation:
+            cursor.execute("SELECT tags_json FROM snapshots WHERE hash = ?", (hash_id,))
+            row = cursor.fetchone()
+            if row and row['tags_json']:
+                try:
+                    tags = json.loads(row['tags_json'])
+                    annotation = ', '.join(tags) if tags else ''
+                except json.JSONDecodeError:
+                    pass
+        
+        data_hash = compute_data_hash(annotation, crop)
         cursor.execute(
-            "UPDATE snapshots SET crop_json = ? WHERE hash = ?",
-            (_dump_json(crop), hash_id)
+            "UPDATE snapshots SET crop_json = ?, data_hash = ? WHERE hash = ?",
+            (_dump_json(crop), data_hash, hash_id)
         )
         conn.commit()
         return cursor.rowcount > 0
@@ -455,7 +499,6 @@ def snapshot_remove(project_name: str, relative_paths: Iterable[str]) -> None:
         conn = _get_connection(project_name)
         cursor = conn.cursor()
         cursor.executemany("DELETE FROM snapshots WHERE hash = ?", hashes)
-        cursor.executemany("DELETE FROM build_cache WHERE hash = ?", hashes)
         conn.commit()
     except Exception as ex:
         warning(f"Failed to remove snapshots: {ex}")
@@ -478,15 +521,14 @@ def snapshot_count(project_name: str) -> int:
 
 
 def snapshot_prune(project_name: str, valid_paths: Iterable[str]) -> None:
-    """Remove all snapshots not in valid_paths."""
+    """Remove all snapshots not in valid_paths. Does NOT touch build_cache."""
     keep = set(valid_paths)
     if not keep:
-        # Clear all
+        # Clear all snapshots
         try:
             conn = _get_connection(project_name)
             cursor = conn.cursor()
             cursor.execute("DELETE FROM snapshots")
-            cursor.execute("DELETE FROM build_cache")
             conn.commit()
         except Exception as ex:
             warning(f"Failed to clear snapshots: {ex}")
@@ -506,7 +548,6 @@ def snapshot_prune(project_name: str, valid_paths: Iterable[str]) -> None:
         to_remove = all_hashes - valid_hashes
         if to_remove:
             cursor.executemany("DELETE FROM snapshots WHERE hash = ?", [(h,) for h in to_remove])
-            cursor.executemany("DELETE FROM build_cache WHERE hash = ?", [(h,) for h in to_remove])
             conn.commit()
     except Exception as ex:
         warning(f"Failed to prune snapshots: {ex}")
@@ -516,8 +557,8 @@ def snapshot_prune(project_name: str, valid_paths: Iterable[str]) -> None:
 # BUILD CACHE
 # =============================================================================
 
-def build_cache_load(project_name: str) -> Dict[str, dict]:
-    """Load build cache."""
+def build_cache_load(project_name: str) -> Dict[str, str]:
+    """Load build cache. Returns {relative_path: data_hash} for change detection."""
     db_path = _get_db_path(project_name)
     if not db_path.exists():
         return {}
@@ -525,34 +566,33 @@ def build_cache_load(project_name: str) -> Dict[str, dict]:
     try:
         conn = _get_connection(project_name)
         cursor = conn.cursor()
-        cursor.execute("SELECT hash, data_json FROM build_cache")
-        result = {}
-        for row in cursor.fetchall():
-            try:
-                result[row['hash']] = json.loads(row['data_json'])
-            except json.JSONDecodeError:
-                pass
-        return result
+        cursor.execute("SELECT relative_path, data_hash FROM build_cache WHERE relative_path != ''")
+        return {row['relative_path']: row['data_hash'] for row in cursor.fetchall()}
     except Exception as ex:
         warning(f"Failed to load build cache: {ex}")
         return {}
 
 
-def build_cache_update(project_name: str, updates: Dict[str, dict], deletions: Iterable[str]) -> None:
-    """Update build cache."""
-    delete_hashes = [(compute_image_hash(p),) for p in deletions]
-    upsert_rows = [(compute_image_hash(k), _dump_json(v)) for k, v in updates.items()]
+def build_cache_update(project_name: str, updates: Dict[str, str], deletions: Iterable[str]) -> None:
+    """Update build cache. Keys are relative_paths, values are data_hash strings."""
+    delete_paths = [(p,) for p in deletions]
+    upsert_rows = [
+        (compute_image_hash(rel_path), rel_path, data_hash)
+        for rel_path, data_hash in updates.items()
+    ]
     
     try:
         conn = _get_connection(project_name)
         cursor = conn.cursor()
-        if delete_hashes:
-            cursor.executemany("DELETE FROM build_cache WHERE hash = ?", delete_hashes)
+        if delete_paths:
+            cursor.executemany("DELETE FROM build_cache WHERE relative_path = ?", delete_paths)
         if upsert_rows:
             cursor.executemany("""
-                INSERT INTO build_cache (hash, data_json)
-                VALUES (?, ?)
-                ON CONFLICT(hash) DO UPDATE SET data_json = excluded.data_json
+                INSERT INTO build_cache (hash, relative_path, data_hash)
+                VALUES (?, ?, ?)
+                ON CONFLICT(hash) DO UPDATE SET 
+                    relative_path = excluded.relative_path,
+                    data_hash = excluded.data_hash
             """, upsert_rows)
         conn.commit()
     except Exception as ex:

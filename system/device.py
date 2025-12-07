@@ -14,26 +14,36 @@ from system.log import info
 # Cached device instance
 _device: Optional[torch.device] = None
 _device_type: Optional[str] = None
+_device_logged: bool = False
 
 
-def get_device() -> torch.device:
+def get_device(log: bool = True) -> torch.device:
     """Get the best available device for computation.
+    
+    Args:
+        log: Whether to log the device selection (disable for worker processes)
     
     Returns:
         torch.device: CUDA if available, otherwise CPU
     """
-    global _device
+    global _device, _device_logged
     if _device is None:
         if torch.cuda.is_available():
             _device = torch.device('cuda')
-            info(f"Using CUDA device: {torch.cuda.get_device_name(0)}")
+            if log and not _device_logged:
+                info(f"Using CUDA device: {torch.cuda.get_device_name(0)}")
+                _device_logged = True
         elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
             # Apple Silicon MPS support
             _device = torch.device('mps')
-            info("Using Apple MPS device")
+            if log and not _device_logged:
+                info("Using Apple MPS device")
+                _device_logged = True
         else:
             _device = torch.device('cpu')
-            info("Using CPU device (no GPU acceleration available)")
+            if log and not _device_logged:
+                info("Using CPU device (no GPU acceleration available)")
+                _device_logged = True
     return _device
 
 

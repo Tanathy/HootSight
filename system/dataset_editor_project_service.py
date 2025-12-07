@@ -882,6 +882,12 @@ class ProjectIndex:
                 "categories_count": len(categories),
             }
 
+        # Use tags for label_distribution if available, otherwise fall back to categories
+        if tag_counter:
+            label_dist = dict(tag_counter)
+        else:
+            label_dist = dict(categories)
+
         return StatsSummary(
             total_images=len(self.items),
             categories=dict(categories),
@@ -890,7 +896,7 @@ class ProjectIndex:
             most_common_tags=most_common,
             recommendations=recommendations,
 
-            label_distribution=dict(categories),
+            label_distribution=label_dist,
             balance_score=round(balance_score, 3),
             balance_status=balance_status,
             balance_analysis=balance_analysis,
