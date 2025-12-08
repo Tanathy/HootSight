@@ -30,6 +30,11 @@ const HeatmapPage = {
     _useLiveModel: false,
 
     /**
+     * Multi-label mode - show all class activations combined
+     */
+    _multiLabel: true,
+
+    /**
      * UI element references
      */
     _elements: {
@@ -42,7 +47,8 @@ const HeatmapPage = {
         alphaSlider: null,
         refreshBtn: null,
         randomBtn: null,
-        liveModelSwitch: null
+        liveModelSwitch: null,
+        multiLabelSwitch: null
     },
 
     /**
@@ -55,6 +61,7 @@ const HeatmapPage = {
         this._currentImagePath = null;
         this._isUploadedImage = false;
         this._useLiveModel = false;
+        this._multiLabel = true;
 
         // Check if project is selected (use global active project)
         const projectName = Config.getActiveProject();
@@ -253,6 +260,27 @@ const HeatmapPage = {
         Q(switchContainer).append(switchTrack).append(switchText);
         Q(headerActions).append(switchContainer);
 
+        // Multi-label switch
+        const multiLabelContainer = Q('<div>', { class: 'switch-container' }).get(0);
+        
+        const multiLabelTrack = Q('<div>', { 
+            class: 'switch-track active',
+            id: 'heatmap-multi-label-switch',
+            tabindex: '0'
+        }).get(0);
+        
+        const multiLabelThumb = Q('<div>', { class: 'switch-thumb' }).get(0);
+        Q(multiLabelTrack).append(multiLabelThumb);
+        
+        const multiLabelText = Q('<span>', { 
+            class: 'switch-text',
+            text: lang('heatmap_page.multi_label_switch')
+        }).get(0);
+        multiLabelText.setAttribute('data-lang-key', 'heatmap_page.multi_label_switch');
+        
+        Q(multiLabelContainer).append(multiLabelTrack).append(multiLabelText);
+        Q(headerActions).append(multiLabelContainer);
+
         // Add buttons using HeaderActions
         HeaderActions.add([
             {
@@ -282,6 +310,23 @@ const HeatmapPage = {
             const toggle = () => {
                 self._useLiveModel = !self._useLiveModel;
                 Q(switchEl).toggleClass('active', self._useLiveModel);
+            };
+            Q(switchEl).on('click', toggle);
+            Q(switchEl).on('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggle();
+                }
+            });
+        }
+
+        // Store multi-label switch reference and setup event
+        this._elements.multiLabelSwitch = Q('#heatmap-multi-label-switch').get(0);
+        if (this._elements.multiLabelSwitch) {
+            const switchEl = this._elements.multiLabelSwitch;
+            const toggle = () => {
+                self._multiLabel = !self._multiLabel;
+                Q(switchEl).toggleClass('active', self._multiLabel);
             };
             Q(switchEl).on('click', toggle);
             Q(switchEl).on('keydown', (e) => {
@@ -383,7 +428,7 @@ const HeatmapPage = {
         try {
             // Use evaluate endpoint without image_path to get random
             // Pass useLiveModel to skip cache if enabled
-            const result = await API.heatmap.evaluate(projectName, null, null, this._useLiveModel);
+            const result = await API.heatmap.evaluate(projectName, null, null, this._useLiveModel, this._multiLabel);
             
             if (result.error) {
                 this._showError(result.error);
@@ -414,7 +459,7 @@ const HeatmapPage = {
 
         try {
             // Pass useLiveModel to skip cache if enabled
-            const result = await API.heatmap.evaluate(projectName, imagePath, null, this._useLiveModel);
+            const result = await API.heatmap.evaluate(projectName, imagePath, null, this._useLiveModel, this._multiLabel);
             
             if (result.error) {
                 this._showError(result.error);
@@ -446,7 +491,7 @@ const HeatmapPage = {
         this._currentImagePath = null;
 
         try {
-            const result = await API.heatmap.evaluateUpload(projectName, file);
+            const result = await API.heatmap.evaluateUpload(projectName, file, this._multiLabel);
             
             if (result.error) {
                 this._showError(result.error);

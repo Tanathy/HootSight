@@ -97,8 +97,6 @@ class WeightInitFactory:
                     else:
                         nn.init.constant_(param, 0)
 
-            info(f"Weight initialization applied successfully: {init_name} to {type(module).__name__} with parameters {default_params}")
-
         except Exception as e:
             error(f"Failed to apply weight initialization: {str(e)}")
             raise TypeError(f"Invalid parameters for weight initialization: {str(e)}")
@@ -122,9 +120,17 @@ class WeightInitFactory:
         init_name = init_config['type']
         custom_params = init_config.get('params', {})
 
+        initialized_counts = {}
         for module in model.modules():
             if isinstance(module, (nn.Conv2d, nn.Conv3d, nn.Linear, nn.LSTM, nn.GRU)):
                 cls.apply_initialization(module, init_name, custom_params)
+                layer_type = type(module).__name__
+                initialized_counts[layer_type] = initialized_counts.get(layer_type, 0) + 1
+        
+        # Log summary once
+        if initialized_counts:
+            summary = ', '.join(f"{count} {ltype}" for ltype, count in initialized_counts.items())
+            info(f"Weight initialization '{init_name}' applied to {summary}")
 
     @classmethod
     def _get_initializer_description(cls, init_name: str) -> str:

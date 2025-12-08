@@ -329,49 +329,49 @@ body {
 .header-training-progress {
     display: flex;
     align-items: center;
-    gap: var(--spacing-md);
-    padding: var(--spacing-xs) var(--spacing-sm);
+    gap: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-md);
     background: var(--bg-tertiary);
-    border-radius: var(--radius-sm);
     animation: progressSlideIn 0.3s ease;
 }
 
-.training-progress-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 120px;
-}
-
 .training-project-label {
-    font-size: var(--font-normal);
+    font-size: var(--font-small);
     font-weight: 600;
     color: var(--accent-primary);
-}
-
-.training-progress-text {
-    font-size: var(--font-normal);
-    color: var(--text-secondary);
-    white-space: nowrap;
+    padding: 2px 8px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
 }
 
 .training-progress-bar-container {
-    width: 150px;
-    height: 6px;
+    width: 100px;
+    height: 10px;
     background: var(--bg-secondary);
     border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
     overflow: hidden;
 }
 
 .training-progress-bar {
     height: 100%;
-    background: linear-gradient(90deg, var(--accent-primary), var(--accent-success));
+    background: var(--accent-primary);
     border-radius: var(--radius-sm);
     transition: width 0.3s ease;
 }
 
+.training-eta {
+    font-size: var(--font-small);
+    font-weight: 500;
+    color: var(--text-primary);
+    font-family: monospace;
+    min-width: 60px;
+    text-align: center;
+}
+
 .training-stop-btn {
-    padding: var(--spacing-xs) var(--spacing-sm) !important;
-    font-size: var(--font-normal) !important;
+    padding: 2px 10px !important;
+    font-size: var(--font-small) !important;
     min-height: auto !important;
 }

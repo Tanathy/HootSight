@@ -1028,10 +1028,11 @@ def create_app() -> FastAPI:
         project_name: str = Body(..., embed=True),
         model_type: str = Body("resnet", embed=True),
         model_name: str = Body("resnet50", embed=True),
-        epochs: Optional[int] = Body(None, embed=True)
+        epochs: Optional[int] = Body(None, embed=True),
+        resume: bool = Body(False, embed=True)
     ) -> Dict[str, Any]:
         try:
-            return start_training(project_name=project_name, model_type=model_type, model_name=model_name, epochs=epochs)
+            return start_training(project_name=project_name, model_type=model_type, model_name=model_name, epochs=epochs, resume=resume)
         except Exception as ex:
             error(f"Training start failed: {ex}")
             return {"started": False, "error": str(ex)}
@@ -1090,10 +1091,11 @@ def create_app() -> FastAPI:
         project_name: str,
         image_path: Optional[str] = Query(None),
         class_index: Optional[int] = Query(None),
-        alpha: float = Query(0.5)
+        alpha: float = Query(0.5),
+        multi_label: bool = Query(False)
     ):
         try:
-            data, meta = generate_heatmap(project_name, image_path=image_path, target_class=class_index, alpha=alpha)
+            data, meta = generate_heatmap(project_name, image_path=image_path, target_class=class_index, alpha=alpha, multi_label=multi_label)
             return Response(content=data, media_type="image/png")
         except Exception as ex:
             error(f"Heatmap generation failed for {project_name}: {ex}")
@@ -1104,14 +1106,16 @@ def create_app() -> FastAPI:
         project_name: str,
         image_path: Optional[str] = Query(None),
         checkpoint_path: Optional[str] = Query(None),
-        use_live_model: bool = Query(False)
+        use_live_model: bool = Query(False),
+        multi_label: bool = Query(False)
     ):
         try:
             result = evaluate_with_heatmap(
                 project_name, 
                 image_path=image_path, 
                 checkpoint_path=checkpoint_path,
-                use_live_model=use_live_model
+                use_live_model=use_live_model,
+                multi_label=multi_label
             )
             return result
         except Exception as ex:
@@ -1121,7 +1125,8 @@ def create_app() -> FastAPI:
     @app.post("/projects/{project_name}/evaluate/upload")
     async def project_evaluate_upload(
         project_name: str,
-        file: UploadFile = File(...)
+        file: UploadFile = File(...),
+        multi_label: bool = Query(False)
     ):
         """Evaluate an uploaded image with heatmap generation."""
         try:
@@ -1148,7 +1153,7 @@ def create_app() -> FastAPI:
             info(f"Saved uploaded image to {temp_path}")
             
             # Run evaluation
-            result = evaluate_with_heatmap(project_name, image_path=temp_path)
+            result = evaluate_with_heatmap(project_name, image_path=temp_path, multi_label=multi_label)
             
             # Optionally clean up temp file (or keep for reference)
             # os.remove(temp_path)

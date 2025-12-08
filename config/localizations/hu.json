@@ -259,7 +259,11 @@
     "training": {
       "stop_error": "A tanítás leállítása nem sikerült",
       "start_error": "A tanítás indítása nem sikerült",
-      "no_project": "Nincs kiválasztott projekt"
+      "no_project": "Nincs kiválasztott projekt",
+      "resume_title": "Folytatod a tanítást?",
+      "resume_prompt": "Checkpoint található ehhez a projekthez. Szeretnéd folytatni a tanítást az utolsó checkpointtól?",
+      "resume_yes": "Folytatás",
+      "resume_no": "Újrakezdés"
     },
     "new_project": {
       "title": "Új projekt létrehozása",
@@ -469,6 +473,7 @@
       "no_predictions": "Nincsenek elérhető előrejelzések"
     },
     "live_model_switch": "Élő modell használata",
+    "multi_label_switch": "Többcímkés",
     "random_button": "Véletlen",
     "refresh_button": "Frissítés",
     "checkpoint_label": "Checkpoint:"

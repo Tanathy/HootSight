@@ -1,6 +1,6 @@
 /**
  * HootSight - Graph Widget Styles
- * Dark theme styling for SVG line graphs
+ * Dark theme styling for Canvas line graphs
  */
 
 .graph-widget {
@@ -37,6 +37,18 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* Canvas container */
+.graph-canvas-container {
+    position: relative;
+    width: 100%;
+    min-height: 100px;
+}
+
+.graph-canvas {
+    display: block;
+}
+
+/* Legacy SVG container - kept for backwards compatibility */
 .graph-svg-container {
     position: relative;
     width: 100%;

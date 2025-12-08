@@ -454,13 +454,15 @@ const API = {
          * @param {string} modelType - Model type (e.g., 'resnet', 'efficientnet')
          * @param {string} modelName - Model name (e.g., 'resnet50')
          * @param {number} [epochs] - Optional epoch count override
+         * @param {boolean} [resume] - Resume from last checkpoint if available
          * @returns {Promise<Object>} - Training start result with training_id
          */
-        start: async function(projectName, modelType, modelName, epochs = null) {
+        start: async function(projectName, modelType, modelName, epochs = null, resume = false) {
             const body = {
                 project_name: projectName,
                 model_type: modelType,
-                model_name: modelName
+                model_name: modelName,
+                resume: resume
             };
             if (epochs) body.epochs = epochs;
             
@@ -547,13 +549,15 @@ const API = {
          * @param {string|null} imagePath - Optional image path (uses random if not provided)
          * @param {string|null} checkpointPath - Optional specific checkpoint path
          * @param {boolean} useLiveModel - If true, skip cache and load fresh model
+         * @param {boolean} multiLabel - If true, show all class activations combined
          * @returns {Promise<Object>} - Evaluation results with heatmap (base64) and predictions
          */
-        evaluate: async function(projectName, imagePath = null, checkpointPath = null, useLiveModel = false) {
+        evaluate: async function(projectName, imagePath = null, checkpointPath = null, useLiveModel = false, multiLabel = true) {
             const params = new URLSearchParams();
             if (imagePath) params.append('image_path', imagePath);
             if (checkpointPath) params.append('checkpoint_path', checkpointPath);
             if (useLiveModel) params.append('use_live_model', 'true');
+            if (multiLabel) params.append('multi_label', 'true');
             
             const url = `${API.baseUrl}/projects/${encodeURIComponent(projectName)}/evaluate?${params}`;
             const response = await fetch(url);
@@ -565,13 +569,17 @@ const API = {
          * Upload and evaluate a custom image
          * @param {string} projectName - Project name
          * @param {File} file - Image file to upload
+         * @param {boolean} multiLabel - If true, show all class activations combined
          * @returns {Promise<Object>} - Evaluation results
          */
-        evaluateUpload: async function(projectName, file) {
+        evaluateUpload: async function(projectName, file, multiLabel = true) {
             const formData = new FormData();
             formData.append('file', file);
             
-            const response = await fetch(`${API.baseUrl}/projects/${encodeURIComponent(projectName)}/evaluate/upload`, {
+            const params = new URLSearchParams();
+            if (multiLabel) params.append('multi_label', 'true');
+            
+            const response = await fetch(`${API.baseUrl}/projects/${encodeURIComponent(projectName)}/evaluate/upload?${params}`, {
                 method: 'POST',
                 body: formData
             });

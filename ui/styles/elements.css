@@ -242,6 +242,7 @@
     font-size: var(--font-description);
     font-weight: 600;
     color: var(--accent-primary);
+    text-transform: uppercase;
 }
 
 /* ============================================================================

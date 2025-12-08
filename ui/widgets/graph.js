@@ -1,11 +1,11 @@
 /**
  * Graph Widget
- * SVG path-based line graph with auto-scaling Y-axis
+ * Canvas-based line graph with auto-scaling Y-axis
  * 
  * Features:
  *   - Auto-scaling Y-axis based on data min/max
  *   - Configurable max data points (default 500)
- *   - SVG path rendering for smooth lines
+ *   - Canvas rendering for high performance with many points
  *   - Multiple series support with different colors
  *   - Dark theme styling
  *   - Real-time data appending
@@ -21,6 +21,7 @@ class Graph {
             height: options.height || 200,
             showGrid: options.showGrid !== false,
             showLegend: options.showLegend !== false,
+            showArea: options.showArea !== false,  // Show gradient area under lines
             unit: options.unit || '',
             yMin: options.yMin ?? null,  // null = auto
             yMax: options.yMax ?? null,  // null = auto
@@ -29,15 +30,14 @@ class Graph {
             animationDuration: options.animationDuration || 300,
             smooth: options.smooth !== false,  // Enable value smoothing animation
             smoothDuration: options.smoothDuration || 250,  // Animation duration in ms
+            lineWidth: options.lineWidth || 2,
             ...options
         };
         
         this._series = {};  // { seriesName: { data: [], displayData: [], color: string, label: string } }
         this._element = null;
-        this._svg = null;
-        this._pathGroup = null;
-        this._gridGroup = null;
-        this._yLabels = null;
+        this._canvas = null;
+        this._ctx = null;
         this._legendContainer = null;
         this._valueDisplay = null;
         this._colorIndex = 0;
@@ -47,6 +47,7 @@ class Graph {
         this._width = 0;
         this._height = this.options.height;
         this._padding = { top: 20, right: 20, bottom: 30, left: 50 };
+        this._dpr = window.devicePixelRatio || 1;
         
         this._build();
         this._setupResize();
@@ -75,25 +76,20 @@ class Graph {
             Q(this._element).append(header);
         }
         
-        // SVG container
-        const svgContainer = Q('<div>', { class: 'graph-svg-container' }).get();
+        // Canvas container
+        const canvasContainer = Q('<div>', { class: 'graph-canvas-container' }).get();
+        canvasContainer.style.position = 'relative';
+        canvasContainer.style.width = '100%';
+        canvasContainer.style.minHeight = '100px';
         
-        this._svg = Q('<svg>', { class: 'graph-svg', preserveAspectRatio: 'none' }).get();
+        this._canvas = Q('<canvas>', { class: 'graph-canvas' }).get();
+        this._canvas.style.display = 'block';
+        this._canvas.style.width = '100%';
+        this._canvas.style.height = `${this._height}px`;
+        this._ctx = this._canvas.getContext('2d');
         
-        // Grid group (behind paths)
-        this._gridGroup = Q('<g>', { class: 'graph-grid' }).get();
-        Q(this._svg).append(this._gridGroup);
-        
-        // Path group
-        this._pathGroup = Q('<g>', { class: 'graph-paths' }).get();
-        Q(this._svg).append(this._pathGroup);
-        
-        // Y-axis labels group
-        this._yLabels = Q('<g>', { class: 'graph-y-labels' }).get();
-        Q(this._svg).append(this._yLabels);
-        
-        Q(svgContainer).append(this._svg);
-        Q(this._element).append(svgContainer);
+        Q(canvasContainer).append(this._canvas);
+        Q(this._element).append(canvasContainer);
         
         // Legend
         if (this.options.showLegend) {
@@ -108,7 +104,7 @@ class Graph {
                 const rect = entry.contentRect;
                 if (rect.width > 0) {
                     this._width = rect.width;
-                    this._updateViewBox();
+                    this._updateCanvasSize();
                     this._render();
                 }
             }
@@ -116,19 +112,26 @@ class Graph {
         
         // Observe after element is in DOM
         requestAnimationFrame(() => {
-            const container = Q(this._element).find('.graph-svg-container').get(0);
+            const container = this._canvas?.parentElement;
             if (container) {
                 resizeObserver.observe(container);
                 this._width = container.clientWidth || 400;
-                this._updateViewBox();
+                this._updateCanvasSize();
             }
         });
     }
     
-    _updateViewBox() {
-        this._svg.setAttribute('viewBox', `0 0 ${this._width} ${this._height}`);
-        this._svg.style.width = '100%';
-        this._svg.style.height = `${this._height}px`;
+    _updateCanvasSize() {
+        if (!this._canvas) return;
+        
+        // Set canvas size accounting for device pixel ratio for crisp rendering
+        this._canvas.width = this._width * this._dpr;
+        this._canvas.height = this._height * this._dpr;
+        this._canvas.style.width = `${this._width}px`;
+        this._canvas.style.height = `${this._height}px`;
+        
+        // Scale context for DPR
+        this._ctx.setTransform(this._dpr, 0, 0, this._dpr, 0, 0);
     }
     
     /**
@@ -144,30 +147,8 @@ class Graph {
             data: config.data || [],
             displayData: config.data ? [...config.data] : [],  // Animated display values
             color: color,
-            label: config.label || name,
-            path: null
+            label: config.label || name
         };
-        
-        // Create path element
-        const path = Q('<path>', { 
-            class: 'graph-line',
-            stroke: color,
-            fill: 'none',
-            'stroke-width': '2',
-            'stroke-linecap': 'round',
-            'stroke-linejoin': 'round'
-        }).get();
-        Q(this._pathGroup).append(path);
-        this._series[name].path = path;
-        
-        // Create area fill
-        const area = Q('<path>', {
-            class: 'graph-area',
-            fill: color,
-            opacity: '0.1'
-        }).get();
-        this._pathGroup.insertBefore(area, path);
-        this._series[name].area = area;
         
         this._updateLegend();
         this._render();
@@ -342,33 +323,50 @@ class Graph {
     }
     
     /**
-     * Render all series paths and grid
+     * Render all series and grid on canvas
      */
     _render() {
-        if (!this._width) return;
+        if (!this._width || !this._ctx) return;
         
+        const ctx = this._ctx;
         const bounds = this._calculateBounds();
         const chartWidth = this._width - this._padding.left - this._padding.right;
         const chartHeight = this._height - this._padding.top - this._padding.bottom;
         
-        // Render grid
-        this._renderGrid(bounds, chartWidth, chartHeight);
+        // Clear canvas
+        ctx.clearRect(0, 0, this._width, this._height);
         
-        // Render each series
+        // Render grid
+        this._renderGrid(ctx, bounds, chartWidth, chartHeight);
+        
+        // Render each series (area first, then lines on top)
         Object.values(this._series).forEach(series => {
-            this._renderSeries(series, bounds, chartWidth, chartHeight);
+            this._renderSeriesArea(ctx, series, bounds, chartWidth, chartHeight);
+        });
+        Object.values(this._series).forEach(series => {
+            this._renderSeriesLine(ctx, series, bounds, chartWidth, chartHeight);
         });
     }
     
-    _renderGrid(bounds, chartWidth, chartHeight) {
-        // Clear existing grid
-        Q(this._gridGroup).empty();
-        Q(this._yLabels).empty();
-        
+    _renderGrid(ctx, bounds, chartWidth, chartHeight) {
         if (!this.options.showGrid) return;
         
         const { min, max } = bounds;
         const range = max - min;
+        
+        // Get computed styles for colors
+        const style = getComputedStyle(document.documentElement);
+        const gridColor = style.getPropertyValue('--border-light').trim() || 'rgba(255,255,255,0.1)';
+        const textColor = style.getPropertyValue('--text-muted').trim() || 'rgba(255,255,255,0.5)';
+        
+        ctx.save();
+        ctx.strokeStyle = gridColor;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.font = '12px system-ui, -apple-system, sans-serif';
+        ctx.fillStyle = textColor;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
         
         // Horizontal grid lines
         for (let i = 0; i <= this.options.gridLines; i++) {
@@ -377,44 +375,72 @@ class Graph {
             const value = min + range * ratio;
             
             // Grid line
-            const line = Q('<line>', {
-                x1: this._padding.left,
-                y1: y,
-                x2: this._width - this._padding.right,
-                y2: y,
-                class: 'graph-grid-line'
-            }).get();
-            Q(this._gridGroup).append(line);
+            ctx.beginPath();
+            ctx.moveTo(this._padding.left, y);
+            ctx.lineTo(this._width - this._padding.right, y);
+            ctx.stroke();
             
             // Y-axis label
-            const label = Q('<text>', {
-                x: this._padding.left - 8,
-                y: y,
-                class: 'graph-label',
-                'text-anchor': 'end',
-                'dominant-baseline': 'middle',
-                text: this._formatValue(value)
-            }).get();
-            Q(this._yLabels).append(label);
+            ctx.fillText(this._formatValue(value), this._padding.left - 8, y);
         }
+        
+        ctx.restore();
     }
     
-    _renderSeries(series, bounds, chartWidth, chartHeight) {
-        // Use displayData for rendering (animated values)
+    _renderSeriesArea(ctx, series, bounds, chartWidth, chartHeight) {
+        if (!this.options.showArea) return;
+        
         const renderData = this.options.smooth ? series.displayData : series.data;
+        if (!renderData.length) return;
         
-        if (!renderData.length) {
-            series.path.setAttribute('d', '');
-            series.area.setAttribute('d', '');
-            return;
-        }
+        const points = this._getSeriesPoints(renderData, bounds, chartWidth, chartHeight);
+        if (points.length < 2) return;
         
+        const baseY = this._padding.top + chartHeight;
+        
+        ctx.save();
+        ctx.beginPath();
+        this._tracePathToCtx(ctx, points);
+        ctx.lineTo(points[points.length - 1].x, baseY);
+        ctx.lineTo(points[0].x, baseY);
+        ctx.closePath();
+        
+        // Create gradient for area fill
+        const gradient = ctx.createLinearGradient(0, this._padding.top, 0, baseY);
+        const color = series.color || '#3498db';
+        gradient.addColorStop(0, this._hexToRgba(color, 0.3));
+        gradient.addColorStop(1, this._hexToRgba(color, 0));
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        ctx.restore();
+    }
+    
+    _renderSeriesLine(ctx, series, bounds, chartWidth, chartHeight) {
+        const renderData = this.options.smooth ? series.displayData : series.data;
+        if (!renderData.length) return;
+        
+        const points = this._getSeriesPoints(renderData, bounds, chartWidth, chartHeight);
+        if (points.length < 2) return;
+        
+        ctx.save();
+        ctx.strokeStyle = series.color || '#3498db';
+        ctx.lineWidth = this.options.lineWidth || 2;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        
+        ctx.beginPath();
+        this._tracePathToCtx(ctx, points);
+        ctx.stroke();
+        ctx.restore();
+    }
+    
+    _getSeriesPoints(data, bounds, chartWidth, chartHeight) {
         const { min, max } = bounds;
-        const range = max - min;
+        const range = max - min || 1;
         const points = [];
         
-        renderData.forEach((value, i) => {
-            const x = this._padding.left + (i / Math.max(1, renderData.length - 1)) * chartWidth;
+        data.forEach((value, i) => {
+            const x = this._padding.left + (i / Math.max(1, data.length - 1)) * chartWidth;
             const y = this._padding.top + chartHeight * (1 - (value - min) / range);
             points.push({ x, y });
         });
@@ -424,24 +450,16 @@ class Graph {
             points.push({ ...points[0], x: points[0].x + 1 });
         }
         
-        // Build smooth path using Catmull-Rom spline
-        const pathD = this._buildSmoothPath(points);
-        series.path.setAttribute('d', pathD);
-        
-        // Build area path
-        const areaD = pathD + 
-            ` L ${points[points.length - 1].x} ${this._padding.top + chartHeight}` +
-            ` L ${points[0].x} ${this._padding.top + chartHeight} Z`;
-        series.area.setAttribute('d', areaD);
+        return points;
     }
     
     /**
-     * Build a smooth SVG path using simplified Catmull-Rom
+     * Trace smooth Catmull-Rom path to canvas context
      */
-    _buildSmoothPath(points) {
-        if (points.length < 2) return '';
+    _tracePathToCtx(ctx, points) {
+        if (points.length < 2) return;
         
-        let d = `M ${points[0].x} ${points[0].y}`;
+        ctx.moveTo(points[0].x, points[0].y);
         
         for (let i = 0; i < points.length - 1; i++) {
             const p0 = points[Math.max(0, i - 1)];
@@ -449,16 +467,30 @@ class Graph {
             const p2 = points[i + 1];
             const p3 = points[Math.min(points.length - 1, i + 2)];
             
-            // Control points
-            const cp1x = p1.x + (p2.x - p0.x) / 6;
-            const cp1y = p1.y + (p2.y - p0.y) / 6;
-            const cp2x = p2.x - (p3.x - p1.x) / 6;
-            const cp2y = p2.y - (p3.y - p1.y) / 6;
+            // Catmull-Rom to Bezier conversion
+            const tension = 0.5;
+            const cp1x = p1.x + (p2.x - p0.x) * tension / 3;
+            const cp1y = p1.y + (p2.y - p0.y) * tension / 3;
+            const cp2x = p2.x - (p3.x - p1.x) * tension / 3;
+            const cp2y = p2.y - (p3.y - p1.y) * tension / 3;
             
-            d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+            ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+        }
+    }
+    
+    _hexToRgba(hex, alpha) {
+        // Handle rgb/rgba pass-through
+        if (hex.startsWith('rgb')) return hex;
+        
+        // Convert shorthand hex
+        if (hex.length === 4) {
+            hex = '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
         }
         
-        return d;
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     }
     
     _formatValue(value) {

@@ -17,7 +17,7 @@ const TrainingMonitor = {
     /**
      * Polling rate in ms
      */
-    _pollRate: 500,
+    _pollRate: 1000,
 
     /**
      * Currently tracked training ID

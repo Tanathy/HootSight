@@ -283,7 +283,7 @@ class SqueezeNetModel:
             optimizer: Optimizer state
             scheduler: Scheduler state (optional)
             metrics: Training metrics (optional)
-            labels: Class label names in index order (optional but recommended)
+            labels: Class labels as dict {index: name} for deterministic mapping
         """
         checkpoint = {
             'epoch': epoch,
@@ -292,7 +292,7 @@ class SqueezeNetModel:
             'model_name': self.model_name,
             'num_classes': self.num_classes,
             'task': self.task,
-            'labels': labels or []
+            'labels': labels or {}
         }
 
         if scheduler:
@@ -302,7 +302,7 @@ class SqueezeNetModel:
             checkpoint['metrics'] = metrics
 
         torch.save(checkpoint, path)
-        info(f"Checkpoint saved to {path} with {len(labels or [])} labels")
+        info(f"Checkpoint saved to {path} with {len(labels or {})} labels")
 
     def load_checkpoint(self, path: str) -> Dict[str, Any]:
         """Load model checkpoint.

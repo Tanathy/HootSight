@@ -69,6 +69,82 @@ class TrainingManager:
         }
         self._record_event(training_id, event)
 
+    def _cleanup_old_checkpoints(self, output_dir: Path, best_model_filename: str, max_checkpoints: int) -> None:
+        """Remove old periodic checkpoints, keeping only the most recent ones.
+        
+        Args:
+            output_dir: Directory containing checkpoints
+            best_model_filename: Filename of the best model (never deleted)
+            max_checkpoints: Maximum number of periodic checkpoints to keep
+        """
+        import re
+        
+        # Find all epoch-numbered checkpoints
+        base_name = best_model_filename.rsplit('.', 1)[0]
+        pattern = re.compile(rf"^{re.escape(base_name)}_epoch(\d+)\.pth$")
+        
+        epoch_checkpoints = []
+        for f in output_dir.iterdir():
+            if f.is_file():
+                match = pattern.match(f.name)
+                if match:
+                    epoch_num = int(match.group(1))
+                    epoch_checkpoints.append((epoch_num, f))
+        
+        # Sort by epoch number (descending) and remove oldest beyond max_checkpoints
+        epoch_checkpoints.sort(key=lambda x: x[0], reverse=True)
+        
+        checkpoints_to_remove = epoch_checkpoints[max_checkpoints:]
+        for epoch_num, checkpoint_path in checkpoints_to_remove:
+            try:
+                checkpoint_path.unlink()
+                info(f"Removed old checkpoint: {checkpoint_path.name}")
+            except Exception as ex:
+                error(f"Failed to remove old checkpoint {checkpoint_path.name}: {ex}")
+
+    def _find_latest_checkpoint(self, output_dir: Path) -> Optional[Path]:
+        """Find the latest checkpoint file in the output directory.
+        
+        Prefers epoch-numbered checkpoints (highest epoch), falls back to best_model.pth.
+        
+        Args:
+            output_dir: Directory to search for checkpoints
+            
+        Returns:
+            Path to the latest checkpoint, or None if no checkpoint found
+        """
+        import re
+        
+        try:
+            checkpoint_config = SETTINGS['training']['checkpoint']
+            best_model_filename = checkpoint_config.get('best_model_filename', 'best_model.pth')
+        except Exception:
+            best_model_filename = 'best_model.pth'
+        
+        base_name = best_model_filename.rsplit('.', 1)[0]
+        pattern = re.compile(rf"^{re.escape(base_name)}_epoch(\d+)\.pth$")
+        
+        # Find all epoch-numbered checkpoints
+        epoch_checkpoints = []
+        for f in output_dir.iterdir():
+            if f.is_file():
+                match = pattern.match(f.name)
+                if match:
+                    epoch_num = int(match.group(1))
+                    epoch_checkpoints.append((epoch_num, f))
+        
+        # Return highest epoch checkpoint if found
+        if epoch_checkpoints:
+            epoch_checkpoints.sort(key=lambda x: x[0], reverse=True)
+            return epoch_checkpoints[0][1]
+        
+        # Fall back to best_model.pth
+        best_path = output_dir / best_model_filename
+        if best_path.exists():
+            return best_path
+        
+        return None
+
     def _consume_updates(self, training_id: str) -> List[Dict[str, Any]]:
         with self._lock:
             pending = self._progress_updates.get(training_id, [])
@@ -101,7 +177,8 @@ class TrainingManager:
 
     def start_training(self, project_name: str, model_type: str = "resnet",
                       model_name: str = "resnet50", epochs: Optional[int] = None,
-                      callback: Optional[Callable] = None) -> Dict[str, Any]:
+                      callback: Optional[Callable] = None,
+                      resume: bool = False) -> Dict[str, Any]:
         try:
             training_id = f"{project_name}_{model_type}_{model_name}_{threading.current_thread().ident}"
 
@@ -118,7 +195,7 @@ class TrainingManager:
 
             training_thread = threading.Thread(
                 target=self._run_training,
-                args=(training_config, project_name, model_type, model_name, training_id, callback, stop_event),
+                args=(training_config, project_name, model_type, model_name, training_id, callback, stop_event, resume),
                 name=f"Training-{training_id}"
             )
             training_thread.daemon = True
@@ -129,12 +206,14 @@ class TrainingManager:
                 'coordinator': coordinator,
                 'start_time': threading.current_thread().ident,
                 'status': 'starting',
-                'stop_event': stop_event
+                'stop_event': stop_event,
+                'resume': resume
             }
 
             training_thread.start()
 
-            info(f"Training started for project {project_name} with ID: {training_id}")
+            resume_msg = " (resuming from checkpoint)" if resume else ""
+            info(f"Training started for project {project_name} with ID: {training_id}{resume_msg}")
 
             return {
                 "started": True,
@@ -142,8 +221,9 @@ class TrainingManager:
                 "project": project_name,
                 "model_type": model_type,
                 "model_name": model_name,
+                "resume": resume,
                 "config": coordinator.get_training_summary(training_config),
-                "message": f"Training started successfully for {project_name}"
+                "message": f"Training started successfully for {project_name}{resume_msg}"
             }
 
         except Exception as e:
@@ -226,7 +306,8 @@ class TrainingManager:
 
     def _run_training(self, training_config: Dict[str, Any], project_name: str,
                      model_type: str, model_name: str, training_id: str,
-                     callback: Optional[Callable] = None, stop_event: Optional[threading.Event] = None):
+                     callback: Optional[Callable] = None, stop_event: Optional[threading.Event] = None,
+                     resume: bool = False):
         try:
             if training_id in self.active_trainings:
                 self.active_trainings[training_id]['status'] = 'running'
@@ -244,9 +325,42 @@ class TrainingManager:
             num_epochs = config['epochs']
             best_accuracy = 0.0
             best_val_loss = float('inf')
+            start_epoch = 0
 
             output_dir = Path(config.get('output_dir') or f"models/{project_name}/model")
             output_dir.mkdir(parents=True, exist_ok=True)
+
+            # Resume from checkpoint if requested
+            if resume:
+                checkpoint_path = self._find_latest_checkpoint(output_dir)
+                if checkpoint_path:
+                    try:
+                        start_epoch, checkpoint_data = model.load_checkpoint(str(checkpoint_path))
+                        
+                        # Restore optimizer state
+                        if 'optimizer_state_dict' in checkpoint_data:
+                            optimizer.load_state_dict(checkpoint_data['optimizer_state_dict'])
+                            info(f"Restored optimizer state from checkpoint")
+                        
+                        # Restore scheduler state
+                        if scheduler and 'scheduler_state_dict' in checkpoint_data:
+                            scheduler.load_state_dict(checkpoint_data['scheduler_state_dict'])
+                            info(f"Restored scheduler state from checkpoint")
+                        
+                        # Restore best metrics
+                        if 'metrics' in checkpoint_data:
+                            metrics = checkpoint_data['metrics']
+                            if 'val_accuracy' in metrics and metrics['val_accuracy']:
+                                best_accuracy = metrics['val_accuracy']
+                            if 'val_loss' in metrics and metrics['val_loss']:
+                                best_val_loss = metrics['val_loss']
+                        
+                        info(f"Resuming training from epoch {start_epoch + 1} (checkpoint: {checkpoint_path.name})")
+                    except Exception as ex:
+                        error(f"Failed to load checkpoint, starting from scratch: {ex}")
+                        start_epoch = 0
+                else:
+                    info(f"No checkpoint found, starting training from scratch")
 
             training_history = []
 
@@ -263,7 +377,7 @@ class TrainingManager:
 
             stopped_early = False
 
-            for epoch in range(num_epochs):
+            for epoch in range(start_epoch, num_epochs):
                 if should_stop():
                     stopped_early = True
                     info(f"Training {training_id} stop detected before epoch {epoch + 1}")
@@ -393,6 +507,7 @@ class TrainingManager:
                         current_best_loss = min(best_val_loss, val_metrics['val_loss'])
                         self.active_trainings[training_id]['best_val_loss'] = current_best_loss
 
+                # Check if model improved
                 improved = False
                 save_reason = ""
                 if 'val_accuracy' in val_metrics and val_metrics['val_accuracy'] is not None:
@@ -406,27 +521,63 @@ class TrainingManager:
                         improved = True
                         save_reason = f"val_loss {best_val_loss:.4f}"
 
-                if improved:
-                    try:
-                        checkpoint_config = SETTINGS['training']['checkpoint']
-                    except Exception:
-                        raise ValueError("Missing required 'training.checkpoint' section in config/config.json")
-                    if 'best_model_filename' not in checkpoint_config:
-                        raise ValueError("training.checkpoint.best_model_filename must be defined in config/config.json")
-                    checkpoint_path = output_dir / checkpoint_config['best_model_filename']
-                    if 'labels' not in config or not config['labels']:
-                        raise ValueError("Training config is missing the label list required for deterministic checkpoints")
-                    label_list = list(config['labels'])
-                    info(f"[DEBUG] Saving checkpoint with labels: {label_list} (count: {len(label_list)})")
+                # Load checkpoint configuration
+                try:
+                    checkpoint_config = SETTINGS['training']['checkpoint']
+                except Exception:
+                    raise ValueError("Missing required 'training.checkpoint' section in config/config.json")
+                
+                save_best_only = checkpoint_config.get('save_best_only', True)
+                save_frequency = checkpoint_config.get('save_frequency', 1)
+                max_checkpoints = checkpoint_config.get('max_checkpoints', 5)
+                best_model_filename = checkpoint_config.get('best_model_filename', 'best_model.pth')
+                
+                if 'labels' not in config or not config['labels']:
+                    raise ValueError("Training config is missing the label list required for deterministic checkpoints")
+                # labels is now a dict {idx: name} - save as-is for checkpoint
+                labels_dict = config['labels']
+                if not isinstance(labels_dict, dict):
+                    # Backwards compat: convert list to dict if needed
+                    labels_dict = {idx: name for idx, name in enumerate(labels_dict)}
+
+                # Determine if we should save a checkpoint this epoch
+                should_save = False
+                checkpoint_filename = best_model_filename
+                
+                if save_best_only:
+                    # Only save when model improved
+                    if improved:
+                        should_save = True
+                else:
+                    # Save based on frequency
+                    if (epoch + 1) % save_frequency == 0:
+                        should_save = True
+                        # Use epoch-numbered filename for periodic saves
+                        base_name = best_model_filename.rsplit('.', 1)[0]
+                        ext = best_model_filename.rsplit('.', 1)[1] if '.' in best_model_filename else 'pth'
+                        checkpoint_filename = f"{base_name}_epoch{epoch + 1:04d}.{ext}"
+                        save_reason = f"epoch {epoch + 1} (periodic)"
+                    # Also save if improved (always save best)
+                    if improved:
+                        should_save = True
+                        checkpoint_filename = best_model_filename
+                
+                if should_save:
+                    checkpoint_path = output_dir / checkpoint_filename
+                    info(f"[DEBUG] Saving checkpoint with labels: {labels_dict} (count: {len(labels_dict)})")
                     model.save_checkpoint(
                         str(checkpoint_path),
                         epoch + 1,
                         optimizer,
                         scheduler,
                         epoch_metrics,
-                        labels=label_list
+                        labels=labels_dict
                     )
-                    info(f"New best model by {save_reason} -> checkpoint saved")
+                    info(f"Checkpoint saved: {checkpoint_filename} ({save_reason})")
+                    
+                    # Manage max checkpoints (only for periodic saves, not best model)
+                    if not save_best_only and max_checkpoints > 0:
+                        self._cleanup_old_checkpoints(output_dir, best_model_filename, max_checkpoints)
 
                 if callback:
                     callback(epoch + 1, num_epochs, epoch_metrics)
@@ -462,8 +613,8 @@ training_manager = TrainingManager()
 
 def start_training(project_name: str, model_type: str = "resnet",
                   model_name: str = "resnet50", epochs: Optional[int] = None,
-                  callback: Optional[Callable] = None) -> Dict[str, Any]:
-    return training_manager.start_training(project_name, model_type, model_name, epochs, callback)
+                  callback: Optional[Callable] = None, resume: bool = False) -> Dict[str, Any]:
+    return training_manager.start_training(project_name, model_type, model_name, epochs, callback, resume)
 
 
 def stop_training(training_id: str) -> Dict[str, Any]:

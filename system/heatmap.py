@@ -110,7 +110,6 @@ def _get_preprocess_params() -> dict:
     if size is None:
         raise ValueError("training.input_size or training.input.image_size must be provided in config/config.json")
     size = int(size)
-    resize_target = int(max(size + 32, size))
     norm = input_block.get('normalize', tr_cfg.get('normalize'))
     if not isinstance(norm, dict):
         raise ValueError("training.normalize must be provided in config/config.json")
@@ -118,30 +117,47 @@ def _get_preprocess_params() -> dict:
     std = norm.get('std', [0.229, 0.224, 0.225])
     return {
         'input_size': size,
-        'resize_target': resize_target,
         'mean': mean,
         'std': std,
     }
 
 
 def _prepare_model_input(image: Image.Image) -> Tuple[torch.Tensor, dict]:
+    """
+    Prepare image for model input by fitting it into a square canvas.
+    
+    The image is scaled so its longest side equals input_size, then centered
+    on a square canvas with black padding. This ensures the entire image is
+    visible to the model without cropping.
+    """
     params = _get_preprocess_params()
-    resize = transforms.Resize(params['resize_target'])
-    crop = transforms.CenterCrop(params['input_size'])
-    resized = resize(image)
-    cropped = crop(resized)
-    tensor = transforms.ToTensor()(cropped)
+    input_size = params['input_size']
+    orig_w, orig_h = image.size
+    
+    # Scale so longest side = input_size
+    scale = input_size / max(orig_w, orig_h)
+    new_w = int(orig_w * scale)
+    new_h = int(orig_h * scale)
+    
+    # Resize image
+    resized = image.resize((new_w, new_h), Image.Resampling.LANCZOS)
+    
+    # Create square canvas and paste centered
+    canvas = Image.new('RGB', (input_size, input_size), (0, 0, 0))
+    paste_x = (input_size - new_w) // 2
+    paste_y = (input_size - new_h) // 2
+    canvas.paste(resized, (paste_x, paste_y))
+    
+    # Convert to tensor
+    tensor = transforms.ToTensor()(canvas)
     tensor = transforms.Normalize(mean=params['mean'], std=params['std'])(tensor)
     tensor = tensor.unsqueeze(0)
 
-    crop_left = max((resized.width - params['input_size']) // 2, 0)
-    crop_top = max((resized.height - params['input_size']) // 2, 0)
-
     meta = {
-        'original_size': image.size,
-        'resized_size': (resized.width, resized.height),
-        'crop_offset': (crop_left, crop_top),
-        'input_size': params['input_size'],
+        'original_size': (orig_w, orig_h),
+        'scaled_size': (new_w, new_h),
+        'paste_offset': (paste_x, paste_y),
+        'input_size': input_size,
     }
     return tensor, meta
 
@@ -285,7 +301,18 @@ def predict(model: nn.Module, x: torch.Tensor) -> Tuple[int, torch.Tensor]:
 
 
 def compute_gradcam(model: nn.Module, x: torch.Tensor, target_class: Optional[int] = None,
-                    target_layer: Optional[nn.Module] = None) -> torch.Tensor:
+                    target_layer: Optional[nn.Module] = None, multi_label: bool = False) -> torch.Tensor:
+    """
+    Compute Grad-CAM heatmap for model activations.
+    
+    Args:
+        model: The neural network model
+        x: Input tensor (N=1, C, H, W)
+        target_class: Specific class to visualize. If None, uses predicted class.
+        target_layer: Specific layer to hook. If None, auto-detects last conv layer.
+        multi_label: If True, shows activation for ALL classes combined (where model looks overall).
+                     If False, shows activation for single target_class only.
+    """
     assert x.ndim == 4 and x.size(0) == 1, "Grad-CAM expects a single image (N=1)"
 
     model.eval()
@@ -309,14 +336,19 @@ def compute_gradcam(model: nn.Module, x: torch.Tensor, target_class: Optional[in
     logits = model(x)
     if isinstance(logits, (list, tuple)):
         logits = logits[0]
-    if target_class is None:
-        target_class = int(torch.argmax(logits, dim=1).item())
-
-    one_hot = torch.zeros_like(logits)
-    one_hot[0, target_class] = 1.0
 
     model.zero_grad(set_to_none=True)
-    (logits * one_hot).sum().backward()
+    
+    if multi_label:
+        # Backprop on sum of all logits - shows where model activates for ANY class
+        logits.sum().backward()
+    else:
+        # Single class mode
+        if target_class is None:
+            target_class = int(torch.argmax(logits, dim=1).item())
+        one_hot = torch.zeros_like(logits)
+        one_hot[0, target_class] = 1.0
+        (logits * one_hot).sum().backward()
 
     act = activations[-1]
     grad = gradients[-1]
@@ -339,21 +371,27 @@ def overlay_heatmap_on_image(
     preprocess_meta: dict,
     alpha: float = 0.5
 ) -> Image.Image:
-    orig_w, orig_h = image_rgb.size
-    resized_w, resized_h = preprocess_meta['resized_size']
-    crop_left, crop_top = preprocess_meta['crop_offset']
+    """
+    Extract heatmap from the image region (excluding padding) and overlay on original.
+    
+    The heatmap tensor covers the full input_size x input_size canvas including padding.
+    We extract only the portion where the actual image was placed, then resize that
+    to the original image dimensions.
+    """
+    orig_w, orig_h = preprocess_meta['original_size']
+    scaled_w, scaled_h = preprocess_meta['scaled_size']
+    paste_x, paste_y = preprocess_meta['paste_offset']
     input_size = preprocess_meta['input_size']
 
+    # Resize heatmap to full canvas size
     heat_np = heatmap.numpy()
-    heat_square = cv2.resize(heat_np, (input_size, input_size))
+    heat_canvas = cv2.resize(heat_np, (input_size, input_size))
 
-    full_resized = np.zeros((resized_h, resized_w), dtype=np.float32)
-    end_y = min(resized_h, crop_top + input_size)
-    end_x = min(resized_w, crop_left + input_size)
-    patch = heat_square[: end_y - crop_top, : end_x - crop_left]
-    full_resized[crop_top:end_y, crop_left:end_x] = patch
+    # Extract only the region where the actual image was placed (excluding padding)
+    heat_cropped = heat_canvas[paste_y:paste_y + scaled_h, paste_x:paste_x + scaled_w]
 
-    heat_original = cv2.resize(full_resized, (orig_w, orig_h), interpolation=cv2.INTER_LINEAR)
+    # Resize to original image dimensions
+    heat_original = cv2.resize(heat_cropped, (orig_w, orig_h), interpolation=cv2.INTER_LINEAR)
     heat_uint8 = np.clip(heat_original * 255, 0, 255).astype(np.uint8)
 
     heatmap_colored = cv2.applyColorMap(heat_uint8, cv2.COLORMAP_JET)
@@ -366,7 +404,18 @@ def overlay_heatmap_on_image(
 
 
 def generate_heatmap(project_name: str, image_path: Optional[str] = None,
-                     target_class: Optional[int] = None, alpha: float = 0.5) -> Tuple[bytes, dict]:
+                     target_class: Optional[int] = None, alpha: float = 0.5,
+                     multi_label: bool = False) -> Tuple[bytes, dict]:
+    """
+    Generate Grad-CAM heatmap for an image.
+    
+    Args:
+        project_name: Name of the project
+        image_path: Path to image, or None to pick random sample
+        target_class: Specific class to visualize (ignored if multi_label=True)
+        alpha: Heatmap overlay transparency (0-1)
+        multi_label: If True, shows activation for ALL classes combined
+    """
     proj = get_project_info(project_name, compute_stats=True)
     if not proj or not proj.has_dataset:
         raise FileNotFoundError(f"Project {project_name} or its dataset not found")
@@ -387,7 +436,7 @@ def generate_heatmap(project_name: str, image_path: Optional[str] = None,
     tclass = pred_class if target_class is None else int(target_class)
 
     x_grad = x.clone().requires_grad_(True)
-    heat = compute_gradcam(wrapper.model, x_grad, target_class=tclass, target_layer=None)
+    heat = compute_gradcam(wrapper.model, x_grad, target_class=tclass, target_layer=None, multi_label=multi_label)
 
     overlay = overlay_heatmap_on_image(heat, pil_img, preprocess_meta, alpha=alpha)
     buf = io.BytesIO()
@@ -398,16 +447,19 @@ def generate_heatmap(project_name: str, image_path: Optional[str] = None,
         'project': project_name,
         'image_path': image_path,
         'predicted_class': int(pred_class),
-        'used_class': int(tclass),
+        'used_class': int(tclass) if not multi_label else 'all',
+        'multi_label': multi_label,
         'checkpoint': ckpt_path
     }
-    info(f"Generated heatmap for {project_name} using image {os.path.basename(image_path)} (class {tclass})")
+    mode_str = "multi-label" if multi_label else f"class {tclass}"
+    info(f"Generated heatmap for {project_name} using image {os.path.basename(image_path)} ({mode_str})")
     return data, meta
 
 
 def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
                           checkpoint_path: Optional[str] = None,
-                          use_live_model: bool = False) -> dict:
+                          use_live_model: bool = False,
+                          multi_label: bool = False) -> dict:
     """Evaluate an image with Grad-CAM heatmap visualization.
     
     Args:
@@ -415,6 +467,7 @@ def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
         image_path: Full path to image, or None to pick random from validation/data_source
         checkpoint_path: Optional specific checkpoint path (overrides project default)
         use_live_model: If True, skip cache and always load fresh model from disk
+        multi_label: If True, shows activation for ALL classes combined
     
     Returns:
         Dict with heatmap (base64), predictions, and image/checkpoint info
@@ -448,19 +501,28 @@ def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
         raise ValueError("training.task must be defined in config/config.json")
 
     # Prefer labels from checkpoint (embedded during training), fallback to persisted manifest then discovery
-    labels = ckpt_data.get('labels') or []
-    if not labels:
-        labels = load_project_labels(project_name)
-    if not labels:
-        labels = proj.labels or []
+    # Labels can be dict {idx: name} or list [name, name, ...]
+    raw_labels = ckpt_data.get('labels') or {}
+    if isinstance(raw_labels, dict) and raw_labels:
+        # Dict format: {0: "cat", 1: "dog"} - convert keys to int
+        labels = {int(k): v for k, v in raw_labels.items()}
+    elif isinstance(raw_labels, list) and raw_labels:
+        # Legacy list format: convert to dict
+        labels = {idx: name for idx, name in enumerate(raw_labels)}
+    else:
+        # Fallback to project labels
+        fallback = load_project_labels(project_name) or proj.labels or []
+        labels = {idx: name for idx, name in enumerate(fallback)}
+
+    num_labels = len(labels)
 
     if task == 'multi_label':
         probabilities = torch.sigmoid(logits)
         # Show top 5 predictions regardless of threshold (more useful for debugging)
-        top_k = min(5, len(labels)) if labels else 0
+        top_k = min(5, num_labels) if num_labels else 0
         if top_k > 0:
             top_values, top_indices = torch.topk(probabilities[0], top_k)
-            class_names = [labels[idx] for idx in top_indices.tolist() if idx < len(labels)]
+            class_names = [labels.get(idx, f"class_{idx}") for idx in top_indices.tolist()]
             confidence_values = top_values.tolist()
         else:
             class_names = []
@@ -468,17 +530,17 @@ def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
     else:
         probabilities = F.softmax(logits, dim=1)[0]
         # Show top 5 predictions regardless of threshold
-        top_k = min(5, len(labels)) if labels else 0
+        top_k = min(5, num_labels) if num_labels else 0
         if top_k > 0:
             top_values, top_indices = torch.topk(probabilities, top_k)
-            class_names = [labels[idx] for idx in top_indices.tolist() if idx < len(labels)]
+            class_names = [labels.get(idx, f"class_{idx}") for idx in top_indices.tolist()]
             confidence_values = top_values.tolist()
         else:
             class_names = []
             confidence_values = []
 
     x_grad = x.clone().requires_grad_(True)
-    heat = compute_gradcam(wrapper.model, x_grad, target_class=pred_class, target_layer=None)
+    heat = compute_gradcam(wrapper.model, x_grad, target_class=pred_class, target_layer=None, multi_label=multi_label)
 
     overlay = overlay_heatmap_on_image(heat, pil_img, preprocess_meta, alpha=0.5)
     buf = io.BytesIO()

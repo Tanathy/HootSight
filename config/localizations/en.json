@@ -259,7 +259,11 @@
     "training": {
       "stop_error": "Failed to stop training",
       "start_error": "Failed to start training",
-      "no_project": "No project selected"
+      "no_project": "No project selected",
+      "resume_title": "Resume Training?",
+      "resume_prompt": "A checkpoint was found for this project. Do you want to resume training from the last checkpoint?",
+      "resume_yes": "Resume",
+      "resume_no": "Start Fresh"
     },
     "new_project": {
       "title": "Create New Project",
@@ -469,6 +473,7 @@
       "no_predictions": "No predictions available"
     },
     "live_model_switch": "Use live model",
+    "multi_label_switch": "Multi-label",
     "random_button": "Random",
     "refresh_button": "Refresh",
     "checkpoint_label": "Checkpoint:"

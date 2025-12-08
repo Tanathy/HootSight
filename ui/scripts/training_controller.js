@@ -26,6 +26,15 @@ const TrainingController = {
     _unsubscribe: null,
 
     /**
+     * ETA calculation data
+     */
+    _etaData: {
+        samples: [],          // { timestamp, totalSteps } - last 60 seconds of samples
+        lastUpdate: 0,
+        windowSize: 60000,    // 60 second window in ms (1 minute)
+    },
+
+    /**
      * Initialize the controller
      * @returns {Promise<void>}
      */
@@ -48,34 +57,29 @@ const TrainingController = {
         }).get();
         Q(this._headerElement).css('display', 'none');
 
-        // Progress info
-        const infoContainer = Q('<div>', { class: 'training-progress-info' }).get();
-
+        // Project label
         const projectLabel = Q('<span>', { 
             class: 'training-project-label', 
             id: 'training-project-label' 
         }).get();
-        Q(infoContainer).append(projectLabel);
-
-        const progressText = Q('<span>', { 
-            class: 'training-progress-text', 
-            id: 'training-progress-text' 
-        }).get();
-        Q(infoContainer).append(progressText);
-
-        Q(this._headerElement).append(infoContainer);
+        Q(this._headerElement).append(projectLabel);
 
         // Progress bar
         const progressBarContainer = Q('<div>', { class: 'training-progress-bar-container' }).get();
-
         const progressBar = Q('<div>', { 
             class: 'training-progress-bar', 
             id: 'training-progress-bar' 
         }).get();
         Q(progressBar).css('width', '0%');
         Q(progressBarContainer).append(progressBar);
-
         Q(this._headerElement).append(progressBarContainer);
+
+        // ETA display
+        const etaDisplay = Q('<span>', { 
+            class: 'training-eta', 
+            id: 'training-eta' 
+        }).get();
+        Q(this._headerElement).append(etaDisplay);
 
         // Stop button
         const stopBtn = Q('<button>', { 
@@ -88,6 +92,94 @@ const TrainingController = {
         Q(this._headerElement).append(stopBtn);
 
         Q(headerProgress).append(this._headerElement);
+    },
+
+    /**
+     * Reset ETA calculation data
+     */
+    _resetEtaData: function() {
+        this._etaData = {
+            samples: [],
+            lastUpdate: 0,
+            windowSize: 60000,
+        };
+    },
+
+    /**
+     * Calculate ETA based on step rate over last 10 seconds
+     * @param {number} currentStep - Current step in current epoch
+     * @param {number} totalSteps - Total steps per epoch
+     * @param {number} currentEpoch - Current epoch
+     * @param {number} totalEpochs - Total epochs
+     * @returns {string} - Formatted ETA string
+     */
+    _calculateEta: function(currentStep, totalSteps, currentEpoch, totalEpochs) {
+        const now = Date.now();
+        
+        // Calculate total completed steps across all epochs
+        const completedEpochs = currentEpoch - 1;
+        const totalCompletedSteps = (completedEpochs * totalSteps) + currentStep;
+        const grandTotalSteps = totalEpochs * totalSteps;
+        const remainingSteps = grandTotalSteps - totalCompletedSteps;
+
+        // Add current sample
+        this._etaData.samples.push({
+            timestamp: now,
+            totalSteps: totalCompletedSteps
+        });
+
+        // Remove samples older than window
+        const cutoff = now - this._etaData.windowSize;
+        this._etaData.samples = this._etaData.samples.filter(s => s.timestamp >= cutoff);
+
+        // Need at least 2 samples to calculate rate
+        if (this._etaData.samples.length < 2) {
+            return '--:--';
+        }
+
+        // Calculate steps per second over the window
+        const oldest = this._etaData.samples[0];
+        const newest = this._etaData.samples[this._etaData.samples.length - 1];
+        const timeDiff = (newest.timestamp - oldest.timestamp) / 1000; // seconds
+        const stepsDiff = newest.totalSteps - oldest.totalSteps;
+
+        if (timeDiff <= 0 || stepsDiff <= 0) {
+            return '--:--';
+        }
+
+        const stepsPerSecond = stepsDiff / timeDiff;
+        const remainingSeconds = Math.ceil(remainingSteps / stepsPerSecond);
+
+        return this._formatDuration(remainingSeconds);
+    },
+
+    /**
+     * Format duration in smart format: DD:HH:MM:SS or HH:MM:SS or MM:SS
+     * @param {number} totalSeconds - Total seconds
+     * @returns {string} - Formatted string
+     */
+    _formatDuration: function(totalSeconds) {
+        if (totalSeconds <= 0 || !isFinite(totalSeconds)) {
+            return '--:--';
+        }
+
+        const days = Math.floor(totalSeconds / 86400);
+        const hours = Math.floor((totalSeconds % 86400) / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = Math.floor(totalSeconds % 60);
+
+        const pad = (n) => n.toString().padStart(2, '0');
+
+        if (days > 0) {
+            // DD:HH:MM:SS
+            return `${pad(days)}:${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+        } else if (hours > 0) {
+            // HH:MM:SS
+            return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+        } else {
+            // MM:SS
+            return `${pad(minutes)}:${pad(seconds)}`;
+        }
     },
 
     /**
@@ -123,9 +215,10 @@ const TrainingController = {
      * @param {string} modelType - Model type (e.g., 'resnet')
      * @param {string} modelName - Model name (e.g., 'resnet50')
      * @param {number} [epochs] - Optional epoch override
+     * @param {boolean} [resume] - Resume from last checkpoint
      * @returns {Promise<Object>} - Result
      */
-    startTraining: async function(projectName, modelType = null, modelName = null, epochs = null) {
+    startTraining: async function(projectName, modelType = null, modelName = null, epochs = null, resume = false) {
         if (this._activeTrainingId) {
             return { 
                 started: false, 
@@ -141,14 +234,15 @@ const TrainingController = {
                 modelName = modelName || config.name || 'resnet50';
             }
 
-            const result = await API.training.start(projectName, modelType, modelName, epochs);
+            const result = await API.training.start(projectName, modelType, modelName, epochs, resume);
 
             if (result.started) {
                 this._activeTrainingId = result.training_id;
                 this._trainingProject = projectName;
                 
-                // Clear any previous history
+                // Clear any previous history and reset ETA
                 TrainingMonitor.clearHistory();
+                this._resetEtaData();
                 
                 // Start monitoring
                 this._startMonitoring(result.training_id);
@@ -222,44 +316,26 @@ const TrainingController = {
             projectLabel.text(this._trainingProject || state.project || '');
         }
 
-        // Progress text
-        const progressText = Q('#training-progress-text');
-        if (progressText.get()) {
-            const epoch = state.currentEpoch || 0;
-            const totalEpochs = state.totalEpochs || 0;
-            const step = state.currentStep || 0;
-            const totalSteps = state.totalSteps || 0;
-            const phase = state.phase === 'val' ? 'Val' : 'Train';
-            
-            let text = '';
-            if (totalEpochs > 0) {
-                text = `Epoch ${epoch}/${totalEpochs}`;
-                if (totalSteps > 0) {
-                    text += ` - ${phase} ${step}/${totalSteps}`;
-                }
-            }
-            
-            if (metrics && metrics.loss !== null && metrics.loss !== undefined) {
-                text += ` - Loss: ${Format.loss(metrics.loss)}`;
-            }
-            
-            progressText.text(text);
-        }
+        const epoch = state.currentEpoch || 0;
+        const totalEpochs = state.totalEpochs || 0;
+        const step = state.currentStep || 0;
+        const totalSteps = state.totalSteps || 1;
 
         // Progress bar
         const progressBar = Q('#training-progress-bar');
         if (progressBar.get()) {
-            const epoch = state.currentEpoch || 0;
-            const totalEpochs = state.totalEpochs || 1;
-            const step = state.currentStep || 0;
-            const totalSteps = state.totalSteps || 1;
-            
             // Calculate overall progress
-            const epochProgress = (epoch - 1) / totalEpochs;
-            const stepProgress = step / totalSteps / totalEpochs;
+            const epochProgress = (epoch - 1) / (totalEpochs || 1);
+            const stepProgress = step / totalSteps / (totalEpochs || 1);
             const overallProgress = Math.min((epochProgress + stepProgress) * 100, 100);
-            
             progressBar.css('width', `${overallProgress}%`);
+        }
+
+        // ETA display
+        const etaDisplay = Q('#training-eta');
+        if (etaDisplay.get() && totalEpochs > 0 && totalSteps > 0) {
+            const eta = this._calculateEta(step, totalSteps, epoch, totalEpochs);
+            etaDisplay.text(eta);
         }
     },
 
@@ -273,9 +349,12 @@ const TrainingController = {
             this._unsubscribe = null;
         }
 
-        // Update UI to show completion
-        const progressText = Q('#training-progress-text');
-        if (progressText.get()) {
+        // Reset ETA data
+        this._resetEtaData();
+
+        // Update ETA display to show status
+        const etaDisplay = Q('#training-eta');
+        if (etaDisplay.get()) {
             let langKey;
             if (status === 'completed') {
                 langKey = 'training_controller.completed';
@@ -284,8 +363,8 @@ const TrainingController = {
             } else {
                 langKey = 'training_controller.error';
             }
-            progressText.text(lang(langKey));
-            progressText.get().setAttribute('data-lang-key', langKey);
+            etaDisplay.text(lang(langKey));
+            etaDisplay.get().setAttribute('data-lang-key', langKey);
         }
 
         // Change stop button to "Clear"
@@ -306,6 +385,7 @@ const TrainingController = {
     _clearProgress: function() {
         this._hideProgress();
         this._trainingProject = null;
+        this._resetEtaData();
         
         // Reset stop button
         const stopBtn = Q('#training-stop-btn');

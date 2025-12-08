@@ -332,7 +332,25 @@ const ProjectsPage = {
             const modelType = modelConfig.type || 'resnet';
             const modelName = modelConfig.name || 'resnet50';
             
-            const result = await TrainingController.startTraining(project, modelType, modelName);
+            // Check if there's an existing checkpoint and ask about resume
+            let resume = false;
+            try {
+                const projectInfo = await API.projects.get(project);
+                if (projectInfo && projectInfo.has_model) {
+                    // Project has a model/checkpoint - ask user
+                    const choice = await Modal.confirm(
+                        lang('projects_page.training.resume_prompt'),
+                        lang('projects_page.training.resume_title'),
+                        lang('projects_page.training.resume_yes'),
+                        lang('projects_page.training.resume_no')
+                    );
+                    resume = choice;
+                }
+            } catch (e) {
+                console.warn('Could not check for existing model:', e);
+            }
+            
+            const result = await TrainingController.startTraining(project, modelType, modelName, null, resume);
             
             if (result.started) {
                 this._updateTrainingButton();

@@ -410,13 +410,16 @@ class TrainingCoordinator:
 
         self.config['dataset_path'] = project_info.dataset_path
         base_labels = [lbl for lbl in project_info.labels if not str(lbl).startswith('folder:')]
-        labels = base_labels if base_labels else project_info.labels
-        self.config['labels'] = labels
-        self.config['num_classes'] = len(labels)
+        label_list = sorted(base_labels if base_labels else project_info.labels)
+        # Store labels as dict with index keys for deterministic mapping
+        # {0: "cat", 1: "dog", 2: "bird"} - index is the model output index
+        labels_dict = {idx: name for idx, name in enumerate(label_list)}
+        self.config['labels'] = labels_dict
+        self.config['num_classes'] = len(label_list)
 
         persist_project_labels(
             project_name,
-            labels,
+            labels_dict,  # Pass dict, not list!
             self.config['task'],
             self.config.get('projects_base_dir')
         )
@@ -649,7 +652,10 @@ class TrainingCoordinator:
         is_multi_label = (self.config['task'] == 'multi_label')
         if 'labels' not in self.config:
             raise ValueError("Missing required 'config.labels' initialized from dataset discovery")
-        label_list: List[str] = list(self.config['labels'])
+        # labels is now dict {idx: name} - create name->idx mapping for datasets
+        labels_dict: Dict[int, str] = self.config['labels']
+        labels_map: Dict[str, int] = {name: idx for idx, name in labels_dict.items()}
+        label_count = len(labels_dict)
 
         if self.config['dataset_path'] and os.path.exists(self.config['dataset_path']):
             train_path = os.path.join(self.config['dataset_path'], 'train')
@@ -659,9 +665,17 @@ class TrainingCoordinator:
                 if not is_multi_label:
                     train_dataset = datasets.ImageFolder(train_path, transform=train_transform)
                     val_dataset = datasets.ImageFolder(val_path, transform=val_transform)
+                    # CRITICAL: Sync our labels_dict with ImageFolder's class_to_idx
+                    # ImageFolder determines indices from sorted folder names
+                    # We must use THE SAME mapping for checkpoint labels!
+                    folder_class_to_idx = train_dataset.class_to_idx  # {"cat": 0, "dog": 1}
+                    labels_dict = {idx: name for name, idx in folder_class_to_idx.items()}
+                    labels_map = folder_class_to_idx
+                    label_count = len(labels_dict)
+                    self.config['labels'] = labels_dict
+                    self.config['num_classes'] = label_count
+                    info(f"Single-label mode: synced labels with ImageFolder class_to_idx: {labels_dict}")
                 else:
-                    labels_map = {name: idx for idx, name in enumerate(label_list)}
-                    label_count = len(label_list)
                     train_dataset = MultiLabelFolderDataset(train_path, labels_map, label_count, transform=train_transform)
                     val_dataset = MultiLabelFolderDataset(val_path, labels_map, label_count, transform=val_transform)
             else:
@@ -686,24 +700,31 @@ class TrainingCoordinator:
                 if not valid_classes:
                     raise ValueError("No classes found with sufficient images (minimum 5 images per class)")
 
+                # CRITICAL: Sort class names for deterministic index assignment
+                sorted_class_names = sorted(valid_classes.keys())
+                
                 all_image_paths: List[str] = []
                 all_labels: List[int] = []
                 class_to_idx: Dict[str, int] = {}
-                for idx, (cls_name, images) in enumerate(valid_classes.items()):
+                for idx, cls_name in enumerate(sorted_class_names):
                     class_to_idx[cls_name] = idx
-                    for p in images:
+                    for p in valid_classes[cls_name]:
                         all_image_paths.append(p)
                         all_labels.append(idx)
 
                 if not is_multi_label:
-                    self.config['num_classes'] = len(valid_classes)
+                    # Update labels_dict to match class_to_idx (deterministic sorted order)
+                    labels_dict = {idx: name for name, idx in class_to_idx.items()}
+                    labels_map = class_to_idx
+                    label_count = len(labels_dict)
+                    self.config['labels'] = labels_dict
+                    self.config['num_classes'] = label_count
+                    info(f"Single-label flat mode: using sorted class order: {labels_dict}")
 
                 if not is_multi_label:
                     base_dataset = CustomImageDataset(all_image_paths, all_labels, train_transform)
                     base_dataset_val = CustomImageDataset(all_image_paths, all_labels, val_transform)
                 else:
-                    labels_map = {name: idx for idx, name in enumerate(label_list)}
-                    label_count = len(label_list)
                     base_dataset = MultiLabelDataset(all_image_paths, labels_map, label_count, transform=train_transform)
                     base_dataset_val = MultiLabelDataset(all_image_paths, labels_map, label_count, transform=val_transform)
 
