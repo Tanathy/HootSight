@@ -3,6 +3,14 @@
  * Base variables and theme configuration
  */
 
+@font-face {
+    font-family: 'Inter';
+    src: url('../fonts/Inter.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
 :root {
     /* Background colors - semi-transparent for waves effect */
     --bg-primary: rgba(25, 25, 25, 0.92);
@@ -72,8 +80,8 @@
     /* Font */
     --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --font-title: 18px;
-    --font-description: 14px;
-    --font-normal: 12px;
+    --font-description: 15px;
+    --font-normal: 13px;
     
     /* Icon sizes */
     --icon-lg: 48px;

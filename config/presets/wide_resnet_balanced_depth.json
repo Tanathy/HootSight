@@ -1,0 +1,198 @@
+{
+    "name": "presets.wide_resnet_balanced_depth.name",
+    "description": "presets.wide_resnet_balanced_depth.description",
+    "task": "classification",
+    "categories": ["classification"],
+    "dataset_types": [
+        "folder_classification",
+        "multi_label"
+    ],
+    "recommended_models": [
+        "wide_resnet"
+    ],
+    "configs": {
+        "small": {
+            "description": "presets.configs.small",
+            "range": [500, 2500],
+            "config": {
+                "training": {
+                    "task": "classification",
+                    "model_type": "resnet",
+                    "model_name": "wide_resnet50_2",
+                    "pretrained": true,
+                    "input_size": 224,
+                    "batch_size": 32,
+                    "epochs": 110,
+                    "learning_rate": 0.0005,
+                    "weight_decay": 0.0004,
+                    "val_ratio": 0.2,
+                    "normalize": {
+                        "mean": [0.485, 0.456, 0.406],
+                        "std": [0.229, 0.224, 0.225]
+                    },
+                    "dataloader": {
+                        "num_workers": 2,
+                        "pin_memory": true,
+                        "persistent_workers": true,
+                        "prefetch_factor": 2
+                    },
+                    "augmentation": {
+                        "train": [],
+                        "val": []
+                    },
+                    "loss_type": "cross_entropy",
+                    "loss_reduction": "mean",
+                    "optimizer_type": "adamw",
+                    "optimizer_lr": 0.0005,
+                    "optimizer_weight_decay": 0.0004,
+                    "scheduler_type": "cosine_annealing_lr",
+                    "scheduler_params": {
+                        "cosine_annealing_lr": {
+                            "T_max": 110,
+                            "eta_min": 1e-07
+                        }
+                    },
+                    "early_stopping": {
+                        "enabled": true,
+                        "patience": 18,
+                        "min_delta": 0.001,
+                        "monitor": "val_loss"
+                    },
+                    "gradient": {
+                        "clip_norm": 1.0,
+                        "clip_value": null,
+                        "accumulation_steps": 1
+                    },
+                    "runtime": {
+                        "mixed_precision": true,
+                        "channels_last": true,
+                        "allow_tf32": true,
+                        "cudnn_benchmark": true
+                    }
+                }
+            }
+        },
+        "medium": {
+            "description": "presets.configs.medium",
+            "range": [2500, 10000],
+            "config": {
+                "training": {
+                    "task": "classification",
+                    "model_type": "resnet",
+                    "model_name": "wide_resnet101_2",
+                    "pretrained": true,
+                    "input_size": 224,
+                    "batch_size": 24,
+                    "epochs": 90,
+                    "learning_rate": 0.0006,
+                    "weight_decay": 0.0003,
+                    "val_ratio": 0.15,
+                    "normalize": {
+                        "mean": [0.485, 0.456, 0.406],
+                        "std": [0.229, 0.224, 0.225]
+                    },
+                    "dataloader": {
+                        "num_workers": 4,
+                        "pin_memory": true,
+                        "persistent_workers": true,
+                        "prefetch_factor": 2
+                    },
+                    "augmentation": {
+                        "train": [],
+                        "val": []
+                    },
+                    "loss_type": "cross_entropy",
+                    "loss_reduction": "mean",
+                    "optimizer_type": "adamw",
+                    "optimizer_lr": 0.0006,
+                    "optimizer_weight_decay": 0.0003,
+                    "scheduler_type": "cosine_annealing_lr",
+                    "scheduler_params": {
+                        "cosine_annealing_lr": {
+                            "T_max": 90,
+                            "eta_min": 1e-07
+                        }
+                    },
+                    "early_stopping": {
+                        "enabled": true,
+                        "patience": 14,
+                        "min_delta": 0.001,
+                        "monitor": "val_loss"
+                    },
+                    "gradient": {
+                        "clip_norm": null,
+                        "clip_value": null,
+                        "accumulation_steps": 1
+                    },
+                    "runtime": {
+                        "mixed_precision": true,
+                        "channels_last": true,
+                        "allow_tf32": true,
+                        "cudnn_benchmark": true
+                    }
+                }
+            }
+        },
+        "large": {
+            "description": "presets.configs.large",
+            "range": [10000, 30000],
+            "config": {
+                "training": {
+                    "task": "classification",
+                    "model_type": "resnet",
+                    "model_name": "wide_resnet101_2",
+                    "pretrained": true,
+                    "input_size": 256,
+                    "batch_size": 16,
+                    "epochs": 70,
+                    "learning_rate": 0.0007,
+                    "weight_decay": 0.00025,
+                    "val_ratio": 0.15,
+                    "normalize": {
+                        "mean": [0.485, 0.456, 0.406],
+                        "std": [0.229, 0.224, 0.225]
+                    },
+                    "dataloader": {
+                        "num_workers": 4,
+                        "pin_memory": true,
+                        "persistent_workers": true,
+                        "prefetch_factor": 2
+                    },
+                    "augmentation": {
+                        "train": [],
+                        "val": []
+                    },
+                    "loss_type": "cross_entropy",
+                    "loss_reduction": "mean",
+                    "optimizer_type": "adamw",
+                    "optimizer_lr": 0.0007,
+                    "optimizer_weight_decay": 0.00025,
+                    "scheduler_type": "cosine_annealing_lr",
+                    "scheduler_params": {
+                        "cosine_annealing_lr": {
+                            "T_max": 70,
+                            "eta_min": 1e-07
+                        }
+                    },
+                    "early_stopping": {
+                        "enabled": true,
+                        "patience": 12,
+                        "min_delta": 0.001,
+                        "monitor": "val_loss"
+                    },
+                    "gradient": {
+                        "clip_norm": null,
+                        "clip_value": null,
+                        "accumulation_steps": 1
+                    },
+                    "runtime": {
+                        "mixed_precision": true,
+                        "channels_last": true,
+                        "allow_tf32": true,
+                        "cudnn_benchmark": true
+                    }
+                }
+            }
+        }
+    }
+}

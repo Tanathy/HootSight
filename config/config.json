@@ -724,6 +724,16 @@
                     "params": 60192808,
                     "recommended_batch_size": 8,
                     "input_size": 224
+                },
+                "wide_resnet50_2": {
+                    "params": 68883240,
+                    "recommended_batch_size": 16,
+                    "input_size": 224
+                },
+                "wide_resnet101_2": {
+                    "params": 126886696,
+                    "recommended_batch_size": 8,
+                    "input_size": 224
                 }
             },
             "default_optimizer": {
@@ -752,6 +762,113 @@
                 "resnext101_64x4d": {
                     "params": 83668584,
                     "recommended_batch_size": 16,
+                    "input_size": 224
+                }
+            },
+            "default_optimizer": {
+                "type": "adamw",
+                "lr": 0.001,
+                "weight_decay": 0.0001
+            },
+            "default_scheduler": {
+                "type": "step_lr",
+                "step_size": 7,
+                "gamma": 0.1
+            }
+        },
+        "alexnet": {
+            "variants": {
+                "alexnet": {
+                    "params": 61100840,
+                    "recommended_batch_size": 64,
+                    "input_size": 224
+                }
+            },
+            "default_optimizer": {
+                "type": "adamw",
+                "lr": 0.001,
+                "weight_decay": 0.0001
+            },
+            "default_scheduler": {
+                "type": "step_lr",
+                "step_size": 7,
+                "gamma": 0.1
+            }
+        },
+        "vgg": {
+            "variants": {
+                "vgg11": {
+                    "params": 132863336,
+                    "recommended_batch_size": 32,
+                    "input_size": 224
+                },
+                "vgg13": {
+                    "params": 133047848,
+                    "recommended_batch_size": 32,
+                    "input_size": 224
+                },
+                "vgg16": {
+                    "params": 138357544,
+                    "recommended_batch_size": 16,
+                    "input_size": 224
+                },
+                "vgg19": {
+                    "params": 143667240,
+                    "recommended_batch_size": 16,
+                    "input_size": 224
+                },
+                "vgg11_bn": {
+                    "params": 132868840,
+                    "recommended_batch_size": 32,
+                    "input_size": 224
+                },
+                "vgg13_bn": {
+                    "params": 133053736,
+                    "recommended_batch_size": 32,
+                    "input_size": 224
+                },
+                "vgg16_bn": {
+                    "params": 138365992,
+                    "recommended_batch_size": 16,
+                    "input_size": 224
+                },
+                "vgg19_bn": {
+                    "params": 143678248,
+                    "recommended_batch_size": 16,
+                    "input_size": 224
+                }
+            },
+            "default_optimizer": {
+                "type": "adamw",
+                "lr": 0.001,
+                "weight_decay": 0.0001
+            },
+            "default_scheduler": {
+                "type": "step_lr",
+                "step_size": 7,
+                "gamma": 0.1
+            }
+        },
+        "densenet": {
+            "variants": {
+                "densenet121": {
+                    "params": 7978856,
+                    "recommended_batch_size": 64,
+                    "input_size": 224
+                },
+                "densenet161": {
+                    "params": 28681000,
+                    "recommended_batch_size": 32,
+                    "input_size": 224
+                },
+                "densenet169": {
+                    "params": 14149480,
+                    "recommended_batch_size": 48,
+                    "input_size": 224
+                },
+                "densenet201": {
+                    "params": 20013928,
+                    "recommended_batch_size": 32,
                     "input_size": 224
                 }
             },
@@ -925,6 +1042,9 @@
         "supported_types": [
             "resnet",
             "resnext",
+            "alexnet",
+            "vgg",
+            "densenet",
             "mobilenet",
             "shufflenet",
             "squeezenet",

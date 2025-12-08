@@ -344,6 +344,15 @@ class TrainingCoordinator:
         elif model_type == 'resnext':
             from system.models.resnext import get_resnext_config
             return get_resnext_config(self.model_name)
+        elif model_type == 'alexnet':
+            from system.models.alexnet import get_alexnet_config
+            return get_alexnet_config(self.model_name)
+        elif model_type == 'vgg':
+            from system.models.vgg import get_vgg_config
+            return get_vgg_config(self.model_name)
+        elif model_type == 'densenet':
+            from system.models.densenet import get_densenet_config
+            return get_densenet_config(self.model_name)
         elif model_type == 'mobilenet':
             from system.models.mobilenet import get_mobilenet_config
             return get_mobilenet_config(self.model_name)
@@ -466,6 +475,18 @@ class TrainingCoordinator:
             from system.models.resnext import create_resnext_model, get_resnext_config
             dummy_model = create_resnext_model(self.model_name, self.config['num_classes'], pretrained=False, task=self.config['task'])
             config_func = get_resnext_config
+        elif model_type == 'alexnet':
+            from system.models.alexnet import create_alexnet_model, get_alexnet_config
+            dummy_model = create_alexnet_model(self.model_name, self.config['num_classes'], pretrained=False, task=self.config['task'])
+            config_func = get_alexnet_config
+        elif model_type == 'vgg':
+            from system.models.vgg import create_vgg_model, get_vgg_config
+            dummy_model = create_vgg_model(self.model_name, self.config['num_classes'], pretrained=False, task=self.config['task'])
+            config_func = get_vgg_config
+        elif model_type == 'densenet':
+            from system.models.densenet import create_densenet_model, get_densenet_config
+            dummy_model = create_densenet_model(self.model_name, self.config['num_classes'], pretrained=False, task=self.config['task'])
+            config_func = get_densenet_config
         elif model_type == 'mobilenet':
             from system.models.mobilenet import create_mobilenet_model, get_mobilenet_config
             dummy_model = create_mobilenet_model(self.model_name, self.config['num_classes'], pretrained=False, task=self.config['task'])
@@ -521,6 +542,15 @@ class TrainingCoordinator:
         elif model_type == 'resnext':
             from system.models.resnext import create_resnext_model
             model = create_resnext_model(model_name, num_classes, pretrained, task)
+        elif model_type == 'alexnet':
+            from system.models.alexnet import create_alexnet_model
+            model = create_alexnet_model(model_name, num_classes, pretrained, task)
+        elif model_type == 'vgg':
+            from system.models.vgg import create_vgg_model
+            model = create_vgg_model(model_name, num_classes, pretrained, task)
+        elif model_type == 'densenet':
+            from system.models.densenet import create_densenet_model
+            model = create_densenet_model(model_name, num_classes, pretrained, task)
         elif model_type == 'mobilenet':
             from system.models.mobilenet import create_mobilenet_model
             model = create_mobilenet_model(model_name, num_classes, pretrained, task)
@@ -901,7 +931,23 @@ def create_coordinator(model_type: str = 'resnet', model_name: str = 'resnet50')
 
 def get_supported_models() -> Dict[str, List[str]]:
     from system.models.resnet import get_supported_resnet_variants
+    from system.models.resnext import get_supported_resnext_variants
+    from system.models.alexnet import get_supported_alexnet_variants
+    from system.models.vgg import get_supported_vgg_variants
+    from system.models.densenet import get_supported_densenet_variants
+    from system.models.mobilenet import get_supported_mobilenet_variants
+    from system.models.shufflenet import get_supported_shufflenet_variants
+    from system.models.squeezenet import get_supported_squeezenet_variants
+    from system.models.efficientnet import get_supported_efficientnet_variants
 
     return {
-        'resnet': get_supported_resnet_variants()
+        'resnet': get_supported_resnet_variants(),
+        'resnext': get_supported_resnext_variants(),
+        'alexnet': get_supported_alexnet_variants(),
+        'vgg': get_supported_vgg_variants(),
+        'densenet': get_supported_densenet_variants(),
+        'mobilenet': get_supported_mobilenet_variants(),
+        'shufflenet': get_supported_shufflenet_variants(),
+        'squeezenet': get_supported_squeezenet_variants(),
+        'efficientnet': get_supported_efficientnet_variants()
     }

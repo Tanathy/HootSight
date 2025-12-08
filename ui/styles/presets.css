@@ -283,13 +283,6 @@
     white-space: nowrap;
 }
 
-.presets-search-stats {
-    font-size: var(--font-normal);
-    color: var(--text-muted);
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-
 /* Legacy search container - keep for backwards compatibility */
 .presets-search-container {
     display: flex;

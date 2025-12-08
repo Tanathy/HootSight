@@ -13,6 +13,7 @@
 
 .tabs-header {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--spacing-xs);
     border-bottom: 1px solid var(--border-color);
     background: var(--bg-secondary);

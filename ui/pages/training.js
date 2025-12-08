@@ -1242,13 +1242,14 @@ const TrainingPage = {
         
         const searchWrapper = Q('<div>', { class: 'presets-search-wrapper' }).get(0);
         Q(searchWrapper).append(this._searchWidget.getElement());
-        
-        // Search stats
-        const searchStats = Q('<span>', { class: 'presets-search-stats' }).get(0);
-        Q(searchWrapper).append(searchStats);
-        this._presetsSearchStats = searchStats;
-        
+
         Q(controlsContainer).append(searchWrapper);
+
+        // Task filter dropdown (populated after presets load)
+        this._taskFilterContainer = Q('<div>', { class: 'presets-task-filter' }).get(0);
+        this._taskFilter = this._createTaskFilter(['all']);
+        Q(this._taskFilterContainer).append(this._taskFilter.getElement());
+        Q(controlsContainer).append(this._taskFilterContainer);
 
         // Only Compatible switch
         this._compatibleOnlySwitch = new Switch('presets-compatible-only', {
@@ -1289,6 +1290,35 @@ const TrainingPage = {
         return content;
     },
 
+    _createTaskFilter: function(options) {
+        const labels = this._buildTaskFilterLabels(options);
+        const dropdown = new Dropdown('presets-task-filter', {
+            label: '',
+            options,
+            optionLabels: labels,
+            default: options.includes('all') ? 'all' : options[0] || null
+        });
+        dropdown.onChange(() => this._filterPresets());
+        return dropdown;
+    },
+
+    _buildTaskFilterLabels: function(options) {
+        const labels = {};
+        options.forEach(opt => {
+            if (opt === 'all') {
+                labels[opt] = lang('training_page.presets.task_filter_all') || 'All tasks';
+            } else if (opt === 'classification') {
+                labels[opt] = lang('training_page.presets.task_filter_classification') || 'Single-label / Binary';
+            } else if (opt === 'multi_label') {
+                labels[opt] = lang('training_page.presets.task_filter_multi_label') || 'Multi-label';
+            } else {
+                const localized = lang(`training_page.presets.category.${opt}`);
+                labels[opt] = localized !== `training_page.presets.category.${opt}` ? localized : (opt.charAt(0).toUpperCase() + opt.slice(1));
+            }
+        });
+        return labels;
+    },
+
     /**
      * Filter presets based on search query and compatibility
      */
@@ -1298,9 +1328,9 @@ const TrainingPage = {
         }
 
         const container = this._presetsContainer;
-        const stats = this._presetsSearchStats;
         const query = this._searchWidget ? this._searchWidget.get() : '';
         const onlyCompatible = this._compatibleOnlySwitch ? this._compatibleOnlySwitch.get() : false;
+        const taskFilter = this._taskFilter ? this._taskFilter.get() : 'all';
 
         let filteredPresets = this._presetsData;
 
@@ -1314,13 +1344,18 @@ const TrainingPage = {
             });
         }
 
-        // Then apply search filter with 0.97+ threshold
+        // Task filter (classification vs multi-label)
+        if (taskFilter !== 'all') {
+            filteredPresets = filteredPresets.filter(preset => this._presetMatchesTask(preset, taskFilter));
+        }
+
+        // Then apply search filter with 0.97+ threshold (uses localized text)
         let matchedIds = new Set();
         if (query && query.trim() !== '') {
             const results = FuzzySearch.search(
                 filteredPresets, 
                 query, 
-                ['name', 'description', 'task'],
+                ['searchName', 'searchDescription', 'task'],
                 0.97  // High confidence threshold
             );
             matchedIds = new Set(results.map(r => r.item.id));
@@ -1350,8 +1385,14 @@ const TrainingPage = {
                     passesCompatibility = preset.dataset_types.includes(this._currentDatasetType);
                 }
             }
+
+            // Task filter check
+            let passesTask = true;
+            if (taskFilter !== 'all' && preset) {
+                passesTask = this._presetMatchesTask(preset, taskFilter);
+            }
             
-            if (matchedIds.has(presetId) && passesCompatibility) {
+            if (matchedIds.has(presetId) && passesCompatibility && passesTask) {
                 card.style.display = '';
                 // Set order based on score
                 const score = this._searchScores[presetId];
@@ -1362,15 +1403,41 @@ const TrainingPage = {
             }
         });
 
-        // Update stats
-        if (query || onlyCompatible) {
-            Q(stats).text(lang('training_page.presets.search_results')
-                ?.replace('{count}', visibleCount)
-                ?.replace('{total}', this._presetsData.length)
-                || `${visibleCount} / ${this._presetsData.length}`);
-        } else {
-            Q(stats).text('');
+    },
+
+    _inferPresetCategories: function(preset) {
+        const categories = new Set();
+        if (!preset) return ['classification'];
+
+        if (preset.task && typeof preset.task === 'string') {
+            categories.add(preset.task);
         }
+
+        if (Array.isArray(preset.dataset_types)) {
+            if (preset.dataset_types.includes('multi_label')) {
+                categories.add('multi_label');
+            }
+            if (preset.dataset_types.includes('folder_classification') || preset.dataset_types.length === 0) {
+                categories.add('classification');
+            }
+        }
+
+        if (preset.configs) {
+            Object.values(preset.configs).forEach(cfg => {
+                const training = cfg?.config?.training;
+                if (training?.task && typeof training.task === 'string') {
+                    categories.add(training.task);
+                }
+            });
+        }
+
+        return categories.size > 0 ? Array.from(categories) : ['classification'];
+    },
+
+    _presetMatchesTask: function(preset, taskFilter) {
+        if (taskFilter === 'all') return true;
+        const categories = preset.categories || this._inferPresetCategories(preset);
+        return categories.includes(taskFilter);
     },
 
     /**
@@ -1416,9 +1483,31 @@ const TrainingPage = {
             Q(container).empty();
             
             // Store presets data for search
-            this._presetsData = data.presets;
+            this._presetsData = data.presets.map(p => {
+                const localizedName = lang(p.name);
+                const localizedDescription = lang(p.description);
 
-            data.presets.forEach(preset => {
+                return {
+                    ...p,
+                    // Precompute localized strings for search so queries use the active language
+                    searchName: localizedName !== p.name ? localizedName : p.name,
+                    searchDescription: localizedDescription !== p.description ? localizedDescription : p.description,
+                    categories: Array.isArray(p.categories) && p.categories.length > 0
+                        ? p.categories
+                        : this._inferPresetCategories(p)
+                };
+            });
+
+            // Refresh task filter options based on available preset categories
+            const categorySet = new Set(['all']);
+            this._presetsData.forEach(p => {
+                (p.categories || []).forEach(c => categorySet.add(c));
+            });
+            const categoryOptions = Array.from(categorySet);
+            const labels = this._buildTaskFilterLabels(categoryOptions);
+            this._taskFilter.setOptions(categoryOptions, labels);
+
+            this._presetsData.forEach(preset => {
                 const card = PresetCard.create(preset, async (selectedPreset, selectedSize) => {
                     await this._applyPreset(selectedPreset.id, selectedSize);
                 }, currentDatasetType);

@@ -8,11 +8,15 @@
     ],
     "recommended_models": [
         "resnet",
+        "wide_resnet",
         "resnext",
         "efficientnet",
+        "densenet",
+        "vgg",
         "mobilenet",
         "shufflenet",
-        "squeezenet"
+        "squeezenet",
+        "alexnet"
     ],
     "configs": {
         "tiny": {

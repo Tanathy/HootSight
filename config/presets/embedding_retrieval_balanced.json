@@ -1,29 +1,23 @@
 {
-    "name": "presets.document_classification.name",
-    "description": "presets.document_classification.description",
+    "name": "presets.embedding_retrieval_balanced.name",
+    "description": "presets.embedding_retrieval_balanced.description",
     "task": "classification",
+    "categories": ["embedding", "retrieval"],
     "dataset_types": [
-        "folder_classification"
+        "folder_classification",
+        "multi_label"
     ],
     "recommended_models": [
         "resnet",
-        "wide_resnet",
         "resnext",
         "efficientnet",
         "densenet",
-        "vgg",
-        "mobilenet",
-        "shufflenet",
-        "squeezenet",
-        "alexnet"
+        "vgg"
     ],
     "configs": {
         "tiny": {
             "description": "presets.configs.tiny",
-            "range": [
-                50,
-                500
-            ],
+            "range": [50, 500],
             "config": {
                 "training": {
                     "task": "classification",
@@ -37,16 +31,8 @@
                     "weight_decay": 0.02,
                     "val_ratio": 0.25,
                     "normalize": {
-                        "mean": [
-                            0.485,
-                            0.456,
-                            0.406
-                        ],
-                        "std": [
-                            0.229,
-                            0.224,
-                            0.225
-                        ]
+                        "mean": [0.485, 0.456, 0.406],
+                        "std": [0.229, 0.224, 0.225]
                     },
                     "dataloader": {
                         "num_workers": 0,
@@ -92,10 +78,7 @@
         },
         "small": {
             "description": "presets.configs.small",
-            "range": [
-                500,
-                2500
-            ],
+            "range": [500, 2500],
             "config": {
                 "training": {
                     "task": "classification",
@@ -109,16 +92,8 @@
                     "weight_decay": 0.01,
                     "val_ratio": 0.2,
                     "normalize": {
-                        "mean": [
-                            0.485,
-                            0.456,
-                            0.406
-                        ],
-                        "std": [
-                            0.229,
-                            0.224,
-                            0.225
-                        ]
+                        "mean": [0.485, 0.456, 0.406],
+                        "std": [0.229, 0.224, 0.225]
                     },
                     "dataloader": {
                         "num_workers": 0,
@@ -164,10 +139,7 @@
         },
         "medium": {
             "description": "presets.configs.medium",
-            "range": [
-                2500,
-                10000
-            ],
+            "range": [2500, 10000],
             "config": {
                 "training": {
                     "task": "classification",
@@ -181,16 +153,8 @@
                     "weight_decay": 0.001,
                     "val_ratio": 0.15,
                     "normalize": {
-                        "mean": [
-                            0.485,
-                            0.456,
-                            0.406
-                        ],
-                        "std": [
-                            0.229,
-                            0.224,
-                            0.225
-                        ]
+                        "mean": [0.485, 0.456, 0.406],
+                        "std": [0.229, 0.224, 0.225]
                     },
                     "dataloader": {
                         "num_workers": 2,
@@ -236,10 +200,7 @@
         },
         "large": {
             "description": "presets.configs.large",
-            "range": [
-                10000,
-                30000
-            ],
+            "range": [10000, 30000],
             "config": {
                 "training": {
                     "task": "classification",
@@ -253,16 +214,8 @@
                     "weight_decay": 0.0001,
                     "val_ratio": 0.15,
                     "normalize": {
-                        "mean": [
-                            0.485,
-                            0.456,
-                            0.406
-                        ],
-                        "std": [
-                            0.229,
-                            0.224,
-                            0.225
-                        ]
+                        "mean": [0.485, 0.456, 0.406],
+                        "std": [0.229, 0.224, 0.225]
                     },
                     "dataloader": {
                         "num_workers": 4,
@@ -308,10 +261,7 @@
         },
         "huge": {
             "description": "presets.configs.huge",
-            "range": [
-                30000,
-                50000
-            ],
+            "range": [30000, 50000],
             "config": {
                 "training": {
                     "task": "classification",
@@ -325,16 +275,8 @@
                     "weight_decay": 5e-05,
                     "val_ratio": 0.1,
                     "normalize": {
-                        "mean": [
-                            0.485,
-                            0.456,
-                            0.406
-                        ],
-                        "std": [
-                            0.229,
-                            0.224,
-                            0.225
-                        ]
+                        "mean": [0.485, 0.456, 0.406],
+                        "std": [0.229, 0.224, 0.225]
                     },
                     "dataloader": {
                         "num_workers": 4,
@@ -380,10 +322,7 @@
         },
         "massive": {
             "description": "presets.configs.massive",
-            "range": [
-                50000,
-                100000
-            ],
+            "range": [50000, 100000],
             "config": {
                 "training": {
                     "task": "classification",
@@ -397,16 +336,8 @@
                     "weight_decay": 1e-05,
                     "val_ratio": 0.1,
                     "normalize": {
-                        "mean": [
-                            0.485,
-                            0.456,
-                            0.406
-                        ],
-                        "std": [
-                            0.229,
-                            0.224,
-                            0.225
-                        ]
+                        "mean": [0.485, 0.456, 0.406],
+                        "std": [0.229, 0.224, 0.225]
                     },
                     "dataloader": {
                         "num_workers": 4,
@@ -452,10 +383,7 @@
         },
         "giant": {
             "description": "presets.configs.giant",
-            "range": [
-                100000,
-                null
-            ],
+            "range": [100000, null],
             "config": {
                 "training": {
                     "task": "classification",
@@ -469,16 +397,8 @@
                     "weight_decay": 5e-06,
                     "val_ratio": 0.05,
                     "normalize": {
-                        "mean": [
-                            0.485,
-                            0.456,
-                            0.406
-                        ],
-                        "std": [
-                            0.229,
-                            0.224,
-                            0.225
-                        ]
+                        "mean": [0.485, 0.456, 0.406],
+                        "std": [0.229, 0.224, 0.225]
                     },
                     "dataloader": {
                         "num_workers": 4,

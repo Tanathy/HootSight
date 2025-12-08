@@ -21,6 +21,11 @@ body {
     overflow: hidden;
 }
 
+/* Use default font everywhere, including form controls */
+body, button, input, select, textarea {
+    font-family: var(--font-family);
+}
+
 /* ============================================================================
    Animated Background (Waves)
    ============================================================================ */

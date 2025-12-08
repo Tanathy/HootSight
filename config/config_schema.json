@@ -486,10 +486,13 @@
           "type": "string",
           "title": "schema.training_model_type_title",
           "description": "schema.training_model_type_description",
-          "enum": ["resnet", "resnext", "mobilenet", "shufflenet", "squeezenet", "efficientnet"],
+          "enum": ["resnet", "resnext", "alexnet", "vgg", "densenet", "mobilenet", "shufflenet", "squeezenet", "efficientnet"],
           "enum_descriptor": {
             "resnet": "schema.training_model_type_enum_descriptor.resnet",
             "resnext": "schema.training_model_type_enum_descriptor.resnext",
+            "alexnet": "schema.training_model_type_enum_descriptor.alexnet",
+            "vgg": "schema.training_model_type_enum_descriptor.vgg",
+            "densenet": "schema.training_model_type_enum_descriptor.densenet",
             "mobilenet": "schema.training_model_type_enum_descriptor.mobilenet",
             "shufflenet": "schema.training_model_type_enum_descriptor.shufflenet",
             "squeezenet": "schema.training_model_type_enum_descriptor.squeezenet",
@@ -503,16 +506,22 @@
           "title": "schema.training_model_name_title",
           "description": "schema.training_model_name_description",
           "enum": [
-            "resnet18", "resnet34", "resnet50", "resnet101", "resnet152",
+            "resnet18", "resnet34", "resnet50", "resnet101", "resnet152", "wide_resnet50_2", "wide_resnet101_2",
             "resnext50_32x4d", "resnext101_32x8d", "resnext101_64x4d",
+            "alexnet",
+            "vgg11", "vgg13", "vgg16", "vgg19", "vgg11_bn", "vgg13_bn", "vgg16_bn", "vgg19_bn",
+            "densenet121", "densenet161", "densenet169", "densenet201",
             "mobilenet_v2", "mobilenet_v3_small", "mobilenet_v3_large",
             "shufflenet_v2_x0_5", "shufflenet_v2_x1_0", "shufflenet_v2_x1_5", "shufflenet_v2_x2_0",
             "squeezenet1_0", "squeezenet1_1",
             "efficientnet_b0", "efficientnet_b1", "efficientnet_b2", "efficientnet_b3", "efficientnet_b4", "efficientnet_b5", "efficientnet_b6", "efficientnet_b7", "efficientnet_v2_s", "efficientnet_v2_m", "efficientnet_v2_l"
           ],
           "model_type_variants": {
-            "resnet": ["resnet18", "resnet34", "resnet50", "resnet101", "resnet152"],
+            "resnet": ["resnet18", "resnet34", "resnet50", "resnet101", "resnet152", "wide_resnet50_2", "wide_resnet101_2"],
             "resnext": ["resnext50_32x4d", "resnext101_32x8d", "resnext101_64x4d"],
+            "alexnet": ["alexnet"],
+            "vgg": ["vgg11", "vgg13", "vgg16", "vgg19", "vgg11_bn", "vgg13_bn", "vgg16_bn", "vgg19_bn"],
+            "densenet": ["densenet121", "densenet161", "densenet169", "densenet201"],
             "mobilenet": ["mobilenet_v2", "mobilenet_v3_small", "mobilenet_v3_large"],
             "shufflenet": ["shufflenet_v2_x0_5", "shufflenet_v2_x1_0", "shufflenet_v2_x1_5", "shufflenet_v2_x2_0"],
             "squeezenet": ["squeezenet1_0", "squeezenet1_1"],
@@ -1989,6 +1998,24 @@
                     "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224, "ui": { "widget": "readonly" } }
                   },
                   "additionalProperties": false
+                },
+                "wide_resnet50_2": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 68883240, "ui": { "widget": "readonly" } },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 16, "ui": { "widget": "readonly" } },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224, "ui": { "widget": "readonly" } }
+                  },
+                  "additionalProperties": false
+                },
+                "wide_resnet101_2": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 126886696, "ui": { "widget": "readonly" } },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 8, "ui": { "widget": "readonly" } },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224, "ui": { "widget": "readonly" } }
+                  },
+                  "additionalProperties": false
                 }
               },
               "additionalProperties": false
@@ -2063,6 +2090,219 @@
                   "properties": {
                     "params": { "type": "integer", "minimum": 0, "default": 83668584 },
                     "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 16 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "default_optimizer": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["adamw", "adam", "sgd"], "default": "adamw" },
+                "lr": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.001 },
+                "weight_decay": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.0001 }
+              },
+              "additionalProperties": false
+            },
+            "default_scheduler": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["step_lr", "cosine_annealing_lr", "reduce_lr_on_plateau"], "default": "step_lr" },
+                "step_size": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 7 },
+                "gamma": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.1 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "alexnet": {
+          "type": "object",
+          "description": "schema.models_alexnet_description",
+          "properties": {
+            "variants": {
+              "type": "object",
+              "description": "schema.models_alexnet_variants_description",
+              "properties": {
+                "alexnet": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 61100840 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 64 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "default_optimizer": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["adamw", "adam", "sgd"], "default": "adamw" },
+                "lr": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.001 },
+                "weight_decay": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.0001 }
+              },
+              "additionalProperties": false
+            },
+            "default_scheduler": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["step_lr", "cosine_annealing_lr", "reduce_lr_on_plateau"], "default": "step_lr" },
+                "step_size": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 7 },
+                "gamma": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.1 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "vgg": {
+          "type": "object",
+          "description": "schema.models_vgg_description",
+          "properties": {
+            "variants": {
+              "type": "object",
+              "description": "schema.models_vgg_variants_description",
+              "properties": {
+                "vgg11": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 132863336 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 32 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "vgg13": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 133047848 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 32 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "vgg16": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 138357544 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 16 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "vgg19": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 143667240 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 16 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "vgg11_bn": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 132868840 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 32 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "vgg13_bn": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 133053736 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 32 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "vgg16_bn": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 138365992 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 16 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "vgg19_bn": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 143678248 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 16 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            },
+            "default_optimizer": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["adamw", "adam", "sgd"], "default": "adamw" },
+                "lr": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.001 },
+                "weight_decay": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.0001 }
+              },
+              "additionalProperties": false
+            },
+            "default_scheduler": {
+              "type": "object",
+              "properties": {
+                "type": { "type": "string", "enum": ["step_lr", "cosine_annealing_lr", "reduce_lr_on_plateau"], "default": "step_lr" },
+                "step_size": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 7 },
+                "gamma": { "type": "number", "minimum": 0.0, "maximum": 1.0, "default": 0.1 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "densenet": {
+          "type": "object",
+          "description": "schema.models_densenet_description",
+          "properties": {
+            "variants": {
+              "type": "object",
+              "description": "schema.models_densenet_variants_description",
+              "properties": {
+                "densenet121": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 7978856 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 64 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "densenet161": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 28681000 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 32 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "densenet169": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 14149480 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 48 },
+                    "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
+                  },
+                  "additionalProperties": false
+                },
+                "densenet201": {
+                  "type": "object",
+                  "properties": {
+                    "params": { "type": "integer", "minimum": 0, "default": 20013928 },
+                    "recommended_batch_size": { "type": "integer", "minimum": 1, "maximum": 512, "default": 32 },
                     "input_size": { "type": "integer", "minimum": 32, "maximum": 1024, "default": 224 }
                   },
                   "additionalProperties": false
@@ -2402,8 +2642,8 @@
         "supported_types": {
           "type": "array",
           "description": "schema.models_supported_types_description",
-          "items": { "type": "string", "enum": ["resnet", "resnext", "mobilenet", "shufflenet", "squeezenet", "efficientnet"] },
-          "default": ["resnet", "resnext", "mobilenet", "shufflenet", "squeezenet", "efficientnet"],
+          "items": { "type": "string", "enum": ["resnet", "resnext", "alexnet", "vgg", "densenet", "mobilenet", "shufflenet", "squeezenet", "efficientnet"] },
+          "default": ["resnet", "resnext", "alexnet", "vgg", "densenet", "mobilenet", "shufflenet", "squeezenet", "efficientnet"],
           "ui": { "widget": "array", "visible": false }
         }
       },

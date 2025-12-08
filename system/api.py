@@ -354,6 +354,28 @@ def create_app() -> FastAPI:
             if not presets_dir.exists():
                 return {"presets": []}
 
+            def _infer_preset_categories(preset_data: Dict[str, Any]) -> List[str]:
+                categories: set[str] = set()
+
+                task = preset_data.get("task")
+                if isinstance(task, str) and task:
+                    categories.add(task)
+
+                dataset_types = preset_data.get("dataset_types", []) or []
+                if "multi_label" in dataset_types:
+                    categories.add("multi_label")
+                if "folder_classification" in dataset_types or not dataset_types:
+                    categories.add("classification")
+
+                configs = preset_data.get("configs", {}) or {}
+                for size_data in configs.values():
+                    training_cfg = (size_data or {}).get("config", {}).get("training", {})
+                    task_value = training_cfg.get("task")
+                    if isinstance(task_value, str) and task_value:
+                        categories.add(task_value)
+
+                return sorted(categories) if categories else ["classification"]
+
             presets = []
             for preset_file in presets_dir.glob("*.json"):
                 try:
@@ -377,7 +399,8 @@ def create_app() -> FastAPI:
                             "task": preset_data.get("task", "unknown"),
                             "recommended_models": preset_data.get("recommended_models", []),
                             "dataset_types": preset_data.get("dataset_types", []),
-                            "size_variants": size_variants
+                            "size_variants": size_variants,
+                            "categories": preset_data.get("categories", _infer_preset_categories(preset_data))
                         })
                 except Exception as ex:
                     error(f"Failed to load preset {preset_file.name}: {ex}")

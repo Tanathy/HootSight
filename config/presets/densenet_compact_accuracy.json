@@ -1,0 +1,198 @@
+{
+    "name": "presets.densenet_compact_accuracy.name",
+    "description": "presets.densenet_compact_accuracy.description",
+    "task": "classification",
+    "categories": ["classification"],
+    "dataset_types": [
+        "folder_classification",
+        "multi_label"
+    ],
+    "recommended_models": [
+        "densenet"
+    ],
+    "configs": {
+        "tiny": {
+            "description": "presets.configs.tiny",
+            "range": [50, 500],
+            "config": {
+                "training": {
+                    "task": "classification",
+                    "model_type": "densenet",
+                    "model_name": "densenet121",
+                    "pretrained": true,
+                    "input_size": 224,
+                    "batch_size": 64,
+                    "epochs": 140,
+                    "learning_rate": 0.0004,
+                    "weight_decay": 0.0005,
+                    "val_ratio": 0.25,
+                    "normalize": {
+                        "mean": [0.485, 0.456, 0.406],
+                        "std": [0.229, 0.224, 0.225]
+                    },
+                    "dataloader": {
+                        "num_workers": 0,
+                        "pin_memory": true,
+                        "persistent_workers": false,
+                        "prefetch_factor": 2
+                    },
+                    "augmentation": {
+                        "train": [],
+                        "val": []
+                    },
+                    "loss_type": "cross_entropy",
+                    "loss_reduction": "mean",
+                    "optimizer_type": "adamw",
+                    "optimizer_lr": 0.0004,
+                    "optimizer_weight_decay": 0.0005,
+                    "scheduler_type": "cosine_annealing_lr",
+                    "scheduler_params": {
+                        "cosine_annealing_lr": {
+                            "T_max": 140,
+                            "eta_min": 1e-07
+                        }
+                    },
+                    "early_stopping": {
+                        "enabled": true,
+                        "patience": 22,
+                        "min_delta": 0.001,
+                        "monitor": "val_loss"
+                    },
+                    "gradient": {
+                        "clip_norm": 1.0,
+                        "clip_value": null,
+                        "accumulation_steps": 1
+                    },
+                    "runtime": {
+                        "mixed_precision": true,
+                        "channels_last": true,
+                        "allow_tf32": true,
+                        "cudnn_benchmark": true
+                    }
+                }
+            }
+        },
+        "small": {
+            "description": "presets.configs.small",
+            "range": [500, 2500],
+            "config": {
+                "training": {
+                    "task": "classification",
+                    "model_type": "densenet",
+                    "model_name": "densenet169",
+                    "pretrained": true,
+                    "input_size": 224,
+                    "batch_size": 48,
+                    "epochs": 110,
+                    "learning_rate": 0.00035,
+                    "weight_decay": 0.0005,
+                    "val_ratio": 0.2,
+                    "normalize": {
+                        "mean": [0.485, 0.456, 0.406],
+                        "std": [0.229, 0.224, 0.225]
+                    },
+                    "dataloader": {
+                        "num_workers": 2,
+                        "pin_memory": true,
+                        "persistent_workers": true,
+                        "prefetch_factor": 2
+                    },
+                    "augmentation": {
+                        "train": [],
+                        "val": []
+                    },
+                    "loss_type": "cross_entropy",
+                    "loss_reduction": "mean",
+                    "optimizer_type": "adamw",
+                    "optimizer_lr": 0.00035,
+                    "optimizer_weight_decay": 0.0005,
+                    "scheduler_type": "cosine_annealing_lr",
+                    "scheduler_params": {
+                        "cosine_annealing_lr": {
+                            "T_max": 110,
+                            "eta_min": 1e-07
+                        }
+                    },
+                    "early_stopping": {
+                        "enabled": true,
+                        "patience": 18,
+                        "min_delta": 0.001,
+                        "monitor": "val_loss"
+                    },
+                    "gradient": {
+                        "clip_norm": 1.0,
+                        "clip_value": null,
+                        "accumulation_steps": 1
+                    },
+                    "runtime": {
+                        "mixed_precision": true,
+                        "channels_last": true,
+                        "allow_tf32": true,
+                        "cudnn_benchmark": true
+                    }
+                }
+            }
+        },
+        "medium": {
+            "description": "presets.configs.medium",
+            "range": [2500, 10000],
+            "config": {
+                "training": {
+                    "task": "classification",
+                    "model_type": "densenet",
+                    "model_name": "densenet201",
+                    "pretrained": true,
+                    "input_size": 224,
+                    "batch_size": 32,
+                    "epochs": 90,
+                    "learning_rate": 0.0003,
+                    "weight_decay": 0.0004,
+                    "val_ratio": 0.15,
+                    "normalize": {
+                        "mean": [0.485, 0.456, 0.406],
+                        "std": [0.229, 0.224, 0.225]
+                    },
+                    "dataloader": {
+                        "num_workers": 4,
+                        "pin_memory": true,
+                        "persistent_workers": true,
+                        "prefetch_factor": 2
+                    },
+                    "augmentation": {
+                        "train": [],
+                        "val": []
+                    },
+                    "loss_type": "cross_entropy",
+                    "loss_reduction": "mean",
+                    "optimizer_type": "adamw",
+                    "optimizer_lr": 0.0003,
+                    "optimizer_weight_decay": 0.0004,
+                    "scheduler_type": "cosine_annealing_lr",
+                    "scheduler_params": {
+                        "cosine_annealing_lr": {
+                            "T_max": 90,
+                            "eta_min": 1e-07
+                        }
+                    },
+                    "early_stopping": {
+                        "enabled": true,
+                        "patience": 12,
+                        "min_delta": 0.001,
+                        "monitor": "val_loss"
+                    },
+                    "gradient": {
+                        "clip_norm": null,
+                        "clip_value": null,
+                        "accumulation_steps": 1
+                    },
+                    "runtime": {
+                        "mixed_precision": true,
+                        "channels_last": true,
+                        "allow_tf32": true,
+                        "cudnn_benchmark": true
+                    }
+                }
+            }
+        }
+    }
+}

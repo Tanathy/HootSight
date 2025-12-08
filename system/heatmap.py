@@ -180,6 +180,15 @@ def _create_model_from_checkpoint(checkpoint_path: str, map_location: Optional[s
     elif model_type == 'resnext':
         from system.models.resnext import create_resnext_model
         wrapper = create_resnext_model(model_name=model_name, num_classes=num_classes, pretrained=False, task='classification')
+    elif model_type == 'alexnet':
+        from system.models.alexnet import create_alexnet_model
+        wrapper = create_alexnet_model(model_name=model_name, num_classes=num_classes, pretrained=False, task='classification')
+    elif model_type == 'vgg':
+        from system.models.vgg import create_vgg_model
+        wrapper = create_vgg_model(model_name=model_name, num_classes=num_classes, pretrained=False, task='classification')
+    elif model_type == 'densenet':
+        from system.models.densenet import create_densenet_model
+        wrapper = create_densenet_model(model_name=model_name, num_classes=num_classes, pretrained=False, task='classification')
     elif model_type == 'mobilenet':
         from system.models.mobilenet import create_mobilenet_model
         wrapper = create_mobilenet_model(model_name=model_name, num_classes=num_classes, pretrained=False, task='classification')
@@ -208,6 +217,12 @@ def _infer_model_type(model_name: str) -> str:
         return 'resnext'
     elif model_name_lower.startswith('resnet'):
         return 'resnet'
+    elif model_name_lower.startswith('alexnet'):
+        return 'alexnet'
+    elif model_name_lower.startswith('vgg'):
+        return 'vgg'
+    elif model_name_lower.startswith('densenet'):
+        return 'densenet'
     elif model_name_lower.startswith('mobilenet'):
         return 'mobilenet'
     elif model_name_lower.startswith('shufflenet'):

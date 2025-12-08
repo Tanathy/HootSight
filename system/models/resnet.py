@@ -60,7 +60,9 @@ class ResNetModel:
             'resnet34': models.ResNet34_Weights.DEFAULT,
             'resnet50': models.ResNet50_Weights.DEFAULT,
             'resnet101': models.ResNet101_Weights.DEFAULT,
-            'resnet152': models.ResNet152_Weights.DEFAULT
+            'resnet152': models.ResNet152_Weights.DEFAULT,
+            'wide_resnet50_2': models.Wide_ResNet50_2_Weights.DEFAULT,
+            'wide_resnet101_2': models.Wide_ResNet101_2_Weights.DEFAULT
         }
         
         if self.task == 'classification':
@@ -69,7 +71,9 @@ class ResNetModel:
                 'resnet34': models.resnet34,
                 'resnet50': models.resnet50,
                 'resnet101': models.resnet101,
-                'resnet152': models.resnet152
+                'resnet152': models.resnet152,
+                'wide_resnet50_2': models.wide_resnet50_2,
+                'wide_resnet101_2': models.wide_resnet101_2
             }
 
             if self.model_name not in model_map:
@@ -114,7 +118,9 @@ class ResNetModel:
                 'resnet34': models.resnet34,
                 'resnet50': models.resnet50,
                 'resnet101': models.resnet101,
-                'resnet152': models.resnet152
+                'resnet152': models.resnet152,
+                'wide_resnet50_2': models.wide_resnet50_2,
+                'wide_resnet101_2': models.wide_resnet101_2
             }
 
             if self.model_name not in model_map:
@@ -633,7 +639,15 @@ def create_resnet_model(model_name: str = 'resnet50', num_classes: int = 10, pre
 
 def get_supported_resnet_variants() -> List[str]:
     """Get list of supported ResNet variants."""
-    return ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152']
+    return [
+        'resnet18',
+        'resnet34',
+        'resnet50',
+        'resnet101',
+        'resnet152',
+        'wide_resnet50_2',
+        'wide_resnet101_2'
+    ]
 
 
 def get_resnet_config(model_name: str) -> Dict[str, Any]:
