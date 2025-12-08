@@ -449,6 +449,12 @@ class TrainingCoordinator:
 
         optimizer, scheduler, criterion = self._prepare_training_components(model)
 
+        checkpoint_cfg = {}
+        try:
+            checkpoint_cfg = self.settings.get('training', {}).get('checkpoint', {}) or {}
+        except Exception:
+            checkpoint_cfg = {}
+
         training_config = {
             'model': model,
             'train_loader': train_loader,
@@ -457,6 +463,7 @@ class TrainingCoordinator:
             'scheduler': scheduler,
             'criterion': criterion,
             'config': self.config,
+            'checkpoint_config': checkpoint_cfg,
             'project_info': project_info.to_dict(),
             'memory_info': get_memory_status(),
             'batch_calculation': optimal_batch
@@ -655,9 +662,25 @@ class TrainingCoordinator:
                     if 'params' not in aug:
                         aug['params'] = {}
                     aug['params']['size'] = target_size
-        
+
+        def _ensure_resize(aug_list, target_size):
+            """Guarantee a final resize when user pipeline forgot one.
+            This keeps augmentation at original resolution but enforces a deterministic
+            input_size before tensor/normalize."""
+            if not isinstance(aug_list, list):
+                return
+            resize_like = {'random_resized_crop', 'resize', 'center_crop', 'random_crop'}
+            has_resize = any(
+                isinstance(aug, dict) and (aug.get('type') or '').lower() in resize_like
+                for aug in aug_list
+            )
+            if not has_resize:
+                aug_list.append({'type': 'resize', 'params': {'size': target_size}})
+
         _override_sizes(train_aug_cfg, image_size)
         _override_sizes(val_aug_cfg, image_size)
+        _ensure_resize(train_aug_cfg, image_size)
+        _ensure_resize(val_aug_cfg, image_size)
 
         if isinstance(train_aug_cfg, list) and train_aug_cfg:
             train_transform = DataAugmentationFactory.create_composition(train_aug_cfg)

@@ -22,6 +22,7 @@ from torchvision import transforms as tv_transforms
 from system.log import info, success, error, warning
 from system.coordinator_settings import SETTINGS
 from system.dataset_discovery import discover_projects, get_project_info, get_image_files, compute_project_stats
+from system.common.checkpoint import find_checkpoint
 from system.project_db import (
     get_cached_stats,
     save_stats,
@@ -187,6 +188,14 @@ def _select_preview_image(project_name: str, phase: str) -> Optional[str]:
         if images:
             return random.choice(images)
     return None
+
+
+def _detect_checkpoint(model_dir: str, best_filename: str, model_filename: str) -> tuple[bool, Optional[str], str]:
+    """Wrapper for centralized checkpoint detection."""
+    found, path, reason = find_checkpoint(model_dir, best_filename, model_filename)
+    if found and path:
+        info(f"Checkpoint detected: {path.name} ({reason})")
+    return found, str(path) if path else None, reason
 
 
 def _apply_augmentation_preview(image: Image.Image, transform_configs: List[Dict[str, Any]]) -> Image.Image:
@@ -541,10 +550,24 @@ def create_app() -> FastAPI:
             # Lightweight discovery - no stats computation
             projects = discover_projects(compute_stats=False)
             project_dicts = []
+
+            # Determine default checkpoint filenames once (project overrides can replace these per row)
+            try:
+                ckpt_cfg = SETTINGS['training']['checkpoint']
+                default_ckpt_best = ckpt_cfg.get('best_model_filename', 'best_model.pth')
+                default_ckpt_model = ckpt_cfg.get('model_filename', 'model.pth')
+            except Exception:
+                default_ckpt_best = 'best_model.pth'
+                default_ckpt_model = 'model.pth'
+
             for project in projects:
                 # Get user-set dataset_type from DB (not auto-detected)
                 user_dataset_type = get_metadata(project.name, "dataset_type", "unknown")
-                
+
+                ckpt_best = get_metadata(project.name, "training.checkpoint.best_model_filename", default_ckpt_best) or default_ckpt_best
+                ckpt_model = get_metadata(project.name, "training.checkpoint.model_filename", default_ckpt_model) or default_ckpt_model
+                has_model, ckpt_path, ckpt_reason = _detect_checkpoint(project.model_path, ckpt_best, ckpt_model)
+
                 data = {
                     "name": project.name,
                     "path": project.path,
@@ -554,6 +577,9 @@ def create_app() -> FastAPI:
                     "image_count": project.image_count,
                     "has_dataset": project.has_dataset,
                     "has_model_dir": project.has_model_dir,
+                    "has_model": has_model,
+                    "checkpoint_path": ckpt_path if has_model else None,
+                    "checkpoint_reason": ckpt_reason,
                 }
                 
                 # Include cached stats if available (from DB)
@@ -781,6 +807,18 @@ def create_app() -> FastAPI:
             
             # Get user-set dataset_type from DB
             user_dataset_type = get_metadata(project_name, "dataset_type", "unknown")
+
+            try:
+                ckpt_cfg = SETTINGS['training']['checkpoint']
+                default_ckpt_best = ckpt_cfg.get('best_model_filename', 'best_model.pth')
+                default_ckpt_model = ckpt_cfg.get('model_filename', 'model.pth')
+            except Exception:
+                default_ckpt_best = 'best_model.pth'
+                default_ckpt_model = 'model.pth'
+
+            ckpt_best = get_metadata(project_name, "training.checkpoint.best_model_filename", default_ckpt_best) or default_ckpt_best
+            ckpt_model = get_metadata(project_name, "training.checkpoint.model_filename", default_ckpt_model) or default_ckpt_model
+            has_model, ckpt_path, ckpt_reason = _detect_checkpoint(info_obj.model_path, ckpt_best, ckpt_model)
             
             data = {
                 "name": info_obj.name,
@@ -791,6 +829,9 @@ def create_app() -> FastAPI:
                 "image_count": info_obj.image_count,
                 "has_dataset": info_obj.has_dataset,
                 "has_model_dir": info_obj.has_model_dir,
+                "has_model": has_model,
+                "checkpoint_path": ckpt_path if has_model else None,
+                "checkpoint_reason": ckpt_reason,
             }
             
             # Include cached stats if available
@@ -902,16 +943,25 @@ def create_app() -> FastAPI:
     def dataset_editor_refresh_stats(project_name: str) -> Dict[str, Any]:
         """Recompute and save project statistics to project.db, return updated stats"""
         project = _get_dataset_editor_project(project_name)
-        success = project.save_computed_stats()
-        
-        # Return updated stats for immediate frontend display
-        result: Dict[str, Any] = {"status": "success" if success else "error", "project": project_name}
-        if success:
-            cached = get_cached_stats(project_name)
-            if cached:
-                result["image_count"] = cached.get("total_images", 0)
-                result["balance_score"] = cached.get("balance_score", 0.0)
-                result["balance_status"] = cached.get("balance_status", "")
+        # Compute stats once and persist; also return live values to UI
+        stats_model = project.stats()
+        persisted = project.save_computed_stats()
+
+        result: Dict[str, Any] = {
+            "status": "success" if persisted else "error",
+            "project": project_name,
+            "image_count": stats_model.total_images,
+            "balance_score": stats_model.balance_score,
+            "balance_status": stats_model.balance_status,
+        }
+
+        # Fallback to cached values if save succeeded but stats_model unexpectedly missing
+        if persisted and stats_model.total_images is None:
+            cached = get_cached_stats(project_name) or {}
+            result["image_count"] = cached.get("image_count", 0)
+            result["balance_score"] = cached.get("balance_score", 0.0)
+            result["balance_status"] = cached.get("balance_status", "")
+
         return result
 
     @app.post("/dataset/editor/projects/{project_name}/dataset-type")

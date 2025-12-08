@@ -32,6 +32,7 @@ from system.dataset_editor_models import (
 from system.dataset_editor_settings import get_dataset_editor_settings
 from system.duplicate_detection import scan_for_duplicates
 from system.log import warning, info
+from system.dataset_discovery import calculate_balance_score, classify_balance_status
 from system import project_db
 
 if TYPE_CHECKING:
@@ -850,36 +851,34 @@ class ProjectIndex:
         balance_status = "Excellent"
         balance_analysis = {}
         
-        if len(categories) > 1 and len(self.items) > 0:
-
-            counts = list(categories.values())
-            min_count = min(counts)
-            max_count = max(counts)
-            avg_count = sum(counts) / len(counts)
+        # Use tags for balance calculation if available (multi-label), otherwise use categories (folder classification)
+        if tag_counter and len(tag_counter) > 1:
+            # Multi-label dataset - use tag distribution
+            distribution = dict(tag_counter)
+            balance_score = calculate_balance_score(distribution)
+            balance_status = classify_balance_status(balance_score)
             
-
-            ratio = min_count / max_count if max_count > 0 else 1.0
-            balance_score = (ratio ** 0.5) * 0.5 + 0.5
-            
-
-            if balance_score >= 0.9:
-                balance_status = "Excellent"
-            elif balance_score >= 0.7:
-                balance_status = "Good"
-            elif balance_score >= 0.5:
-                balance_status = "Fair"
-            elif balance_score >= 0.3:
-                balance_status = "Poor"
-            else:
-                balance_status = "Critical"
-            
-
+            counts = list(distribution.values())
             balance_analysis = {
-                "ideal_per_label": round(avg_count, 1),
-                "min_images": min_count,
-                "max_images": max_count,
-                "ratio_max_to_min": round(max_count / min_count if min_count > 0 else 0, 2),
-                "categories_count": len(categories),
+                "ideal_per_label": round(sum(counts) / len(counts), 1),
+                "min_images": min(counts),
+                "max_images": max(counts),
+                "ratio_max_to_min": round(max(counts) / min(counts) if min(counts) > 0 else 0, 2),
+                "categories_count": len(distribution),
+            }
+        elif len(categories) > 1 and len(self.items) > 0:
+            # Folder classification - use category distribution
+            distribution = dict(categories)
+            balance_score = calculate_balance_score(distribution)
+            balance_status = classify_balance_status(balance_score)
+            
+            counts = list(distribution.values())
+            balance_analysis = {
+                "ideal_per_label": round(sum(counts) / len(counts), 1),
+                "min_images": min(counts),
+                "max_images": max(counts),
+                "ratio_max_to_min": round(max(counts) / min(counts) if min(counts) > 0 else 0, 2),
+                "categories_count": len(distribution),
             }
 
         # Use tags for label_distribution if available, otherwise fall back to categories

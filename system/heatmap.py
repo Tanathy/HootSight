@@ -21,6 +21,8 @@ from system.coordinator_settings import SETTINGS
 from system.dataset_discovery import get_project_info
 from system.models.resnet import ResNetModel
 from system.project_labels import load_project_labels
+from system.project_db import get_metadata
+from system.common.checkpoint import find_checkpoint
 
 
 # Model cache: stores loaded models to avoid redundant loading
@@ -250,14 +252,19 @@ def _load_model_from_checkpoint(project_name: str, map_location: Optional[str] =
     
     try:
         checkpoint_cfg = SETTINGS['training']['checkpoint']
+        default_best = checkpoint_cfg.get('best_model_filename', 'best_model.pth')
+        default_model = checkpoint_cfg.get('model_filename', 'model.pth')
     except Exception:
         raise ValueError("Missing required 'training.checkpoint' section in config/config.json")
+
+    best_name = get_metadata(project_name, "training.checkpoint.best_model_filename", default_best) or default_best
+    model_name = get_metadata(project_name, "training.checkpoint.model_filename", default_model) or default_model
+
+    found, ckpt_path_obj, reason = find_checkpoint(model_dir, best_name, model_name)
+    if not found or not ckpt_path_obj:
+        raise FileNotFoundError(f"No checkpoint found in {model_dir}")
     
-    best_name = checkpoint_cfg.get('best_model_filename', 'best_model.pth')
-    ckpt_path = os.path.join(model_dir, best_name)
-    
-    if not os.path.isfile(ckpt_path):
-        raise FileNotFoundError(f"Checkpoint not found: {ckpt_path}")
+    ckpt_path = str(ckpt_path_obj)
     
     # Get file modification time for cache validation
     ckpt_mtime = os.path.getmtime(ckpt_path)
@@ -305,13 +312,24 @@ def _find_target_layer(module: nn.Module) -> nn.Module:
 
 
 @torch.no_grad()
-def predict(model: nn.Module, x: torch.Tensor) -> Tuple[int, torch.Tensor]:
+def predict(model: nn.Module, x: torch.Tensor, task: Optional[str] = None) -> Tuple[int, torch.Tensor]:
+    """Return top class and raw logits.
+
+    Multi-label models use sigmoid to pick the top-probability class instead of argmax on logits.
+    Single-label stays with softmax/argmax.
+    """
     device = next(model.parameters()).device
     x = x.to(device)
     logits = model(x)
     if isinstance(logits, (list, tuple)):
         logits = logits[0]
-    pred = int(torch.argmax(logits, dim=1).item())
+
+    task_mode = (task or '').lower()
+    if task_mode == 'multi_label':
+        probs = torch.sigmoid(logits)
+        pred = int(torch.argmax(probs, dim=1).item())
+    else:
+        pred = int(torch.argmax(logits, dim=1).item())
     return pred, logits
 
 
@@ -445,8 +463,13 @@ def generate_heatmap(project_name: str, image_path: Optional[str] = None,
 
     wrapper, ckpt_path, _ckpt_data = _load_model_from_checkpoint(project_name)
 
+    try:
+        task = SETTINGS['training']['task']
+    except Exception:
+        raise ValueError("Missing required 'training.task' in config/config.json")
+
     with torch.no_grad():
-        pred_class, _ = predict(wrapper.model, x.clone())
+        pred_class, _ = predict(wrapper.model, x.clone(), task=task)
 
     tclass = pred_class if target_class is None else int(target_class)
 
@@ -499,6 +522,13 @@ def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
     pil_img = Image.open(image_path).convert('RGB')
     x, preprocess_meta = _prepare_model_input(pil_img)
 
+    try:
+        task = SETTINGS['training']['task']
+    except Exception:
+        raise ValueError("Missing required 'training.task' in config/config.json")
+    if not task:
+        raise ValueError("training.task must be defined in config/config.json")
+
     if checkpoint_path:
         wrapper, ckpt_path, ckpt_data = _create_model_from_checkpoint(checkpoint_path)
     else:
@@ -506,14 +536,7 @@ def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
         wrapper, ckpt_path, ckpt_data = _load_model_from_checkpoint(project_name, use_cache=not use_live_model)
 
     with torch.no_grad():
-        pred_class, logits = predict(wrapper.model, x.clone())
-
-    try:
-        task = SETTINGS['training']['task']
-    except Exception:
-        raise ValueError("Missing required 'training.task' in config/config.json")
-    if not task:
-        raise ValueError("training.task must be defined in config/config.json")
+        pred_class, logits = predict(wrapper.model, x.clone(), task=task)
 
     # Prefer labels from checkpoint (embedded during training), fallback to persisted manifest then discovery
     # Labels can be dict {idx: name} or list [name, name, ...]

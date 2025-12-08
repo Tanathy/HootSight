@@ -10,6 +10,7 @@ from system.coordinator_settings import SETTINGS
 class DataAugmentationFactory:
 
     AUGMENTATIONS: Dict[str, Type] = {
+        'resize': transforms.Resize,
         'random_crop': transforms.RandomCrop,
         'random_resized_crop': transforms.RandomResizedCrop,
         'center_crop': transforms.CenterCrop,

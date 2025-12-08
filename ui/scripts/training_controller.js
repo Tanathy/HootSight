@@ -11,6 +11,11 @@ const TrainingController = {
     _activeTrainingId: null,
 
     /**
+     * Current training mode: 'new' | 'resume' | 'finetune'
+     */
+    _trainingMode: null,
+
+    /**
      * Training project name (may differ from selected project)
      */
     _trainingProject: null,
@@ -64,6 +69,14 @@ const TrainingController = {
         }).get();
         Q(this._headerElement).append(projectLabel);
 
+        // Mode pill
+        const modePill = Q('<span>', {
+            class: 'header-action-pill training-mode-pill',
+            id: 'training-mode-pill'
+        }).get();
+        Q(modePill).hide();
+        Q(this._headerElement).append(modePill);
+
         // Progress bar
         const progressBarContainer = Q('<div>', { class: 'training-progress-bar-container' }).get();
         const progressBar = Q('<div>', { 
@@ -81,14 +94,22 @@ const TrainingController = {
         }).get();
         Q(this._headerElement).append(etaDisplay);
 
-        // Stop button
-        const stopBtn = Q('<button>', { 
-            class: 'btn btn-secondary btn-sm training-stop-btn', 
+        // Stop/Clear action styled as secondary header pill
+        const stopBtn = Q('<div>', {
+            class: 'header-action-pill training-stop-btn',
             id: 'training-stop-btn',
             text: lang('training_controller.stop')
         }).get();
+        stopBtn.setAttribute('role', 'button');
+        stopBtn.setAttribute('tabindex', '0');
         stopBtn.setAttribute('data-lang-key', 'training_controller.stop');
         Q(stopBtn).on('click', () => this.stopTraining());
+        Q(stopBtn).on('keypress', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.stopTraining();
+            }
+        });
         Q(this._headerElement).append(stopBtn);
 
         Q(headerProgress).append(this._headerElement);
@@ -196,6 +217,7 @@ const TrainingController = {
                 // Get details
                 const details = await API.training.getStatus(trainingId);
                 this._trainingProject = details.project;
+                this._trainingMode = 'resume';
                 
                 // Load full history first so Performance page can access it
                 await TrainingMonitor.loadHistory(trainingId);
@@ -218,7 +240,7 @@ const TrainingController = {
      * @param {boolean} [resume] - Resume from last checkpoint
      * @returns {Promise<Object>} - Result
      */
-    startTraining: async function(projectName, modelType = null, modelName = null, epochs = null, resume = false) {
+    startTraining: async function(projectName, modelType = null, modelName = null, epochs = null, resume = false, mode = null) {
         if (this._activeTrainingId) {
             return { 
                 started: false, 
@@ -229,9 +251,9 @@ const TrainingController = {
         try {
             // Get model info from config if not provided
             if (!modelType || !modelName) {
-                const config = Config.get('model') || {};
-                modelType = modelType || config.type || 'resnet';
-                modelName = modelName || config.name || 'resnet50';
+                const trainingConfig = Config.get('training') || {};
+                modelType = modelType || trainingConfig.model_type || 'resnet';
+                modelName = modelName || trainingConfig.model_name || 'resnet50';
             }
 
             const result = await API.training.start(projectName, modelType, modelName, epochs, resume);
@@ -239,6 +261,7 @@ const TrainingController = {
             if (result.started) {
                 this._activeTrainingId = result.training_id;
                 this._trainingProject = projectName;
+                this._trainingMode = mode || (resume ? 'resume' : 'new');
                 
                 // Clear any previous history and reset ETA
                 TrainingMonitor.clearHistory();
@@ -316,6 +339,18 @@ const TrainingController = {
             projectLabel.text(this._trainingProject || state.project || '');
         }
 
+        // Mode pill (resume / fine-tune / new)
+        const modePill = Q('#training-mode-pill');
+        if (modePill.get()) {
+            const mode = this._trainingMode || 'new';
+            let textKey = 'training_controller.mode.new';
+            if (mode === 'resume') textKey = 'training_controller.mode.resume';
+            if (mode === 'finetune') textKey = 'training_controller.mode.finetune';
+            modePill.text(lang(textKey));
+            modePill.get().setAttribute('data-lang-key', textKey);
+            modePill.show();
+        }
+
         const epoch = state.currentEpoch || 0;
         const totalEpochs = state.totalEpochs || 0;
         const step = state.currentStep || 0;
@@ -334,6 +369,7 @@ const TrainingController = {
         // ETA display
         const etaDisplay = Q('#training-eta');
         if (etaDisplay.get() && totalEpochs > 0 && totalSteps > 0) {
+            etaDisplay.removeClass('training-status');
             const eta = this._calculateEta(step, totalSteps, epoch, totalEpochs);
             etaDisplay.text(eta);
         }
@@ -365,6 +401,7 @@ const TrainingController = {
             }
             etaDisplay.text(lang(langKey));
             etaDisplay.get().setAttribute('data-lang-key', langKey);
+            etaDisplay.addClass('training-status');
         }
 
         // Change stop button to "Clear"
@@ -386,6 +423,7 @@ const TrainingController = {
         this._hideProgress();
         this._trainingProject = null;
         this._resetEtaData();
+        this._trainingMode = null;
         
         // Reset stop button
         const stopBtn = Q('#training-stop-btn');
@@ -393,6 +431,13 @@ const TrainingController = {
             stopBtn.text(lang('training_controller.stop'));
             stopBtn.get().setAttribute('data-lang-key', 'training_controller.stop');
             stopBtn.off('click').on('click', () => this.stopTraining());
+        }
+
+        // Clear mode pill
+        const modePill = Q('#training-mode-pill');
+        if (modePill.get()) {
+            modePill.text('');
+            modePill.hide();
         }
     },
 
@@ -418,7 +463,7 @@ const TrainingController = {
      * Check if training is active
      */
     isTraining: function() {
-        return this._activeTrainingId !== null;
+        return TrainingMonitor.isRunning() || this._activeTrainingId !== null;
     },
 
     /**
@@ -433,5 +478,9 @@ const TrainingController = {
      */
     getActiveTrainingId: function() {
         return this._activeTrainingId;
+    },
+
+    getTrainingMode: function() {
+        return this._trainingMode;
     }
 };

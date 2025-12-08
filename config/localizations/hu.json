@@ -65,9 +65,11 @@
     "preview_failed": "Előnézet generálása sikertelen: {error}"
   },
   "augmentations": {
+    "resize": "Átméretezés",
     "random_crop": "Véletlenszerű vágás",
     "random_resized_crop": "Véletlenszerű átméretezett vágás",
     "center_crop": "Középre vágás",
+    "random_affine": "Véletlenszerű affin",
     "random_horizontal_flip": "Véletlenszerű vízszintes tükrözés",
     "random_vertical_flip": "Véletlenszerű függőleges tükrözés",
     "random_rotation": "Véletlenszerű forgatás",
@@ -223,7 +225,12 @@
     "completed": "Befejezve",
     "stopped": "Leállítva",
     "error": "Hiba",
-    "already_running": "A tanítás már fut"
+    "already_running": "A tanítás már fut",
+    "mode": {
+      "new": "Új modell",
+      "resume": "Folytatás",
+      "finetune": "Finomhangolás"
+    }
   },
   "projects_page": {
     "title": "Projektek",
@@ -260,10 +267,12 @@
       "stop_error": "A tanítás leállítása nem sikerült",
       "start_error": "A tanítás indítása nem sikerült",
       "no_project": "Nincs kiválasztott projekt",
-      "resume_title": "Folytatod a tanítást?",
-      "resume_prompt": "Checkpoint található ehhez a projekthez. Szeretnéd folytatni a tanítást az utolsó checkpointtól?",
-      "resume_yes": "Folytatás",
-      "resume_no": "Újrakezdés"
+      "finetune_toggle": "Fine-tune meglévő modell",
+      "resume_missing_checkpoint": "Nem található checkpoint. Új tanítást indítunk.",
+      "resume_title": "Fine-tune meglévő modell?",
+      "resume_prompt": "Képzett modell található. Szeretnéd fine-tune-olni a legutóbbi checkpointból?",
+      "resume_yes": "Fine-tune",
+      "resume_no": "Új indítás"
     },
     "new_project": {
       "title": "Új projekt létrehozása",
@@ -768,9 +777,8 @@
     "training_checkpoint_description": "Modell mentéspontok konfigurálása a tanítás közbeni előrehaladás megőrzéséhez. A mentéspontok lehetővé teszik a tanítás folytatását megszakítás után, és megőrzik a legjobb modellt a validációs teljesítmény alapján.",
     "training_checkpoint_save_best_only_title": "Csak a legjobb mentése",
     "training_checkpoint_save_frequency_title": "Mentési gyakoriság",
-    "training_checkpoint_max_checkpoints_title": "Maximum mentéspontok",
-    "training_checkpoint_checkpoint_dir_title": "Mentéspont mappa",
     "training_checkpoint_best_model_filename_title": "Legjobb modell fájlnév",
+    "training_checkpoint_model_filename_title": "Modell fájlnév",
     "training_early_stopping_title": "Korai leállítás",
     "training_early_stopping_description": "Automatikus tanításmegállítás konfiguráció, ha a validációs teljesítmény nem javul tovább. Megelőzi a túltanulást és felesleges számítási időt takarít meg. A rendszer figyeli a kiválasztott metrikát és leállítja a tanítást, ha türelem epókon keresztül nincs javulás.",
     "training_early_stopping_enabled_title": "Korai leállítás engedélyezve",

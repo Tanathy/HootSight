@@ -65,9 +65,11 @@
     "preview_failed": "Failed to generate preview: {error}"
   },
   "augmentations": {
+    "resize": "Resize",
     "random_crop": "Random Crop",
     "random_resized_crop": "Random Resized Crop",
     "center_crop": "Center Crop",
+    "random_affine": "Random Affine",
     "random_horizontal_flip": "Random Horizontal Flip",
     "random_vertical_flip": "Random Vertical Flip",
     "random_rotation": "Random Rotation",
@@ -223,7 +225,12 @@
     "completed": "Completed",
     "stopped": "Stopped",
     "error": "Error",
-    "already_running": "Training is already running"
+    "already_running": "Training is already running",
+    "mode": {
+      "new": "New model",
+      "resume": "Continuing",
+      "finetune": "Fine-tuning"
+    }
   },
   "projects_page": {
     "title": "Projects",
@@ -260,10 +267,12 @@
       "stop_error": "Failed to stop training",
       "start_error": "Failed to start training",
       "no_project": "No project selected",
-      "resume_title": "Resume Training?",
-      "resume_prompt": "A checkpoint was found for this project. Do you want to resume training from the last checkpoint?",
-      "resume_yes": "Resume",
-      "resume_no": "Start Fresh"
+      "finetune_toggle": "Fine-tune existing model",
+      "resume_missing_checkpoint": "No checkpoint found. Starting a new training run.",
+      "resume_title": "Fine-tune existing model?",
+      "resume_prompt": "A trained model was found. Do you want to fine-tune from the latest checkpoint?",
+      "resume_yes": "Fine-tune",
+      "resume_no": "Start New"
     },
     "new_project": {
       "title": "Create New Project",
@@ -768,9 +777,8 @@
     "training_checkpoint_description": "Model checkpoint configuration for preserving training progress. Checkpoints allow resuming training after interruption and preserve the best model based on validation performance.",
     "training_checkpoint_save_best_only_title": "Save Best Only",
     "training_checkpoint_save_frequency_title": "Save Frequency",
-    "training_checkpoint_max_checkpoints_title": "Max Checkpoints",
-    "training_checkpoint_checkpoint_dir_title": "Checkpoint Directory",
     "training_checkpoint_best_model_filename_title": "Best Model Filename",
+    "training_checkpoint_model_filename_title": "Model Filename",
     "training_early_stopping_title": "Early Stopping",
     "training_early_stopping_description": "Automatic training halt configuration when validation performance stops improving. Prevents overfitting and saves unnecessary computation time. The system monitors the selected metric and stops training if no improvement for patience epochs.",
     "training_early_stopping_enabled_title": "Enabled",

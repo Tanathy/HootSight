@@ -71,13 +71,13 @@ const HeaderActions = {
         // Normalize to array
         const buttonArray = Array.isArray(buttons) ? buttons : [buttons];
 
-        buttonArray.forEach(config => {
-            const btn = this._createButton(config);
-            if (btn) {
-                this._buttons[config.id] = btn;
-                Q(container).append(btn.getElement());
-            }
-        });
+            buttonArray.forEach(config => {
+                const btn = this._createButton(config);
+                if (btn) {
+                    this._buttons[config.id] = btn;
+                    Q(container).append(btn.getElement());
+                }
+            });
 
         return this;
     },
@@ -92,6 +92,27 @@ const HeaderActions = {
             console.warn('HeaderActions: Button config must have an id');
             return null;
         }
+
+            // Allow custom elements (e.g., switches) to live in header actions
+            if (config.customElement) {
+                const el = config.customElement;
+                const item = {
+                    getElement: () => el,
+                    setDisabled: (state) => {
+                        if (typeof el.disabled !== 'undefined') {
+                            el.disabled = !!state;
+                        }
+                        // Add/remove disabled class for visual consistency
+                        if (state) {
+                            Q(el).addClass('disabled');
+                        } else {
+                            Q(el).removeClass('disabled');
+                        }
+                    },
+                    setLabel: () => {}
+                };
+                return item;
+            }
 
         // Map type to class
         const typeClassMap = {

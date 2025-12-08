@@ -997,9 +997,8 @@
            "properties": {
               "save_best_only": { "type": "boolean", "title": "schema.training_checkpoint_save_best_only_title", "default": true, "ui": { "widget": "switch", "order": 1 } },
               "save_frequency": { "type": "integer", "title": "schema.training_checkpoint_save_frequency_title", "minimum": 1, "maximum": 100, "default": 1, "ui": { "widget": "slider", "order": 2, "step": 1 } },
-              "max_checkpoints": { "type": "integer", "title": "schema.training_checkpoint_max_checkpoints_title", "minimum": 1, "maximum": 50, "default": 5, "ui": { "widget": "slider", "order": 3, "step": 1 } },
-              "checkpoint_dir": { "type": "string", "title": "schema.training_checkpoint_checkpoint_dir_title", "default": "model", "ui": { "widget": "path", "order": 4, "path_type": "directory" } },
-              "best_model_filename": { "type": "string", "title": "schema.training_checkpoint_best_model_filename_title", "default": "best_model.pth", "ui": { "widget": "text", "order": 5 } }
+              "best_model_filename": { "type": "string", "title": "schema.training_checkpoint_best_model_filename_title", "default": "best_model.pth", "ui": { "widget": "text", "order": 3 } },
+              "model_filename": { "type": "string", "title": "schema.training_checkpoint_model_filename_title", "default": "model.pth", "ui": { "widget": "text", "order": 4 } }
            },
            "additionalProperties": false
         },

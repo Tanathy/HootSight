@@ -4,9 +4,10 @@ import json
 from pathlib import Path
 import copy
 
-from system.log import info, success, error
+from system.log import info, success, error, warning
 from system.coordinator import create_coordinator
 from system.coordinator_settings import SETTINGS
+from system.common.checkpoint import find_checkpoint
 from system import project_db
 
 
@@ -69,81 +70,10 @@ class TrainingManager:
         }
         self._record_event(training_id, event)
 
-    def _cleanup_old_checkpoints(self, output_dir: Path, best_model_filename: str, max_checkpoints: int) -> None:
-        """Remove old periodic checkpoints, keeping only the most recent ones.
-        
-        Args:
-            output_dir: Directory containing checkpoints
-            best_model_filename: Filename of the best model (never deleted)
-            max_checkpoints: Maximum number of periodic checkpoints to keep
-        """
-        import re
-        
-        # Find all epoch-numbered checkpoints
-        base_name = best_model_filename.rsplit('.', 1)[0]
-        pattern = re.compile(rf"^{re.escape(base_name)}_epoch(\d+)\.pth$")
-        
-        epoch_checkpoints = []
-        for f in output_dir.iterdir():
-            if f.is_file():
-                match = pattern.match(f.name)
-                if match:
-                    epoch_num = int(match.group(1))
-                    epoch_checkpoints.append((epoch_num, f))
-        
-        # Sort by epoch number (descending) and remove oldest beyond max_checkpoints
-        epoch_checkpoints.sort(key=lambda x: x[0], reverse=True)
-        
-        checkpoints_to_remove = epoch_checkpoints[max_checkpoints:]
-        for epoch_num, checkpoint_path in checkpoints_to_remove:
-            try:
-                checkpoint_path.unlink()
-                info(f"Removed old checkpoint: {checkpoint_path.name}")
-            except Exception as ex:
-                error(f"Failed to remove old checkpoint {checkpoint_path.name}: {ex}")
-
-    def _find_latest_checkpoint(self, output_dir: Path) -> Optional[Path]:
-        """Find the latest checkpoint file in the output directory.
-        
-        Prefers epoch-numbered checkpoints (highest epoch), falls back to best_model.pth.
-        
-        Args:
-            output_dir: Directory to search for checkpoints
-            
-        Returns:
-            Path to the latest checkpoint, or None if no checkpoint found
-        """
-        import re
-        
-        try:
-            checkpoint_config = SETTINGS['training']['checkpoint']
-            best_model_filename = checkpoint_config.get('best_model_filename', 'best_model.pth')
-        except Exception:
-            best_model_filename = 'best_model.pth'
-        
-        base_name = best_model_filename.rsplit('.', 1)[0]
-        pattern = re.compile(rf"^{re.escape(base_name)}_epoch(\d+)\.pth$")
-        
-        # Find all epoch-numbered checkpoints
-        epoch_checkpoints = []
-        for f in output_dir.iterdir():
-            if f.is_file():
-                match = pattern.match(f.name)
-                if match:
-                    epoch_num = int(match.group(1))
-                    epoch_checkpoints.append((epoch_num, f))
-        
-        # Return highest epoch checkpoint if found
-        if epoch_checkpoints:
-            epoch_checkpoints.sort(key=lambda x: x[0], reverse=True)
-            return epoch_checkpoints[0][1]
-        
-        # Fall back to best_model.pth
-        best_path = output_dir / best_model_filename
-        if best_path.exists():
-            return best_path
-        
-        return None
+    def _find_latest_checkpoint(self, output_dir: Path, best_filename: str, model_filename: str) -> Optional[Path]:
+        """Find a checkpoint preferring best model, then regular model saves."""
+        found, path, _ = find_checkpoint(str(output_dir), best_filename, model_filename)
+        return path if found else None
 
     def _consume_updates(self, training_id: str) -> List[Dict[str, Any]]:
         with self._lock:
@@ -327,12 +257,36 @@ class TrainingManager:
             best_val_loss = float('inf')
             start_epoch = 0
 
-            output_dir = Path(config.get('output_dir') or f"models/{project_name}/model")
+            # Resolve checkpoint directory inside the configured projects folder so UI detection works
+            try:
+                projects_dir = SETTINGS['paths'].get('projects_dir', 'projects')
+            except Exception:
+                projects_dir = 'projects'
+            root_path = Path(__file__).resolve().parents[1]
+            output_dir = Path(config.get('output_dir') or root_path / projects_dir / project_name / 'model')
+            output_dir = output_dir.resolve()
             output_dir.mkdir(parents=True, exist_ok=True)
+            # Persist back for downstream components that rely on config
+            config['output_dir'] = str(output_dir)
+
+            try:
+                base_checkpoint_cfg = SETTINGS['training']['checkpoint']
+            except Exception:
+                raise ValueError("Missing required 'training.checkpoint' section in config/config.json")
+
+            checkpoint_config = dict(base_checkpoint_cfg) if isinstance(base_checkpoint_cfg, dict) else {}
+            project_checkpoint_cfg = training_config.get('checkpoint_config')
+            if isinstance(project_checkpoint_cfg, dict):
+                checkpoint_config.update(project_checkpoint_cfg)
+
+            best_model_filename = checkpoint_config.get('best_model_filename') or 'best_model.pth'
+            model_filename = checkpoint_config.get('model_filename') or 'model.pth'
+            save_best_only = checkpoint_config.get('save_best_only', True)
+            save_frequency = checkpoint_config.get('save_frequency', 1)
 
             # Resume from checkpoint if requested
             if resume:
-                checkpoint_path = self._find_latest_checkpoint(output_dir)
+                checkpoint_path = self._find_latest_checkpoint(output_dir, best_model_filename, model_filename)
                 if checkpoint_path:
                     try:
                         start_epoch, checkpoint_data = model.load_checkpoint(str(checkpoint_path))
@@ -360,7 +314,7 @@ class TrainingManager:
                         error(f"Failed to load checkpoint, starting from scratch: {ex}")
                         start_epoch = 0
                 else:
-                    info(f"No checkpoint found, starting training from scratch")
+                    warning(f"No checkpoint found for resume request in {output_dir}, starting new training")
 
             training_history = []
 
@@ -521,17 +475,6 @@ class TrainingManager:
                         improved = True
                         save_reason = f"val_loss {best_val_loss:.4f}"
 
-                # Load checkpoint configuration
-                try:
-                    checkpoint_config = SETTINGS['training']['checkpoint']
-                except Exception:
-                    raise ValueError("Missing required 'training.checkpoint' section in config/config.json")
-                
-                save_best_only = checkpoint_config.get('save_best_only', True)
-                save_frequency = checkpoint_config.get('save_frequency', 1)
-                max_checkpoints = checkpoint_config.get('max_checkpoints', 5)
-                best_model_filename = checkpoint_config.get('best_model_filename', 'best_model.pth')
-                
                 if 'labels' not in config or not config['labels']:
                     raise ValueError("Training config is missing the label list required for deterministic checkpoints")
                 # labels is now a dict {idx: name} - save as-is for checkpoint
@@ -540,29 +483,19 @@ class TrainingManager:
                     # Backwards compat: convert list to dict if needed
                     labels_dict = {idx: name for idx, name in enumerate(labels_dict)}
 
-                # Determine if we should save a checkpoint this epoch
-                should_save = False
-                checkpoint_filename = best_model_filename
-                
+                # Determine if we should save checkpoints this epoch
+                save_requests: List[tuple[str, str]] = []  # (filename, reason)
+
                 if save_best_only:
-                    # Only save when model improved
                     if improved:
-                        should_save = True
+                        save_requests.append((best_model_filename, save_reason or "improved"))
                 else:
-                    # Save based on frequency
                     if (epoch + 1) % save_frequency == 0:
-                        should_save = True
-                        # Use epoch-numbered filename for periodic saves
-                        base_name = best_model_filename.rsplit('.', 1)[0]
-                        ext = best_model_filename.rsplit('.', 1)[1] if '.' in best_model_filename else 'pth'
-                        checkpoint_filename = f"{base_name}_epoch{epoch + 1:04d}.{ext}"
-                        save_reason = f"epoch {epoch + 1} (periodic)"
-                    # Also save if improved (always save best)
+                        save_requests.append((model_filename, f"epoch {epoch + 1} (periodic)"))
                     if improved:
-                        should_save = True
-                        checkpoint_filename = best_model_filename
-                
-                if should_save:
+                        save_requests.append((best_model_filename, save_reason or "improved"))
+
+                for checkpoint_filename, reason in save_requests:
                     checkpoint_path = output_dir / checkpoint_filename
                     info(f"[DEBUG] Saving checkpoint with labels: {labels_dict} (count: {len(labels_dict)})")
                     model.save_checkpoint(
@@ -573,11 +506,7 @@ class TrainingManager:
                         epoch_metrics,
                         labels=labels_dict
                     )
-                    info(f"Checkpoint saved: {checkpoint_filename} ({save_reason})")
-                    
-                    # Manage max checkpoints (only for periodic saves, not best model)
-                    if not save_best_only and max_checkpoints > 0:
-                        self._cleanup_old_checkpoints(output_dir, best_model_filename, max_checkpoints)
+                    info(f"Checkpoint saved: {checkpoint_filename} ({reason})")
 
                 if callback:
                     callback(epoch + 1, num_epochs, epoch_metrics)

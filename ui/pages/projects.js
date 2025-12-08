@@ -14,6 +14,8 @@ const ProjectsPage = {
      */
     _cardSection: null,
     _projectCards: {},
+    _resumeSwitch: null,
+    _contextRegistered: false,
 
     /**
      * Build the Projects page
@@ -38,6 +40,12 @@ const ProjectsPage = {
 
         // Load projects
         await this.loadProjects();
+
+        // Setup context menu once
+        if (!this._contextRegistered) {
+            this._registerContextMenu();
+            this._contextRegistered = true;
+        }
     },
 
     /**
@@ -96,6 +104,7 @@ const ProjectsPage = {
             title: name,
             subtitle: datasetType
         });
+        Q(card.getElement()).attr('data-project', name);
 
         // Mark as active if this is the loaded project
         if (isActive) {
@@ -116,21 +125,11 @@ const ProjectsPage = {
         card.addWidget(statsTable);
         this._projectCards[name].tableWidget = statsTable;
 
-        // Button container
+        // Button container (only load button now; refresh moved to context menu)
         const buttonContainer = Q('<div>', { class: 'card-button-row' })
             .css({ display: 'flex', gap: 'var(--spacing-sm)', marginTop: 'var(--spacing-md)' })
             .get();
 
-        // Refresh button
-        const refreshBtn = new ActionButton(`${name}_refresh`, {
-            label: lang('projects_page.buttons.refresh'),
-            labelLangKey: 'projects_page.buttons.refresh',
-            className: 'btn btn-secondary',
-            onClick: () => this._refreshStats(name)
-        });
-        Q(buttonContainer).append(refreshBtn.getElement());
-
-        // Load button
         const loadBtn = new ActionButton(`${name}_load`, {
             label: isActive ? lang('projects_page.buttons.loaded') : lang('projects_page.buttons.load'),
             labelLangKey: isActive ? 'projects_page.buttons.loaded' : 'projects_page.buttons.load',
@@ -266,14 +265,20 @@ const ProjectsPage = {
         const isTraining = TrainingController.isTraining();
         const hasProject = !!Config.getActiveProject();
 
+        this._resumeSwitch = new Switch('projects_resume_switch', {
+            label: lang('projects_page.training.finetune_toggle') || 'Fine-tune existing model',
+            labelLangKey: 'projects_page.training.finetune_toggle',
+            default: false,
+            disabled: !hasProject || isTraining
+        });
+        Q(this._resumeSwitch.getElement()).addClass('header-switch');
+        const resumeWrapper = Q('<div>', { class: 'header-switch-wrap' }).get();
+        Q(resumeWrapper).append(this._resumeSwitch.getElement());
+
         HeaderActions.clear().add([
             {
-                id: 'projects-training',
-                label: isTraining ? lang('projects_page.buttons.stop_training') : lang('projects_page.buttons.start_training'),
-                labelLangKey: isTraining ? 'projects_page.buttons.stop_training' : 'projects_page.buttons.start_training',
-                type: 'primary',
-                disabled: !hasProject && !isTraining,
-                onClick: () => this._toggleTraining()
+                id: 'projects-resume-toggle',
+                customElement: resumeWrapper
             },
             {
                 id: 'projects-new',
@@ -281,82 +286,64 @@ const ProjectsPage = {
                 labelLangKey: 'projects_page.buttons.new_project',
                 type: 'secondary',
                 onClick: () => this._createNewProject()
-            },
-            {
-                id: 'projects-rename',
-                label: lang('projects_page.buttons.rename_project'),
-                labelLangKey: 'projects_page.buttons.rename_project',
-                type: 'secondary',
-                disabled: !hasProject,
-                onClick: () => this._renameSelectedProject()
-            },
-            {
-                id: 'projects-delete',
-                label: lang('projects_page.buttons.delete_project'),
-                labelLangKey: 'projects_page.buttons.delete_project',
-                type: 'secondary',
-                disabled: !hasProject,
-                onClick: () => this._deleteSelectedProject()
             }
         ]);
 
         // Store references for later updates
-        this._trainingBtn = HeaderActions.get('projects-training');
+        this._trainingBtn = null;
         this._newProjectBtn = HeaderActions.get('projects-new');
-        this._renameProjectBtn = HeaderActions.get('projects-rename');
-        this._deleteProjectBtn = HeaderActions.get('projects-delete');
     },
 
-    /**
-     * Toggle training start/stop
-     */
-    _toggleTraining: async function() {
-        if (TrainingController.isTraining()) {
-            // Stop training
-            const result = await TrainingController.stopTraining();
-            if (result.stopped) {
-                this._updateTrainingButton();
-            } else {
-                Modal.alert(result.error || lang('projects_page.training.stop_error'));
-            }
-        } else {
-            // Start training for active project
-            const project = Config.getActiveProject();
-            if (!project) {
-                Modal.alert(lang('projects_page.training.no_project'));
-                return;
-            }
+    _startTrainingFor: async function(projectName) {
+        if (!projectName) return;
 
-            // Get model settings from config
-            const modelConfig = Config.get('model') || {};
-            const modelType = modelConfig.type || 'resnet';
-            const modelName = modelConfig.name || 'resnet50';
-            
-            // Check if there's an existing checkpoint and ask about resume
-            let resume = false;
-            try {
-                const projectInfo = await API.projects.get(project);
-                if (projectInfo && projectInfo.has_model) {
-                    // Project has a model/checkpoint - ask user
-                    const choice = await Modal.confirm(
-                        lang('projects_page.training.resume_prompt'),
-                        lang('projects_page.training.resume_title'),
-                        lang('projects_page.training.resume_yes'),
-                        lang('projects_page.training.resume_no')
-                    );
-                    resume = choice;
-                }
-            } catch (e) {
-                console.warn('Could not check for existing model:', e);
+        // Do not queue another training if one is already active
+        if (TrainingController.isTraining()) {
+            Modal.alert(lang('training_controller.already_running'));
+            return;
+        }
+
+        // Load project first so config is current
+        await this._loadProject(projectName);
+
+        const trainingConfig = Config.get('training') || {};
+        const modelType = trainingConfig.model_type || 'resnet';
+        const modelName = trainingConfig.model_name || 'resnet50';
+
+        let resume = false;
+        let wantsFineTune = false;
+        let hasModel = false;
+        try {
+            const response = await API.projects.get(projectName);
+            const projectInfo = response.project || response;
+            hasModel = !!(projectInfo && projectInfo.has_model);
+        } catch (e) {
+            console.warn('Could not check for existing model:', e);
+        }
+
+        if (this._resumeSwitch) {
+            wantsFineTune = !!this._resumeSwitch.get();
+            if (wantsFineTune && !hasModel) {
+                Modal.alert(lang('projects_page.training.resume_missing_checkpoint') || 'No checkpoint found. Starting a new training run.');
+                wantsFineTune = false;
             }
-            
-            const result = await TrainingController.startTraining(project, modelType, modelName, null, resume);
-            
-            if (result.started) {
-                this._updateTrainingButton();
-            } else {
-                Modal.alert(result.error || lang('projects_page.training.start_error'));
-            }
+        } else if (hasModel) {
+            const choice = await Modal.confirm(
+                lang('projects_page.training.resume_prompt'),
+                lang('projects_page.training.resume_title'),
+                lang('projects_page.training.resume_yes'),
+                lang('projects_page.training.resume_no')
+            );
+            wantsFineTune = choice;
+        }
+
+        resume = wantsFineTune && hasModel;
+        const mode = resume ? 'finetune' : 'new';
+        const result = await TrainingController.startTraining(projectName, modelType, modelName, null, resume, mode);
+        if (result.started) {
+            this._updateTrainingButton();
+        } else if (result.error) {
+            Modal.alert(result.error || lang('projects_page.training.start_error'));
         }
     },
 
@@ -364,18 +351,61 @@ const ProjectsPage = {
      * Update training button state
      */
     _updateTrainingButton: function() {
-        if (!this._trainingBtn) return;
-        
         const isTraining = TrainingController.isTraining();
         const hasProject = !!Config.getActiveProject();
-        
-        if (isTraining) {
-            this._trainingBtn.setLabel(lang('projects_page.buttons.stop_training'));
-            this._trainingBtn.setDisabled(false);
-        } else {
-            this._trainingBtn.setLabel(lang('projects_page.buttons.start_training'));
-            this._trainingBtn.setDisabled(!hasProject);
+
+        if (this._resumeSwitch) {
+            if (!hasProject || isTraining) {
+                this._resumeSwitch.disable();
+            } else {
+                this._resumeSwitch.enable();
+            }
         }
+    },
+
+    _registerContextMenu: function() {
+        // Context menu on project cards
+        ContextMenu.register('.card-section .card', (element) => {
+            const projectName = element.getAttribute('data-project');
+            if (!projectName) return [];
+
+            const isTraining = TrainingController.isTraining();
+            const trainingProject = TrainingController.getTrainingProject();
+            const trainingOnThis = isTraining && (!trainingProject || trainingProject === projectName);
+            const trainingMode = TrainingController.getTrainingMode();
+
+            const items = [
+                {
+                    label: lang('projects_page.buttons.refresh'),
+                    icon: 'sync.svg',
+                    action: () => this._refreshStats(projectName)
+                },
+                {
+                    label: trainingOnThis ? lang('projects_page.buttons.stop_training') : lang('projects_page.buttons.start_training'),
+                    icon: trainingOnThis ? 'x.svg' : 'sync.svg',
+                    danger: trainingOnThis,
+                    action: () => {
+                        if (trainingOnThis) {
+                            TrainingController.stopTraining();
+                        } else {
+                            this._startTrainingFor(projectName);
+                        }
+                    }
+                },
+                {
+                    label: lang('projects_page.buttons.rename_project'),
+                    icon: 'edit.svg',
+                    action: () => this._renameSelectedProject(projectName)
+                },
+                {
+                    label: lang('projects_page.buttons.delete_project'),
+                    icon: 'trash.svg',
+                    danger: true,
+                    action: () => this._deleteProjectByName(projectName)
+                }
+            ];
+            return items;
+        });
     },
 
     /**
@@ -444,8 +474,8 @@ const ProjectsPage = {
     /**
      * Rename the currently active/selected project
      */
-    _renameSelectedProject: async function() {
-        const activeProject = Config.getActiveProject();
+    _renameSelectedProject: async function(projectName = null) {
+        const activeProject = projectName || Config.getActiveProject();
         if (!activeProject) {
             Modal.alert(lang('projects_page.rename_project.no_selection'));
             return;
@@ -473,6 +503,39 @@ const ProjectsPage = {
         } catch (err) {
             console.error('Failed to rename project:', err);
             Modal.alert(lang('projects_page.rename_project.error') + ': ' + err.message);
+        }
+    },
+
+    _deleteProjectByName: async function(projectName) {
+        const target = projectName || Config.getActiveProject();
+        if (!target) {
+            Modal.alert(lang('projects_page.delete_project.no_selection'));
+            return;
+        }
+
+        const confirmed = await Modal.confirm(
+            lang('projects_page.delete_project.confirm', { name: target }),
+            lang('projects_page.delete_project.title')
+        );
+        
+        if (!confirmed) return;
+        
+        try {
+            const result = await API.projects.delete(target);
+            
+            if (result.status === 'success') {
+                if (Config.getActiveProject() === target) {
+                    Config.clearActiveProject();
+                }
+                await this.loadProjects();
+                if (this._deleteProjectBtn) this._deleteProjectBtn.setDisabled(true);
+                if (this._renameProjectBtn) this._renameProjectBtn.setDisabled(true);
+            } else {
+                Modal.alert(langMsg(result, lang('projects_page.delete_project.error')));
+            }
+        } catch (err) {
+            console.error('Failed to delete project:', err);
+            Modal.alert(lang('projects_page.delete_project.error') + ': ' + err.message);
         }
     }
 };

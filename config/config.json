@@ -106,9 +106,8 @@
         "checkpoint": {
             "save_best_only": true,
             "save_frequency": 1,
-            "max_checkpoints": 5,
-            "checkpoint_dir": "model",
-            "best_model_filename": "best_model.pth"
+            "best_model_filename": "best_model.pth",
+            "model_filename": "model.pth"
         },
         "early_stopping": {
             "enabled": false,
@@ -217,6 +216,7 @@
     "augmentations": {
         "defaults": {
             "random_crop": {"size": 224, "padding": null, "pad_if_needed": false, "fill": 0, "padding_mode": "constant"},
+            "resize": {"size": 224, "interpolation": "bilinear", "antialias": true},
             "random_resized_crop": {"size": 224, "scale": [0.08, 1.0], "ratio": [0.75, 1.3333333333333333], "interpolation": "bilinear"},
             "center_crop": {"size": 224},
             "random_horizontal_flip": {"p": 0.5},
@@ -245,6 +245,7 @@
         "properties": {
             "random_crop": {"type": "geometric", "random": true, "spatial": true},
             "random_resized_crop": {"type": "geometric", "random": true, "spatial": true},
+            "resize": {"type": "geometric", "random": false, "spatial": true},
             "center_crop": {"type": "geometric", "random": false, "spatial": true},
             "random_horizontal_flip": {"type": "geometric", "random": true, "spatial": true},
             "random_vertical_flip": {"type": "geometric", "random": true, "spatial": true},
