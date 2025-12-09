@@ -23,12 +23,12 @@
             fps: 30
         }, options || {});
 
-        self.holder = document.querySelector(selector);
+        self.holder = Q(selector).get();
         if (!self.holder) return;
 
-        self.canvas = document.createElement('canvas');
+        self.canvas = Q('<canvas>').get();
         self.ctx = self.canvas.getContext('2d');
-        self.holder.appendChild(self.canvas);
+        Q(self.holder).append(self.canvas);
 
         self.waves = [];
         self.hue = self.options.hue[0];

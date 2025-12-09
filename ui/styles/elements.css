@@ -254,14 +254,9 @@
     transition: all 0.2s;
 }
 
-.btn-save.btn-success {
-    background: var(--accent-success);
-    border-color: var(--accent-success);
-}
-
-.btn-save.btn-error {
-    background: var(--accent-error);
-    border-color: var(--accent-error);
+.btn-save.btn-primary {
+    background: var(--btn-primary-bg);
+    border-color: var(--btn-primary-bg);
 }
 
 /* No project selected message */

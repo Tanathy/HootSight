@@ -12,6 +12,7 @@ from PIL import Image
 from system.dataset_editor_models import BoundsModel, BuildDatasetResponse, BuildStatus
 from system.dataset_editor_project_service import ImageRecord, ProjectIndex
 from system.dataset_editor_settings import get_dataset_editor_settings
+from system.common.hash_utils import hash_text_sha256
 from system.log import warning
 
 SETTINGS = get_dataset_editor_settings()
@@ -223,6 +224,10 @@ class BuildManager:
     def _run(self, project: ProjectIndex, job: BuildJob) -> None:
         try:
             build_dataset(project, job=job, target_size=job.target_size)
+            try:
+                project.save_computed_stats()
+            except Exception as exc:
+                warning(f"Failed to save stats after dataset build for {project.name}: {exc}")
         except Exception as exc:
             job.mark_failed(str(exc))
 
@@ -359,9 +364,8 @@ class IncrementalDatasetBuilder:
         center_x = bounds_data.get('center_x', 0.5)
         center_y = bounds_data.get('center_y', 0.5)
         
-        import hashlib
         data_str = f"{record.annotation}|{zoom}|{center_x}|{center_y}"
-        return hashlib.sha256(data_str.encode('utf-8')).hexdigest()[:16]
+        return hash_text_sha256(data_str, length=16)
 
     def _needs_rebuild(self, record_id: str, new_hash: str, cached_hash: str | None, output_dir: Path) -> bool:
         if cached_hash is None:

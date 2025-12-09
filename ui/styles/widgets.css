@@ -892,7 +892,6 @@ body > .dropdown-options {
 
 .nested-section-toggle {
     font-family: monospace;
-    font-weight: bold;
     font-size: var(--font-normal);
     width: 1rem;
     text-align: center;

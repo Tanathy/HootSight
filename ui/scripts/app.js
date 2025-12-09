@@ -146,9 +146,5 @@
     }
 
     // Wait for DOM
-    if (document.readyState === 'loading') {
-        Q(document).on('DOMContentLoaded', init);
-    } else {
-        init();
-    }
+    Q.Ready(init);
 })();

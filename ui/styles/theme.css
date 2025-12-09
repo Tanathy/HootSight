@@ -45,14 +45,6 @@
     --btn-secondary-text: #a8a8b0;
     --btn-secondary-hover: #4a4a56;
     
-    --btn-success-bg: #b6b6b6;
-    --btn-success-text: #222222;
-    --btn-success-hover: #dbdbdb;
-    
-    --btn-danger-bg: #ef4444;
-    --btn-danger-text: #ffffff;
-    --btn-danger-hover: #dc3030;
-    
     /* Border colors */
     --border-color: #ffffff1c;
     --border-light: #ffffff1c;
@@ -67,9 +59,9 @@
     --spacing-page: 2px;
     --spacing-xs: 2px;
     --spacing-sm: 4px;
-    --spacing-md: 8px;
-    --spacing-lg: 10px;
-    --spacing-xl: 12px;
+    --spacing-md: 6px;
+    --spacing-lg: 8px;
+    --spacing-xl: 10px;
     
     /* Border radius */
     --radius-sm: 0px;

@@ -128,9 +128,7 @@ const Lang = {
         });
 
         // Dispatch custom event for components that need special refresh handling
-        document.dispatchEvent(new CustomEvent('lang:refresh', { 
-            detail: { language: this._activeLanguage } 
-        }));
+        Q(document).trigger('lang:refresh', { language: this._activeLanguage });
     },
 
     /**

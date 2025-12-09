@@ -118,11 +118,7 @@ const HeaderActions = {
         const typeClassMap = {
             'primary': 'btn btn-primary',
             'secondary': 'btn btn-secondary',
-            'success': 'btn btn-success',
-            'danger': 'btn btn-danger',
-            'warning': 'btn btn-warning',
-            'info': 'btn btn-info',
-            'icon': 'btn btn-icon'
+            'icon': 'btn btn-secondary btn-icon'
         };
 
         const className = config.className || typeClassMap[config.type] || 'btn btn-secondary';

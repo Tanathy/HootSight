@@ -21,7 +21,7 @@
  *       title: 'Custom Modal',
  *       content: '<p>Custom HTML content</p>',
  *       buttons: [
- *           { label: 'Cancel', variant: 'ghost', action: () => false },
+ *           { label: 'Cancel', variant: 'secondary', action: () => false },
  *           { label: 'Save', variant: 'primary', action: () => true }
  *       ]
  *   });
@@ -86,7 +86,7 @@ const Modal = {
             title: title,
             content: `<p class="modal-message">${this._escapeHtml(message)}</p>`,
             buttons: [
-                { label: lang('common.cancel') || 'Cancel', labelLangKey: 'common.cancel', variant: 'ghost', action: () => false },
+                { label: lang('common.cancel') || 'Cancel', labelLangKey: 'common.cancel', variant: 'secondary', action: () => false },
                 { label: 'OK', variant: 'primary', action: () => true, autoFocus: true }
             ]
         });
@@ -113,7 +113,7 @@ const Modal = {
             title: title,
             contentElement: this._promptInput.getElement(),
             buttons: [
-                { label: lang('common.cancel') || 'Cancel', labelLangKey: 'common.cancel', variant: 'ghost', action: () => null },
+                { label: lang('common.cancel') || 'Cancel', labelLangKey: 'common.cancel', variant: 'secondary', action: () => null },
                 { label: 'OK', variant: 'primary', action: () => this._promptInput.get(), autoFocus: false }
             ],
             onOpen: () => {
@@ -177,7 +177,7 @@ const Modal = {
                 
                 let autoFocusBtn = null;
                 options.buttons.forEach((btnDef, idx) => {
-                    const variantClass = btnDef.variant ? `btn-${btnDef.variant}` : 'btn-secondary';
+                    const variantClass = btnDef.variant === 'primary' ? 'btn-primary' : 'btn-secondary';
                     const btn = new ActionButton(`modal-btn-${idx}`, {
                         label: btnDef.label,
                         labelLangKey: btnDef.labelLangKey || null,

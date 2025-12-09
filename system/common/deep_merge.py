@@ -78,6 +78,21 @@ def _load_json_from_path(path: str) -> Any:
 		return json.loads(clean)
 
 
+def load_json_optional(path: str | Path, default: Any = None) -> Any:
+	"""Load JSON/JSONC from disk, returning a default on failure or missing file.
+
+	This mirrors the behavior used in settings/localization loaders while keeping
+	the parsing logic centralized.
+	"""
+	try:
+		p = Path(path)
+		if not p.exists():
+			return default
+		return deep_merge_json(str(p))
+	except Exception:
+		return default
+
+
 def _parse_jsonish(value: Any) -> Any:
 	"""
 	Parse a JSON-ish input.
@@ -227,4 +242,4 @@ def deep_merge_json(base: Any, *others: Any, replace_lists: bool = False) -> Any
 	return acc
 
 
-__all__ = ["deep_merge_json"]
+__all__ = ["deep_merge_json", "load_json_optional"]

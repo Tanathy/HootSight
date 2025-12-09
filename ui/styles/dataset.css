@@ -1016,18 +1016,7 @@
     background: var(--bg-secondary);
 }
 
-.duplicates-modal .btn-danger {
-    background: var(--accent-error);
-    border-color: var(--accent-error);
-    color: white;
-}
-
-.duplicates-modal .btn-danger:hover:not(:disabled) {
-    background: #dc2626;
-    border-color: #dc2626;
-}
-
-.duplicates-modal .btn-danger:disabled {
+.duplicates-modal .btn-primary:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }

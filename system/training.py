@@ -108,7 +108,7 @@ class TrainingManager:
     def start_training(self, project_name: str, model_type: str = "resnet",
                       model_name: str = "resnet50", epochs: Optional[int] = None,
                       callback: Optional[Callable] = None,
-                      resume: bool = False) -> Dict[str, Any]:
+                      resume: bool = False, mode: str = "new") -> Dict[str, Any]:
         try:
             training_id = f"{project_name}_{model_type}_{model_name}_{threading.current_thread().ident}"
 
@@ -123,9 +123,14 @@ class TrainingManager:
 
             stop_event = threading.Event()
 
+            # Determine effective mode from resume flag if mode not explicitly set
+            effective_mode = mode
+            if mode == "new" and resume:
+                effective_mode = "resume"
+
             training_thread = threading.Thread(
                 target=self._run_training,
-                args=(training_config, project_name, model_type, model_name, training_id, callback, stop_event, resume),
+                args=(training_config, project_name, model_type, model_name, training_id, callback, stop_event, effective_mode),
                 name=f"Training-{training_id}"
             )
             training_thread.daemon = True
@@ -137,13 +142,18 @@ class TrainingManager:
                 'start_time': threading.current_thread().ident,
                 'status': 'starting',
                 'stop_event': stop_event,
-                'resume': resume
+                'mode': effective_mode
             }
 
             training_thread.start()
 
-            resume_msg = " (resuming from checkpoint)" if resume else ""
-            info(f"Training started for project {project_name} with ID: {training_id}{resume_msg}")
+            mode_msgs = {
+                'new': '',
+                'resume': ' (resuming from checkpoint)',
+                'finetune': ' (fine-tuning from checkpoint)'
+            }
+            mode_msg = mode_msgs.get(effective_mode, '')
+            info(f"Training started for project {project_name} with ID: {training_id}{mode_msg}")
 
             return {
                 "started": True,
@@ -151,9 +161,9 @@ class TrainingManager:
                 "project": project_name,
                 "model_type": model_type,
                 "model_name": model_name,
-                "resume": resume,
+                "mode": effective_mode,
                 "config": coordinator.get_training_summary(training_config),
-                "message": f"Training started successfully for {project_name}{resume_msg}"
+                "message": f"Training started successfully for {project_name}{mode_msg}"
             }
 
         except Exception as e:
@@ -237,12 +247,12 @@ class TrainingManager:
     def _run_training(self, training_config: Dict[str, Any], project_name: str,
                      model_type: str, model_name: str, training_id: str,
                      callback: Optional[Callable] = None, stop_event: Optional[threading.Event] = None,
-                     resume: bool = False):
+                     mode: str = "new"):
         try:
             if training_id in self.active_trainings:
                 self.active_trainings[training_id]['status'] = 'running'
 
-            info(f"Starting background training for {project_name} (ID: {training_id})")
+            info(f"Starting background training for {project_name} (ID: {training_id}, mode: {mode})")
 
             config = training_config['config']
             model = training_config['model']
@@ -284,37 +294,49 @@ class TrainingManager:
             save_best_only = checkpoint_config.get('save_best_only', True)
             save_frequency = checkpoint_config.get('save_frequency', 1)
 
-            # Resume from checkpoint if requested
-            if resume:
+            # Load checkpoint based on mode
+            if mode in ('resume', 'finetune'):
                 checkpoint_path = self._find_latest_checkpoint(output_dir, best_model_filename, model_filename)
                 if checkpoint_path:
                     try:
-                        start_epoch, checkpoint_data = model.load_checkpoint(str(checkpoint_path))
+                        loaded_epoch, checkpoint_data = model.load_checkpoint(str(checkpoint_path))
                         
-                        # Restore optimizer state
-                        if 'optimizer_state_dict' in checkpoint_data:
-                            optimizer.load_state_dict(checkpoint_data['optimizer_state_dict'])
-                            info(f"Restored optimizer state from checkpoint")
+                        if mode == 'resume':
+                            # Resume: restore everything and continue from where we left off
+                            start_epoch = loaded_epoch
+                            
+                            # Restore optimizer state
+                            if 'optimizer_state_dict' in checkpoint_data:
+                                optimizer.load_state_dict(checkpoint_data['optimizer_state_dict'])
+                                info(f"Restored optimizer state from checkpoint")
+                            
+                            # Restore scheduler state
+                            if scheduler and 'scheduler_state_dict' in checkpoint_data:
+                                scheduler.load_state_dict(checkpoint_data['scheduler_state_dict'])
+                                info(f"Restored scheduler state from checkpoint")
+                            
+                            # Restore best metrics
+                            if 'metrics' in checkpoint_data:
+                                metrics = checkpoint_data['metrics']
+                                if 'val_accuracy' in metrics and metrics['val_accuracy']:
+                                    best_accuracy = metrics['val_accuracy']
+                                if 'val_loss' in metrics and metrics['val_loss']:
+                                    best_val_loss = metrics['val_loss']
+                            
+                            info(f"Resuming training from epoch {start_epoch + 1} (checkpoint: {checkpoint_path.name})")
                         
-                        # Restore scheduler state
-                        if scheduler and 'scheduler_state_dict' in checkpoint_data:
-                            scheduler.load_state_dict(checkpoint_data['scheduler_state_dict'])
-                            info(f"Restored scheduler state from checkpoint")
+                        elif mode == 'finetune':
+                            # Fine-tune: load model weights only, reset optimizer/scheduler, start from epoch 1
+                            # Model weights are already loaded by load_checkpoint
+                            # Do NOT restore optimizer, scheduler, or metrics
+                            start_epoch = 0
+                            info(f"Fine-tuning from checkpoint: {checkpoint_path.name} (starting fresh from epoch 1)")
                         
-                        # Restore best metrics
-                        if 'metrics' in checkpoint_data:
-                            metrics = checkpoint_data['metrics']
-                            if 'val_accuracy' in metrics and metrics['val_accuracy']:
-                                best_accuracy = metrics['val_accuracy']
-                            if 'val_loss' in metrics and metrics['val_loss']:
-                                best_val_loss = metrics['val_loss']
-                        
-                        info(f"Resuming training from epoch {start_epoch + 1} (checkpoint: {checkpoint_path.name})")
                     except Exception as ex:
                         error(f"Failed to load checkpoint, starting from scratch: {ex}")
                         start_epoch = 0
                 else:
-                    warning(f"No checkpoint found for resume request in {output_dir}, starting new training")
+                    warning(f"No checkpoint found for {mode} request in {output_dir}, starting new training")
 
             training_history = []
 
@@ -542,8 +564,9 @@ training_manager = TrainingManager()
 
 def start_training(project_name: str, model_type: str = "resnet",
                   model_name: str = "resnet50", epochs: Optional[int] = None,
-                  callback: Optional[Callable] = None, resume: bool = False) -> Dict[str, Any]:
-    return training_manager.start_training(project_name, model_type, model_name, epochs, callback, resume)
+                  callback: Optional[Callable] = None, resume: bool = False,
+                  mode: str = "new") -> Dict[str, Any]:
+    return training_manager.start_training(project_name, model_type, model_name, epochs, callback, resume, mode)
 
 
 def stop_training(training_id: str) -> Dict[str, Any]:

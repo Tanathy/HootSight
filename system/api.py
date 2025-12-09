@@ -1102,10 +1102,11 @@ def create_app() -> FastAPI:
         model_type: str = Body("resnet", embed=True),
         model_name: str = Body("resnet50", embed=True),
         epochs: Optional[int] = Body(None, embed=True),
-        resume: bool = Body(False, embed=True)
+        resume: bool = Body(False, embed=True),
+        mode: str = Body("new", embed=True)
     ) -> Dict[str, Any]:
         try:
-            return start_training(project_name=project_name, model_type=model_type, model_name=model_name, epochs=epochs, resume=resume)
+            return start_training(project_name=project_name, model_type=model_type, model_name=model_name, epochs=epochs, resume=resume, mode=mode)
         except Exception as ex:
             error(f"Training start failed: {ex}")
             return {"started": False, "error": str(ex)}

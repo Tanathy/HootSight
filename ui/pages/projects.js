@@ -159,10 +159,10 @@ const ProjectsPage = {
             ? (project.balance_score * 100).toFixed(1) + '%' 
             : '-';
         
-        // Localize balance status key (e.g. "poor" -> lang key "balance_status_poor")
+        // Localize balance status key (e.g. "Excellent" -> lang key "balance_status_excellent")
         let statusDisplay = '-';
         if (project.balance_status) {
-            const statusKey = `projects_page.stats.balance_status_${project.balance_status}`;
+            const statusKey = `projects_page.stats.balance_status_${project.balance_status.toLowerCase()}`;
             statusDisplay = lang(statusKey) || project.balance_status;
         }
         result[lang('projects_page.stats.balance_status')] = statusDisplay;
@@ -279,13 +279,16 @@ const ProjectsPage = {
             disabled: !hasProject || isTraining
         });
         Q(this._resumeSwitch.getElement()).addClass('header-switch');
-        const resumeWrapper = Q('<div>', { class: 'header-switch-wrap' }).get();
-        Q(resumeWrapper).append(this._resumeSwitch.getElement());
+
+        // Wrap switch in container for proper header styling
+        const switchContainer = Q('<div>', { class: 'switch-container' })
+            .append(this._resumeSwitch.getElement())
+            .get();
 
         HeaderActions.clear().add([
             {
                 id: 'projects-resume-toggle',
-                customElement: resumeWrapper
+                customElement: switchContainer
             },
             {
                 id: 'projects-new',
@@ -355,6 +358,38 @@ const ProjectsPage = {
     },
 
     /**
+     * Start training with a specific mode
+     * @param {string} projectName - Project to train
+     * @param {string} mode - Training mode: 'new', 'resume', or 'finetune'
+     */
+    _startTrainingWithMode: async function(projectName, mode) {
+        if (!projectName) return;
+
+        // Do not queue another training if one is already active
+        if (TrainingController.isTraining()) {
+            Modal.alert(lang('training_controller.already_running'));
+            return;
+        }
+
+        // Load project first so config is current
+        await this._loadProject(projectName);
+
+        const trainingConfig = Config.get('training') || {};
+        const modelType = trainingConfig.model_type || 'resnet';
+        const modelName = trainingConfig.model_name || 'resnet50';
+
+        // Determine resume flag based on mode
+        const resume = mode === 'resume' || mode === 'finetune';
+
+        const result = await TrainingController.startTraining(projectName, modelType, modelName, null, resume, mode);
+        if (result.started) {
+            this._updateTrainingButton();
+        } else if (result.error) {
+            Modal.alert(result.error || lang('projects_page.training.start_error'));
+        }
+    },
+
+    /**
      * Update training button state
      */
     _updateTrainingButton: function() {
@@ -372,33 +407,65 @@ const ProjectsPage = {
 
     _registerContextMenu: function() {
         // Context menu on project cards
-        ContextMenu.register('.card-section .card', (element) => {
+        ContextMenu.register('.card-section .card', async (element) => {
             const projectName = element.getAttribute('data-project');
             if (!projectName) return [];
 
             const isTraining = TrainingController.isTraining();
             const trainingProject = TrainingController.getTrainingProject();
             const trainingOnThis = isTraining && (!trainingProject || trainingProject === projectName);
-            const trainingMode = TrainingController.getTrainingMode();
+
+            // Check if project has a trained model
+            let hasModel = false;
+            try {
+                const response = await API.projects.get(projectName);
+                const projectInfo = response.project || response;
+                hasModel = !!(projectInfo && projectInfo.has_model);
+            } catch (e) {
+                console.warn('Could not check for existing model:', e);
+            }
 
             const items = [
                 {
                     label: lang('projects_page.buttons.refresh'),
                     icon: 'sync.svg',
                     action: () => this._refreshStats(projectName)
-                },
-                {
-                    label: trainingOnThis ? lang('projects_page.buttons.stop_training') : lang('projects_page.buttons.start_training'),
-                    icon: trainingOnThis ? 'x.svg' : 'sync.svg',
-                    danger: trainingOnThis,
-                    action: () => {
-                        if (trainingOnThis) {
-                            TrainingController.stopTraining();
-                        } else {
-                            this._startTrainingFor(projectName);
-                        }
-                    }
-                },
+                }
+            ];
+
+            // Training options - show different options based on state
+            if (trainingOnThis) {
+                // Training is running on this project - show stop option
+                items.push({
+                    label: lang('projects_page.buttons.stop_training'),
+                    icon: 'stop.svg',
+                    danger: true,
+                    action: () => TrainingController.stopTraining()
+                });
+            } else if (!isTraining) {
+                // No training running - show training options
+                items.push({
+                    label: lang('projects_page.buttons.new_training'),
+                    icon: 'not_started.svg',
+                    action: () => this._startTrainingWithMode(projectName, 'new')
+                });
+
+                if (hasModel) {
+                    items.push({
+                        label: lang('projects_page.buttons.resume_training'),
+                        icon: 'start.svg',
+                        action: () => this._startTrainingWithMode(projectName, 'resume')
+                    });
+                    items.push({
+                        label: lang('projects_page.buttons.finetune_training'),
+                        icon: 'tune.svg',
+                        action: () => this._startTrainingWithMode(projectName, 'finetune')
+                    });
+                }
+            }
+
+            // Other options
+            items.push(
                 {
                     label: lang('projects_page.buttons.rename_project'),
                     icon: 'edit.svg',
@@ -410,7 +477,7 @@ const ProjectsPage = {
                     danger: true,
                     action: () => this._deleteProjectByName(projectName)
                 }
-            ];
+            );
             return items;
         });
     },

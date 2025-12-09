@@ -1200,84 +1200,84 @@
                   "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_description",
                   "ui": { "widget": "nested", "order": 8 },
                   "properties": {
-                    "legendary": {
-                      "type": "number",
-                      "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_legendary_description",
-                      "minimum": 0.0,
-                      "maximum": 1.0,
-                      "default": 0.98,
-                      "ui": { "widget": "number", "order": 1 }
-                    },
                     "excellent": {
                       "type": "number",
                       "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_excellent_description",
                       "minimum": 0.0,
                       "maximum": 1.0,
                       "default": 0.95,
-                      "ui": { "widget": "number", "order": 2 }
+                      "ui": { "widget": "number", "order": 1 }
                     },
                     "very_good": {
                       "type": "number",
                       "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_very_good_description",
                       "minimum": 0.0,
                       "maximum": 1.0,
-                      "default": 0.9,
-                      "ui": { "widget": "number", "order": 3 }
+                      "default": 0.85,
+                      "ui": { "widget": "number", "order": 2 }
                     },
                     "good": {
                       "type": "number",
                       "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_good_description",
                       "minimum": 0.0,
                       "maximum": 1.0,
-                      "default": 0.85,
+                      "default": 0.75,
+                      "ui": { "widget": "number", "order": 3 }
+                    },
+                    "decent": {
+                      "type": "number",
+                      "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_decent_description",
+                      "minimum": 0.0,
+                      "maximum": 1.0,
+                      "default": 0.65,
                       "ui": { "widget": "number", "order": 4 }
-                    },
-                    "balanced": {
-                      "type": "number",
-                      "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_balanced_description",
-                      "minimum": 0.0,
-                      "maximum": 1.0,
-                      "default": 0.8,
-                      "ui": { "widget": "number", "order": 5 }
-                    },
-                    "slightly_unbalanced": {
-                      "type": "number",
-                      "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_slightly_unbalanced_description",
-                      "minimum": 0.0,
-                      "maximum": 1.0,
-                      "default": 0.7,
-                      "ui": { "widget": "number", "order": 6 }
                     },
                     "fair": {
                       "type": "number",
                       "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_fair_description",
                       "minimum": 0.0,
                       "maximum": 1.0,
-                      "default": 0.6,
-                      "ui": { "widget": "number", "order": 7 }
+                      "default": 0.55,
+                      "ui": { "widget": "number", "order": 5 }
+                    },
+                    "mediocre": {
+                      "type": "number",
+                      "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_mediocre_description",
+                      "minimum": 0.0,
+                      "maximum": 1.0,
+                      "default": 0.45,
+                      "ui": { "widget": "number", "order": 6 }
                     },
                     "poor": {
                       "type": "number",
                       "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_poor_description",
                       "minimum": 0.0,
                       "maximum": 1.0,
-                      "default": 0.45,
-                      "ui": { "widget": "number", "order": 8 }
-                    },
-                    "very_poor": {
-                      "type": "number",
-                      "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_very_poor_description",
-                      "minimum": 0.0,
-                      "maximum": 1.0,
                       "default": 0.35,
-                      "ui": { "widget": "number", "order": 9 }
+                      "ui": { "widget": "number", "order": 7 }
                     },
-                    "critical": {
+                    "bad": {
                       "type": "number",
-                      "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_critical_description",
+                      "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_bad_description",
                       "minimum": 0.0,
                       "maximum": 1.0,
                       "default": 0.25,
+                      "ui": { "widget": "number", "order": 8 }
+                    },
+                    "terrible": {
+                      "type": "number",
+                      "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_terrible_description",
+                      "minimum": 0.0,
+                      "maximum": 1.0,
+                      "default": 0.15,
+                      "ui": { "widget": "number", "order": 9 }
+                    },
+                    "nonsense": {
+                      "type": "number",
+                      "description": "schema.dataset_discovery_balance_analysis_balance_score_thresholds_nonsense_description",
+                      "minimum": 0.0,
+                      "maximum": 1.0,
+                      "default": 0.0,
                       "ui": { "widget": "number", "order": 10 }
                     }
                   },

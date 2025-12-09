@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 import sys
 
-from system.common.deep_merge import deep_merge_json
+from system.common.deep_merge import deep_merge_json, load_json_optional
 from system.log import info, error
 
 
@@ -49,8 +49,6 @@ def _load_file_if_exists(path: Path) -> str | None:
     except Exception:
         return None
 
-
-from typing import Any
 
 def reload_settings() -> Any:
     system_cfg = _load_file_if_exists(SYSTEM_CONFIG_PATH)
@@ -151,7 +149,7 @@ def reload_localization() -> Any:
         lang_code = SETTINGS.get("general", {}).get("language") or lang_code
 
     lang_path = get_language_file_path(lang_code)
-    data = _load_json_safe(lang_path, {}) or {}
+    data = load_json_optional(lang_path, {}) or {}
 
     if _premerged_language_data and isinstance(_premerged_language_data, dict):
         data = deep_merge_json(data, _premerged_language_data, replace_lists=False)
@@ -184,15 +182,6 @@ _language_data: Any = None
 _premerged_language_data: Any = None
 
 
-def _load_json_safe(path: str, default: Any = None) -> Any:
-    try:
-        p = Path(path)
-        if not p.exists():
-            return default
-        return deep_merge_json(str(p))
-    except Exception:
-        return default
-
 def get_language_file_path(lang_code: str) -> str:
     found = _first_existing(
         ROOT / "config" / "localizations" / f"{lang_code}.json",
@@ -218,7 +207,7 @@ def load_language_data() -> dict:
             lang_code = SETTINGS.get("general", {}).get("language") or lang_code
 
         lang_path = get_language_file_path(lang_code)
-        data = _load_json_safe(lang_path, {}) or {}
+        data = load_json_optional(lang_path, {}) or {}
 
         if _premerged_language_data and isinstance(_premerged_language_data, dict):
             data = deep_merge_json(data, _premerged_language_data, replace_lists=False)
@@ -285,7 +274,7 @@ def lang(key: str, **kwargs) -> str:
         
         if lang_code != DEFAULT_LANG_CODE:
             en_path = get_language_file_path(DEFAULT_LANG_CODE)
-            en_data = _load_json_safe(en_path, {}) or {}
+            en_data = load_json_optional(en_path, {}) or {}
             if en_data:
                 result = _get_localized_text(en_data, key, **kwargs)
                 if result is not None:
@@ -297,7 +286,7 @@ def lang(key: str, **kwargs) -> str:
 
 
 def _extract_language_name(file_path: Path, code: str) -> str:
-    data = _load_json_safe(str(file_path), {}) or {}
+    data = load_json_optional(str(file_path), {}) or {}
     if isinstance(data, dict):
         name = data.get("language_name")
         if isinstance(name, str):

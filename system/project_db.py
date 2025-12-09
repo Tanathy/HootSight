@@ -14,7 +14,6 @@ The database file is stored as 'project.db' in each project folder.
 import os
 import json
 import sqlite3
-import hashlib
 import threading
 from typing import Any, Dict, List, Optional, Iterable
 from pathlib import Path
@@ -22,6 +21,7 @@ from datetime import datetime
 
 from system.log import info, warning, error
 from system.coordinator_settings import SETTINGS
+from system.common.hash_utils import hash_file_sha256, hash_text_sha256
 
 
 _DB_FILENAME = "project.db"
@@ -136,13 +136,10 @@ def compute_image_hash(image_path: str) -> str:
     Compute hash from image file content (binary data).
     Used to uniquely identify images regardless of filename/path.
     """
-    from pathlib import Path
-    path = Path(image_path)
-    if not path.exists():
-        return hashlib.sha256(image_path.encode('utf-8')).hexdigest()[:16]
-    
-    with open(path, 'rb') as f:
-        return hashlib.sha256(f.read()).hexdigest()[:16]
+    digest = hash_file_sha256(image_path, missing_fallback=image_path, shorten=16)
+    if digest is None:
+        return hash_text_sha256(image_path, length=16)
+    return digest
 
 
 def compute_data_hash(annotation: str, crop: dict) -> str:
@@ -155,7 +152,7 @@ def compute_data_hash(annotation: str, crop: dict) -> str:
     center_y = crop.get('center_y', 0.5) if crop else 0.5
     
     data_str = f"{annotation}|{zoom}|{center_x}|{center_y}"
-    return hashlib.sha256(data_str.encode('utf-8')).hexdigest()[:16]
+    return hash_text_sha256(data_str, length=16)
 
 
 # =============================================================================

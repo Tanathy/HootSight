@@ -11,9 +11,7 @@
     border: none;
     border-radius: var(--radius-md);
     font-size: var(--font-normal);
-    font-weight: 500;
     font-family: var(--font-family);
-    cursor: pointer;
     transition: background 0.15s, opacity 0.15s;
     user-select: none;
 }
@@ -39,24 +37,6 @@
 
 .btn-secondary:hover:not(:disabled) {
     background: var(--btn-secondary-hover);
-}
-
-.btn-success {
-    background: var(--btn-success-bg);
-    color: var(--btn-success-text);
-}
-
-.btn-success:hover:not(:disabled) {
-    background: var(--btn-success-hover);
-}
-
-.btn-danger {
-    background: var(--btn-danger-bg);
-    color: var(--btn-danger-text);
-}
-
-.btn-danger:hover:not(:disabled) {
-    background: var(--btn-danger-hover);
 }
 
 .btn-sm {

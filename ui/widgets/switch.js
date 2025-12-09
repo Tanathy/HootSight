@@ -51,20 +51,9 @@ class Switch {
             this.element.style.display = 'none';
         }
         
-        // Switch row (label + switch)
+        // Switch row (switch first, then label)
         this.switchRow = Q('<div>', { class: 'switch-row' }).get(0);
-        
-        // Label
-        if (this.options.label) {
-            this.labelEl = Q('<label>', { class: 'widget-label switch-label', text: this.options.label }).get(0);
-            this.labelEl.setAttribute('for', this.id + '-input');
-            // Add lang key attribute for live translation
-            if (this.options.labelLangKey) {
-                this.labelEl.setAttribute('data-lang-key', this.options.labelLangKey);
-            }
-            Q(this.switchRow).append(this.labelEl);
-        }
-        
+
         // Switch container
         this.switchContainer = Q('<div>', { class: 'switch-container' }).get(0);
         
@@ -79,9 +68,20 @@ class Switch {
         this.thumb = Q('<div>', { class: 'switch-thumb' }).get(0);
         Q(this.track).append(this.thumb);
         
-        // Assemble switch
+        // Assemble switch (switch first)
         Q(this.switchContainer).append(this.checkbox).append(this.track);
         Q(this.switchRow).append(this.switchContainer);
+
+        // Label comes after switch for consistent order
+        if (this.options.label) {
+            this.labelEl = Q('<label>', { class: 'widget-label switch-label', text: this.options.label }).get(0);
+            this.labelEl.setAttribute('for', this.id + '-input');
+            // Add lang key attribute for live translation
+            if (this.options.labelLangKey) {
+                this.labelEl.setAttribute('data-lang-key', this.options.labelLangKey);
+            }
+            Q(this.switchRow).append(this.labelEl);
+        }
         Q(this.element).append(this.switchRow);
         
         // Description

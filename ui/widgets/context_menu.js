@@ -84,13 +84,14 @@ const ContextMenu = {
      * Handle context menu event
      * @param {MouseEvent} e
      */
-    _handleContextMenu: function(e) {
+    _handleContextMenu: async function(e) {
         // Find matching registration
         for (const reg of this._registrations) {
             const element = e.target.closest(reg.selector);
             if (element) {
                 e.preventDefault();
-                const items = reg.menuBuilder(element, e);
+                // Support both sync and async menuBuilders
+                const items = await Promise.resolve(reg.menuBuilder(element, e));
                 if (items && items.length > 0) {
                     this._activeElement = element;
                     this.show(e.clientX, e.clientY, items);

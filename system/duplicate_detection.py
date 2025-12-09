@@ -7,13 +7,13 @@ Uses SHA256 hash of file content for exact duplicate detection.
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 from typing import Dict, List, Set, Tuple, Optional, Callable
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from system.log import info, warning
+from system.common.hash_utils import hash_file_sha256
 
 
 CHUNK_SIZE = 65536  # 64KB chunks for efficient file reading
@@ -26,15 +26,11 @@ def compute_content_hash(file_path: Path) -> Optional[str]:
     """
     if not file_path.exists():
         return None
-    
+
     try:
-        sha256 = hashlib.sha256()
-        with open(file_path, 'rb') as f:
-            while chunk := f.read(CHUNK_SIZE):
-                sha256.update(chunk)
-        return sha256.hexdigest()
-    except (IOError, OSError) as e:
-        warning(f"Failed to hash file {file_path}: {e}")
+        return hash_file_sha256(file_path, chunk_size=CHUNK_SIZE, suppress_errors=False)
+    except (IOError, OSError) as exc:
+        warning(f"Failed to hash file {file_path}: {exc}")
         return None
 
 

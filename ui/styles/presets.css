@@ -142,7 +142,6 @@
     background: var(--accent-warning, #f0a020);
     color: var(--bg-primary);
     border-radius: 50%;
-    font-weight: bold;
     font-size: var(--font-normal);
     flex-shrink: 0;
 }
