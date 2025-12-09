@@ -20,6 +20,12 @@ At its core, HootSight is an offline-first computer vision training stack—buil
 - **Memory protection** – Batch sizes are tuned on the fly so you stop burning time on CUDA OOM crashes. Literally you can game next to training.
 - **Rich augmentation & monitoring** – Toggle augmentations visually, preview outputs, watch training progress batch by batch.
 - **Offline-first FastAPI + PyTorch stack** – No telemetry, no surprise network calls; the optional update check runs only when you trigger it and is scoped to this repository.
+- **Mode-aware training** – New / Resume / Fine-tune flows per project. Resume restores optimizer/scheduler state and continues epochs; Fine-tune reloads weights but resets optimizer/scheduler and restarts epochs.
+- **Curated presets** – One-click task templates under `config/presets/` for classification, multilabel, embeddings/retrieval, detection, mobile, medical, aesthetics, and small-data flows.
+- **Manual updater** – User-triggered, repo-scoped update checker; stays offline unless you ask, and only fetches this repo’s manifests.
+- **Mode-aware training controls** – Start runs as New, Resume, or Fine-tune per project. Resume restores optimizer/scheduler state and continues epochs; Fine-tune reuses weights but resets optimizer/scheduler and restarts epochs.
+- **Curated presets** – One-click task templates (classification, multilabel, embeddings, detection, mobile, medical, aesthetics, etc.) shipped under `config/presets/` to get sane configs fast.
+- **Manual updater** – A user-triggered update checker that stays offline unless you explicitly request it; checks only this repo’s release info.
 
 ## Requirements
 
@@ -51,20 +57,119 @@ What you get on first launch:
 
 Subsequent launches reuse the same environment and skip heavy installs.
 
+## Training workflow (modes)
+
+- **How to start**: Right-click a project card in the UI to open the context menu. Choose **New Training**, **Resume Training** (requires checkpoint), or **Fine-tune** (requires checkpoint). The header progress pill shows the active mode.
+- **New**: Fresh model init; optimizer and scheduler start clean; epochs follow your config.
+- **Resume**: Full state restore (model + optimizer + scheduler + metrics) from the latest checkpoint; training continues from the saved epoch.
+- **Fine-tune**: Loads model weights from the latest checkpoint, but resets optimizer/scheduler and restarts at epoch 1. Use this to adapt an existing model without carrying over its optimizer state.
+- **API**: `POST /training/start` accepts `mode` = `new` | `resume` | `finetune` (legacy `resume` flag still accepted). Behavior matches the UI modes.
+
+## Preset catalog
+
+Presets live in `config/presets/` and can be applied from the UI to bootstrap sensible configs:
+
+| Preset | Purpose |
+| --- | --- |
+| `alexnet_classic_baseline.json` | Simple baseline classification for quick smoke tests. |
+| `binary_multiclass_classification.json` | Standard single-label classification. |
+| `confidence_based_classification.json` | Classification with confidence-oriented tuning. |
+| `content_moderation_safety.json` | Safety/content filtering setups. |
+| `densenet_compact_accuracy.json` | DenseNet-focused compact accuracy runs. |
+| `document_classification.json` | Document/image classification defaults. |
+| `efficientnet_balanced_scaling.json` | Balanced EfficientNet scaling settings. |
+| `embedding_retrieval_balanced.json` | Embedding/retrieval with balanced trade-offs. |
+| `embedding_retrieval_high_fidelity.json` | Higher-fidelity embedding/retrieval configs. |
+| `fast_mobile_inference.json` | Mobile/edge-friendly fast inference. |
+| `feature_extraction_embedding.json` | Feature extraction / embedding generation. |
+| `finegrained_recognition.json` | Fine-grained class separation. |
+| `highres_detail_preservation.json` | High-resolution detail preservation. |
+| `image_quality_assessment.json` | Image quality assessment tasks. |
+| `medical_scientific_analysis.json` | Medical/scientific imaging defaults. |
+| `mobilenet_edge_deployment.json` | MobileNet configs for edge deployment. |
+| `multi_object_detection.json` | Multi-object detection tasks. |
+| `multi_object_multi_attribute.json` | Multi-object, multi-attribute detection. |
+| `multilabel_boolean.json` | Multi-label with boolean targets. |
+| `multilabel_probability.json` | Multi-label with probabilistic targets. |
+| `resnet_deep_learning.json` | ResNet-focused deeper runs. |
+| `resnext_aggregated_networks.json` | ResNeXt aggregated blocks defaults. |
+| `shufflenet_lightweight_speed.json` | ShuffleNet for speed/latency. |
+| `small_dataset_fewshot.json` | Small-data / few-shot friendly settings. |
+| `squeezenet_ultra_compact.json` | Ultra-compact SqueezeNet setups. |
+| `style_aesthetic_classification.json` | Style/aesthetics classification. |
+| `vgg_feature_rich.json` | VGG-style feature-rich baselines. |
+| `wide_resnet_balanced_depth.json` | Wide ResNet depth/width balance. |
+
+Each preset is editable post-apply; they’re starting points, not locks.
+
 ## Model catalog
 
 HootSight ships with curated backbones tuned for practical work. Choose them in the UI or via `config/config.json → models`.
 
 | Family | Variants | When to pick it |
 | --- | --- | --- |
-| **ResNet** | `resnet18`, `resnet34`, `resnet50`, `resnet101`, `resnet152` | Battle-tested generalists. Start with `resnet50` for balanced speed vs accuracy, scale up when you have data and GPU memory to spare. |
+| **ResNet** | `resnet18`, `resnet34`, `resnet50`, `resnet101`, `resnet152`, `wide_resnet50_2`, `wide_resnet101_2` | Battle-tested generalists. Start with `resnet50`; go wide (`wide_resnet*`) when you want richer features and have VRAM. |
 | **ResNeXt** | `resnext50_32x4d`, `resnext101_32x8d`, `resnext101_64x4d` | Wider residual blocks for richer representations. Great when you have heavy class overlap or need better recall, but expect higher VRAM appetite. |
 | **MobileNet** | `mobilenet_v2`, `mobilenet_v3_small`, `mobilenet_v3_large` | Mobile and edge scenarios. Excellent when you want quick inference, embedded deployment, or CPU-bound projects. |
 | **ShuffleNet** | `shufflenet_v2_x0_5`, `x1_0`, `x1_5`, `x2_0` | Ultra-lightweight experimentation and real-time feeds on modest GPUs. Pairs nicely with aggressive augmentation. |
 | **SqueezeNet** | `squeezenet1_0`, `squeezenet1_1` | Minimal footprint for proof-of-concept or legacy hardware. Expect lower accuracy ceiling but near-instant training cycles. |
 | **EfficientNet** | `efficientnet_b0`–`b7`, `efficientnet_v2_s`, `efficientnet_v2_m`, `efficientnet_v2_l` | Compound-scaled networks for squeezing performance out of limited datasets. Use when you want strong accuracy with disciplined scaling rules. |
+| **DenseNet** | `densenet121`, `densenet161`, `densenet169`, `densenet201` | Dense connectivity for stronger feature reuse; solid accuracy with moderate size. |
+| **VGG** | `vgg11`, `vgg11_bn`, `vgg13`, `vgg13_bn`, `vgg16`, `vgg16_bn`, `vgg19`, `vgg19_bn` | Classic feature-rich backbones; heavier, but good for transfer features and baselines. |
+| **AlexNet** | `alexnet` | Legacy/lightweight baseline for smoke tests and quick experiments. |
 
 On startup, the coordinator benchmarks VRAM/CPU pressure and computes a safe batch size, so even the bigger variants stay within hardware limits.
+
+> Tasks: All shipped backbones are wired for classification pipelines (single/multi-label). Detection/segmentation require custom wiring not bundled here.
+
+## Training workflow (modes)
+
+- **How to start**: Right-click a project card in the UI to open the context menu. Choose **New Training**, **Resume Training** (requires checkpoint), or **Fine-tune** (requires checkpoint). The header progress pill shows the active mode.
+- **New**: Fresh model init; optimizer and scheduler start clean; epochs follow your config.
+- **Resume**: Full state restore (model + optimizer + scheduler + metrics) from the latest checkpoint; training continues from the saved epoch.
+- **Fine-tune**: Loads model weights from the latest checkpoint, but resets optimizer/scheduler and restarts at epoch 1. Use this to adapt an existing model without carrying over its optimizer state.
+
+## Preset catalog
+
+Presets live in `config/presets/` and can be applied from the UI to bootstrap sane configs fast. Each is editable after apply.
+
+| Preset | Purpose |
+| --- | --- |
+| `alexnet_classic_baseline.json` | Simple baseline classification for smoke tests. |
+| `binary_multiclass_classification.json` | Standard single-label classification. |
+| `confidence_based_classification.json` | Classification with confidence-oriented tuning. |
+| `content_moderation_safety.json` | Safety/content filtering defaults. |
+| `densenet_compact_accuracy.json` | DenseNet-focused compact accuracy. |
+| `document_classification.json` | Document/image classification defaults. |
+| `efficientnet_balanced_scaling.json` | Balanced EfficientNet scaling. |
+| `embedding_retrieval_balanced.json` | Embedding/retrieval with balanced trade-offs. |
+| `embedding_retrieval_high_fidelity.json` | Higher-fidelity embedding/retrieval. |
+| `fast_mobile_inference.json` | Mobile/edge-friendly fast inference. |
+| `feature_extraction_embedding.json` | Feature extraction / embedding generation. |
+| `finegrained_recognition.json` | Fine-grained class separation. |
+| `highres_detail_preservation.json` | High-resolution detail preservation. |
+| `image_quality_assessment.json` | Image quality assessment. |
+| `medical_scientific_analysis.json` | Medical/scientific imaging defaults. |
+| `mobilenet_edge_deployment.json` | MobileNet for edge deployment. |
+| `multi_object_detection.json` | Multi-object detection tasks. |
+| `multi_object_multi_attribute.json` | Multi-object, multi-attribute detection. |
+| `multilabel_boolean.json` | Multi-label with boolean targets. |
+| `multilabel_probability.json` | Multi-label with probabilistic targets. |
+| `resnet_deep_learning.json` | ResNet-focused deeper runs. |
+| `resnext_aggregated_networks.json` | ResNeXt aggregated blocks defaults. |
+| `shufflenet_lightweight_speed.json` | ShuffleNet for speed/latency. |
+| `small_dataset_fewshot.json` | Small-data / few-shot friendly. |
+| `squeezenet_ultra_compact.json` | Ultra-compact SqueezeNet setups. |
+| `style_aesthetic_classification.json` | Style/aesthetics classification. |
+| `vgg_feature_rich.json` | VGG-style feature-rich baselines. |
+| `wide_resnet_balanced_depth.json` | Wide ResNet depth/width balance. |
+
+## Manual updater (offline by default)
+
+- User-triggered only; no background checks. Runs when you click “Check for updates”.
+- Fetches manifests from the configured repository URL (`config/system_config.json` on remote), compares against local `config/checksum.json`, and produces a plan.
+- Respects skip paths (e.g., `config/config.json`) to avoid overwriting local settings.
+- No data leaves your machine aside from the manifest requests; scoped strictly to this repo’s files.
 
 ## Privacy, data handling, and GDPR stance
 
