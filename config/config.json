@@ -155,16 +155,16 @@
                     "small_dataset": 500
                 },
                 "balance_score_thresholds": {
-                    "legendary": 0.98,
                     "excellent": 0.95,
-                    "very_good": 0.9,
-                    "good": 0.85,
-                    "balanced": 0.8,
-                    "slightly_unbalanced": 0.7,
-                    "fair": 0.6,
-                    "poor": 0.45,
-                    "very_poor": 0.35,
-                    "critical": 0.25
+                    "very_good": 0.85,
+                    "good": 0.75,
+                    "decent": 0.65,
+                    "fair": 0.55,
+                    "mediocre": 0.45,
+                    "poor": 0.35,
+                    "bad": 0.25,
+                    "terrible": 0.15,
+                    "nonsense": 0.0
                 }
             }
         }

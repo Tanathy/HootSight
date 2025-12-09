@@ -146,7 +146,7 @@ const ProjectsPage = {
     },
 
     /**
-     * Format stats for table display
+     * Format project stats for display in table widget
      * @param {Object} project - Full project object with stats
      * @returns {Object|null} - Formatted stats for TableWidget
      */
@@ -158,7 +158,14 @@ const ProjectsPage = {
         result[lang('projects_page.stats.balance_score')] = project.balance_score != null 
             ? (project.balance_score * 100).toFixed(1) + '%' 
             : '-';
-        result[lang('projects_page.stats.balance_status')] = project.balance_status ?? '-';
+        
+        // Localize balance status key (e.g. "poor" -> lang key "balance_status_poor")
+        let statusDisplay = '-';
+        if (project.balance_status) {
+            const statusKey = `projects_page.stats.balance_status_${project.balance_status}`;
+            statusDisplay = lang(statusKey) || project.balance_status;
+        }
+        result[lang('projects_page.stats.balance_status')] = statusDisplay;
         return result;
     },
 

@@ -7,17 +7,18 @@ from system.log import info, warning, error
 from system.coordinator_settings import SETTINGS
 
 
+# 10 balance status levels from worst to best
 DEFAULT_BALANCE_SCORE_THRESHOLDS: Dict[str, float] = {
-    "legendary": 0.98,
     "excellent": 0.95,
-    "very_good": 0.90,
-    "good": 0.85,
-    "balanced": 0.80,
-    "slightly_unbalanced": 0.70,
-    "fair": 0.60,
-    "poor": 0.45,
-    "very_poor": 0.35,
-    "critical": 0.25
+    "very_good": 0.85,
+    "good": 0.75,
+    "decent": 0.65,
+    "fair": 0.55,
+    "mediocre": 0.45,
+    "poor": 0.35,
+    "bad": 0.25,
+    "terrible": 0.15,
+    "nonsense": 0.0
 }
 
 
@@ -38,19 +39,16 @@ def get_configured_balance_thresholds() -> Dict[str, float]:
     return resolve_balance_score_thresholds(custom)
 
 
-def format_status_label(key: str) -> str:
-    return key.replace('_', ' ').title()
-
-
 def classify_balance_status(balance_score: float, thresholds: Optional[Dict[str, float]] = None) -> str:
+    """Returns raw status key (e.g. 'poor', 'good') for frontend localization."""
     effective_thresholds = thresholds or get_configured_balance_thresholds()
     if not effective_thresholds:
-        return "Critical"
+        return "nonsense"
     sorted_thresholds = sorted(effective_thresholds.items(), key=lambda item: item[1], reverse=True)
     for status_key, min_score in sorted_thresholds:
         if balance_score >= min_score:
-            return format_status_label(status_key)
-    return format_status_label(sorted_thresholds[-1][0])
+            return status_key
+    return sorted_thresholds[-1][0]
 
 
 class DatasetType:
