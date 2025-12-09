@@ -455,14 +455,16 @@ const API = {
          * @param {string} modelName - Model name (e.g., 'resnet50')
          * @param {number} [epochs] - Optional epoch count override
          * @param {boolean} [resume] - Resume from last checkpoint if available
+         * @param {string} [mode] - Training mode: 'new', 'resume', or 'finetune'
          * @returns {Promise<Object>} - Training start result with training_id
          */
-        start: async function(projectName, modelType, modelName, epochs = null, resume = false) {
+        start: async function(projectName, modelType, modelName, epochs = null, resume = false, mode = 'new') {
             const body = {
                 project_name: projectName,
                 model_type: modelType,
                 model_name: modelName,
-                resume: resume
+                resume: resume,
+                mode: mode
             };
             if (epochs) body.epochs = epochs;
             

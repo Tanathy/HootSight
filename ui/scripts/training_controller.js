@@ -256,12 +256,15 @@ const TrainingController = {
                 modelName = modelName || trainingConfig.model_name || 'resnet50';
             }
 
-            const result = await API.training.start(projectName, modelType, modelName, epochs, resume);
+            // Determine effective mode
+            const effectiveMode = mode || (resume ? 'resume' : 'new');
+
+            const result = await API.training.start(projectName, modelType, modelName, epochs, resume, effectiveMode);
 
             if (result.started) {
                 this._activeTrainingId = result.training_id;
                 this._trainingProject = projectName;
-                this._trainingMode = mode || (resume ? 'resume' : 'new');
+                this._trainingMode = result.mode || effectiveMode;
                 
                 // Clear any previous history and reset ETA
                 TrainingMonitor.clearHistory();
