@@ -6,7 +6,8 @@ import random
 import base64
 import time
 import copy
-from typing import Optional, Tuple, Any, cast, Dict
+import math
+from typing import Optional, Tuple, Any, cast, Dict, List
 
 import torch
 import torch.nn as nn
@@ -203,6 +204,15 @@ def _create_model_from_checkpoint(checkpoint_path: str, map_location: Optional[s
     elif model_type == 'efficientnet':
         from system.models.efficientnet import create_efficientnet_model
         wrapper = create_efficientnet_model(model_name=model_name, num_classes=num_classes, pretrained=False, task='classification')
+    elif model_type == 'convnext':
+        from system.models.convnext import create_convnext_model
+        wrapper = create_convnext_model(model_name=model_name, num_classes=num_classes, pretrained=False, task='classification')
+    elif model_type == 'vit':
+        from system.models.vit import create_vit_model
+        wrapper = create_vit_model(model_name=model_name, num_classes=num_classes, pretrained=False, task='classification')
+    elif model_type == 'swin':
+        from system.models.swin import create_swin_model
+        wrapper = create_swin_model(model_name=model_name, num_classes=num_classes, pretrained=False, task='classification')
     else:
         warning(f"Unknown model type for {model_name}, falling back to ResNet")
         from system.models.resnet import create_resnet_model
@@ -233,6 +243,12 @@ def _infer_model_type(model_name: str) -> str:
         return 'squeezenet'
     elif model_name_lower.startswith('efficientnet'):
         return 'efficientnet'
+    elif model_name_lower.startswith('convnext'):
+        return 'convnext'
+    elif model_name_lower.startswith('vit'):
+        return 'vit'
+    elif model_name_lower.startswith('swin'):
+        return 'swin'
     else:
         return 'resnet'  # default
 
@@ -535,29 +551,43 @@ def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
         # use_cache=False when live model is requested (forces fresh load)
         wrapper, ckpt_path, ckpt_data = _load_model_from_checkpoint(project_name, use_cache=not use_live_model)
 
+    # Standard prediction on the full (resized) image
     with torch.no_grad():
         pred_class, logits = predict(wrapper.model, x.clone(), task=task)
 
-    # Prefer labels from checkpoint (embedded during training), fallback to persisted manifest then discovery
-    # Labels can be dict {idx: name} or list [name, name, ...]
-    raw_labels = ckpt_data.get('labels') or {}
-    if isinstance(raw_labels, dict) and raw_labels:
-        # Dict format: {0: "cat", 1: "dog"} - convert keys to int
-        labels = {int(k): v for k, v in raw_labels.items()}
-    elif isinstance(raw_labels, list) and raw_labels:
-        # Legacy list format: convert to dict
-        labels = {idx: name for idx, name in enumerate(raw_labels)}
+    # Generate heatmap for the predicted class
+    x_grad = x.clone().requires_grad_(True)
+    heat = compute_gradcam(wrapper.model, x_grad, target_class=pred_class, target_layer=None, multi_label=multi_label)
+    overlay = overlay_heatmap_on_image(heat, pil_img, preprocess_meta, alpha=0.5)
+
+    # Label loading priority:
+    # 1. Persisted project labels (labels.json) - User preferred
+    # 2. Checkpoint labels (embedded)
+    # 3. Discovery (folder names)
+    
+    labels = {}
+    project_labels_map = load_project_labels(project_name)
+    
+    if project_labels_map:
+        labels = project_labels_map
     else:
-        # Fallback to project labels
-        fallback = load_project_labels(project_name) or proj.labels or []
-        labels = {idx: name for idx, name in enumerate(fallback)}
+        raw_labels = ckpt_data.get('labels') or {}
+        if isinstance(raw_labels, dict) and raw_labels:
+            # Dict format: {0: "cat", 1: "dog"} - convert keys to int
+            labels = {int(k): v for k, v in raw_labels.items()}
+        elif isinstance(raw_labels, list) and raw_labels:
+            # Legacy list format: convert to dict
+            labels = {idx: name for idx, name in enumerate(raw_labels)}
+        else:
+            # Fallback to project labels from discovery
+            fallback = proj.labels or []
+            labels = {idx: name for idx, name in enumerate(fallback)}
 
     num_labels = len(labels)
 
     if task == 'multi_label':
         probabilities = torch.sigmoid(logits)
-        # Show top 5 predictions regardless of threshold (more useful for debugging)
-        top_k = min(5, num_labels) if num_labels else 0
+        top_k = min(10, num_labels) if num_labels else 0
         if top_k > 0:
             top_values, top_indices = torch.topk(probabilities[0], top_k)
             class_names = [labels.get(idx, f"class_{idx}") for idx in top_indices.tolist()]
@@ -567,8 +597,7 @@ def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
             confidence_values = []
     else:
         probabilities = F.softmax(logits, dim=1)[0]
-        # Show top 5 predictions regardless of threshold
-        top_k = min(5, num_labels) if num_labels else 0
+        top_k = min(10, num_labels) if num_labels else 0
         if top_k > 0:
             top_values, top_indices = torch.topk(probabilities, top_k)
             class_names = [labels.get(idx, f"class_{idx}") for idx in top_indices.tolist()]
@@ -577,10 +606,6 @@ def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
             class_names = []
             confidence_values = []
 
-    x_grad = x.clone().requires_grad_(True)
-    heat = compute_gradcam(wrapper.model, x_grad, target_class=pred_class, target_layer=None, multi_label=multi_label)
-
-    overlay = overlay_heatmap_on_image(heat, pil_img, preprocess_meta, alpha=0.5)
     buf = io.BytesIO()
     overlay.save(buf, format='PNG')
     png_data = buf.getvalue()
@@ -611,3 +636,4 @@ def evaluate_with_heatmap(project_name: str, image_path: Optional[str] = None,
 
     info(f"Generated heatmap for {project_name} using image {os.path.basename(image_path)} (class {pred_class})")
     return result
+

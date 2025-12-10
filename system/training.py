@@ -9,6 +9,7 @@ from system.coordinator import create_coordinator
 from system.coordinator_settings import SETTINGS
 from system.common.checkpoint import find_checkpoint
 from system import project_db
+from system.ema import ModelEMA
 
 
 class TrainingManager:
@@ -262,6 +263,18 @@ class TrainingManager:
             scheduler = training_config['scheduler']
             criterion = training_config['criterion']
 
+            # Initialize EMA if configured
+            ema_model = None
+            try:
+                training_cfg = SETTINGS.get('training', {})
+                ema_cfg = training_cfg.get('ema', {})
+                if ema_cfg.get('enabled'):
+                    decay = ema_cfg.get('decay', 0.9999)
+                    ema_model = ModelEMA(model.model, decay=decay)
+                    info(f"EMA enabled with decay: {decay}")
+            except Exception as e:
+                warning(f"Failed to initialize EMA: {e}")
+
             num_epochs = config['epochs']
             best_accuracy = 0.0
             best_val_loss = float('inf')
@@ -314,6 +327,11 @@ class TrainingManager:
                             if scheduler and 'scheduler_state_dict' in checkpoint_data:
                                 scheduler.load_state_dict(checkpoint_data['scheduler_state_dict'])
                                 info(f"Restored scheduler state from checkpoint")
+                            
+                            # Restore EMA state
+                            if ema_model and 'ema_state_dict' in checkpoint_data:
+                                ema_model.load_state_dict(checkpoint_data['ema_state_dict'])
+                                info("Restored EMA state from checkpoint")
                             
                             # Restore best metrics
                             if 'metrics' in checkpoint_data:
@@ -380,7 +398,8 @@ class TrainingManager:
                     scheduler,
                     progress=_progress,
                     epoch_index=epoch,
-                    should_stop=should_stop
+                    should_stop=should_stop,
+                    ema_model=ema_model
                 )
 
                 train_info_parts: List[str] = []
@@ -526,7 +545,8 @@ class TrainingManager:
                         optimizer,
                         scheduler,
                         epoch_metrics,
-                        labels=labels_dict
+                        labels=labels_dict,
+                        ema_model=ema_model
                     )
                     info(f"Checkpoint saved: {checkpoint_filename} ({reason})")
 

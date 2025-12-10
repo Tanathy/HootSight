@@ -30,5 +30,8 @@
         "pytorch-lightning",
         "pywebview",
         "requests"
+    ],
+    "folder_structure": [
+        "projects/"
     ]
 }

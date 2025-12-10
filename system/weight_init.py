@@ -127,7 +127,6 @@ class WeightInitFactory:
                 layer_type = type(module).__name__
                 initialized_counts[layer_type] = initialized_counts.get(layer_type, 0) + 1
         
-        # Log summary once
         if initialized_counts:
             summary = ', '.join(f"{count} {ltype}" for ltype, count in initialized_counts.items())
             info(f"Weight initialization '{init_name}' applied to {summary}")

@@ -65,14 +65,12 @@ def _get_cpu_name() -> str:
         cpu_name = _get_cpu_name_windows()
     elif system == "Linux":
         cpu_name = _get_cpu_name_linux()
-    elif system == "Darwin":  # macOS
+    elif system == "Darwin":
         cpu_name = _get_cpu_name_macos()
     
-    # Fallback to platform.processor()
     if not cpu_name:
         cpu_name = platform.processor()
     
-    # Filter out generic identifiers
     if cpu_name in ("", "Intel64", "AMD64", "x86_64", "aarch64"):
         cpu_name = ""
     
@@ -84,7 +82,6 @@ def _get_nvidia_smi_data() -> Dict[int, Dict[str, Any]]:
     nvidia_data: Dict[int, Dict[str, Any]] = {}
     
     try:
-        # Query comprehensive GPU data
         output = subprocess.check_output([
             'nvidia-smi',
             '--query-gpu=index,name,utilization.gpu,memory.total,memory.used,memory.free,temperature.gpu,power.draw,power.limit,fan.speed,pcie.link.gen.current,pcie.link.width.current,clocks.current.graphics,clocks.current.memory,driver_version',
@@ -129,7 +126,7 @@ def _get_nvidia_smi_data() -> Dict[int, Dict[str, Any]]:
                     "driver_version": parts[14] if parts[14] not in ('[N/A]', '') else None
                 }
     except FileNotFoundError:
-        pass  # nvidia-smi not available
+        pass
     except subprocess.TimeoutExpired:
         pass
     except Exception:
@@ -142,18 +139,15 @@ def get_cpu_stats() -> Dict[str, Any]:
     """Get CPU statistics."""
     cpu_freq = psutil.cpu_freq()
     
-    # CPU temperature (Linux/Mac only typically)
     cpu_temp = None
     try:
         if hasattr(psutil, 'sensors_temperatures'):
             temps = psutil.sensors_temperatures()
             if temps:
-                # Try common sensor names
                 for name in ['coretemp', 'k10temp', 'cpu_thermal', 'cpu-thermal']:
                     if name in temps and temps[name]:
                         cpu_temp = temps[name][0].current
                         break
-                # Fallback to first available
                 if cpu_temp is None:
                     for entries in temps.values():
                         if entries:
@@ -162,7 +156,6 @@ def get_cpu_stats() -> Dict[str, Any]:
     except Exception:
         pass
     
-    # Get per-core usage
     per_core = psutil.cpu_percent(interval=None, percpu=True)
     
     return {
@@ -209,7 +202,6 @@ def get_gpu_stats() -> List[Dict[str, Any]]:
             props = torch.cuda.get_device_properties(i)
             nv = nvidia_data.get(i, {})
             
-            # Get memory from nvidia-smi if available, otherwise use PyTorch
             mem_total_mb = nv.get("memory_total_mb") or (props.total_memory / (1024 * 1024))
             mem_used_mb = nv.get("memory_used_mb") or (torch.cuda.memory_allocated(i) / (1024 * 1024))
             mem_free_mb = nv.get("memory_free_mb") or (mem_total_mb - mem_used_mb)
@@ -232,7 +224,6 @@ def get_gpu_stats() -> List[Dict[str, Any]]:
                 "pcie_gen": nv.get("pcie_gen"),
                 "pcie_width": nv.get("pcie_width"),
                 "driver_version": nv.get("driver_version"),
-                # PyTorch device properties
                 "compute_capability": f"{props.major}.{props.minor}",
                 "multi_processor_count": props.multi_processor_count,
             }
@@ -263,10 +254,8 @@ def get_system_stats() -> Dict[str, Any]:
     gpus = get_gpu_stats()
     
     return {
-        # Platform info
         "platform": get_platform_info(),
         
-        # Flat CPU fields for backward compatibility
         "cpu": cpu["usage"],
         "cpu_name": cpu["name"],
         "cpu_speed_mhz": cpu["frequency_mhz"],
@@ -274,16 +263,13 @@ def get_system_stats() -> Dict[str, Any]:
         "cpu_cores": cpu["core_count"],
         "cpu_threads": cpu["thread_count"],
         
-        # Flat memory fields for backward compatibility
         "memory": memory["usage"],
         "memory_total_mb": memory["total_mb"],
         "memory_available_mb": memory["available_mb"],
         "memory_used_mb": memory["used_mb"],
         
-        # GPU list with enhanced info
         "gpus": gpus,
         
-        # Full detailed objects
         "cpu_details": cpu,
         "memory_details": memory
     }

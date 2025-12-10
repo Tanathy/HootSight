@@ -528,7 +528,7 @@ const HeatmapPage = {
         // Update image info
         const imageInfo = this._elements.imageInfo;
         if (result.image_path) {
-            this._currentImagePath = result.image_path;
+            // this._currentImagePath is already set in _evaluateImage/_loadRandomImage
             
             const filenameSpan = Q('<span>', { 
                 class: 'image-filename',

@@ -286,6 +286,7 @@ class TrainingCoordinator:
             'learning_rate': training['learning_rate'],
             'weight_decay': training['weight_decay'],
             'task': training['task'],
+            'shuffle_every_epoch': training.get('shuffle_every_epoch', True),
             'model_type': self.model_type,
             'pretrained': (bool(training['pretrained']) if 'pretrained' in training else bool(training['model']['pretrained'])),
             'projects_base_dir': (self.settings['paths']['projects_dir'] if 'paths' in self.settings and 'projects_dir' in self.settings['paths'] else (self.settings['paths']['models_dir'] if 'paths' in self.settings and 'models_dir' in self.settings['paths'] else None)),
@@ -570,6 +571,15 @@ class TrainingCoordinator:
         elif model_type == 'efficientnet':
             from system.models.efficientnet import create_efficientnet_model
             model = create_efficientnet_model(model_name, num_classes, pretrained, task)
+        elif model_type == 'convnext':
+            from system.models.convnext import create_convnext_model
+            model = create_convnext_model(model_name, num_classes, pretrained, task)
+        elif model_type == 'vit':
+            from system.models.vit import create_vit_model
+            model = create_vit_model(model_name, num_classes, pretrained, task)
+        elif model_type == 'swin':
+            from system.models.swin import create_swin_model
+            model = create_swin_model(model_name, num_classes, pretrained, task)
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
 
@@ -816,7 +826,7 @@ class TrainingCoordinator:
         train_loader = DataLoader(
             train_dataset,
             batch_size=self.config['batch_size'],
-            shuffle=True,
+            shuffle=self.config['shuffle_every_epoch'],
             num_workers=nw,
             pin_memory=self.config['dataloader']['pin_memory'],
             prefetch_factor=prefetch_factor if prefetch_factor else None,

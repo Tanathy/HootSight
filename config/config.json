@@ -125,6 +125,10 @@
             "channels_last": true,
             "allow_tf32": true,
             "cudnn_benchmark": true
+        },
+        "ema": {
+            "enabled": false,
+            "decay": 0.9999
         }
     },
     "dataset": {

@@ -170,6 +170,23 @@ class ResNetModel:
 
     def get_criterion(self) -> Optional[nn.Module]:
         """Get loss criterion based on task."""
+        # Try to get from config first
+        try:
+            training_config = SETTINGS['training']
+            loss_type = training_config.get('loss_type')
+            if loss_type:
+                from system.losses import LossFactory
+                loss_params = training_config.get('loss_params', {})
+                reduction = training_config.get('loss_reduction')
+                if reduction:
+                    loss_params['reduction'] = reduction
+                
+                return LossFactory.create_loss(loss_type, loss_params)
+        except Exception as e:
+            # Log warning but fall back to defaults
+            # warning(f"Failed to load configured loss: {e}, falling back to task default")
+            pass
+
         if self.task == 'classification':
             return nn.CrossEntropyLoss()
         elif self.task == 'multi_label':
@@ -185,7 +202,8 @@ class ResNetModel:
     def train_epoch(self, train_loader: DataLoader, optimizer: optim.Optimizer,
                    criterion: Optional[nn.Module], scheduler: Optional[optim.lr_scheduler._LRScheduler] = None,
                    progress: Optional[Callable[[str, int, int, int, Dict[str, Any]], None]] = None,
-                   epoch_index: Optional[int] = None, should_stop: Optional[Callable[[], bool]] = None) -> Dict[str, float]:
+                   epoch_index: Optional[int] = None, should_stop: Optional[Callable[[], bool]] = None,
+                   ema_model: Optional[Any] = None) -> Dict[str, float]:
         """Train model for one epoch.
 
         Args:
@@ -193,6 +211,10 @@ class ResNetModel:
             optimizer: Optimizer
             criterion: Loss function (None for detection)
             scheduler: Learning rate scheduler (optional)
+            progress: Optional progress callback
+            epoch_index: Current epoch index
+            should_stop: Optional stop check callback
+            ema_model: Optional EMA model to update
 
         Returns:
             dict: Training metrics
@@ -227,6 +249,9 @@ class ResNetModel:
                     self._scaler.scale(loss).backward()
                     self._scaler.step(optimizer)
                     self._scaler.update()
+                    
+                    if ema_model:
+                        ema_model.update(self.model)
                 else:
                     outputs = self.model(inputs)
                     if criterion is not None:
@@ -235,6 +260,9 @@ class ResNetModel:
                         raise ValueError("Criterion required for classification")
                     loss.backward()
                     optimizer.step()
+                    
+                    if ema_model:
+                        ema_model.update(self.model)
 
                 loss_value = float(loss.item())
                 total_loss += loss_value
@@ -267,6 +295,9 @@ class ResNetModel:
                 losses = torch.tensor(losses) if not isinstance(losses, torch.Tensor) else losses
                 losses.backward()
                 optimizer.step()
+                
+                if ema_model:
+                    ema_model.update(self.model)
 
                 loss_value = float(losses.detach().item() if isinstance(losses, torch.Tensor) else float(losses))
                 total_loss += loss_value
@@ -558,7 +589,8 @@ class ResNetModel:
     def save_checkpoint(self, path: str, epoch: int, optimizer: optim.Optimizer,
                        scheduler: Optional[optim.lr_scheduler._LRScheduler] = None,
                        metrics: Optional[Dict[str, float]] = None,
-                       labels: Optional[Dict[int, str]] = None) -> None:
+                       labels: Optional[Dict[int, str]] = None,
+                       ema_model: Optional[Any] = None) -> None:
         """Save model checkpoint.
 
         Args:
@@ -568,6 +600,7 @@ class ResNetModel:
             scheduler: Scheduler state (optional)
             metrics: Training metrics (optional)
             labels: Class labels as dict {index: name} for deterministic mapping
+            ema_model: Optional EMA model to save state
         """
         checkpoint = {
             'epoch': epoch,
@@ -577,6 +610,9 @@ class ResNetModel:
             'num_classes': self.num_classes,
             'labels': labels or {}
         }
+
+        if ema_model:
+            checkpoint['ema_state_dict'] = ema_model.state_dict()
 
         if scheduler:
             checkpoint['scheduler_state_dict'] = scheduler.state_dict()

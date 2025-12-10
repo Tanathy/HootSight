@@ -16,6 +16,7 @@ from system.coordinator_settings import SETTINGS
 from system.device import autocast_context, create_grad_scaler, get_device, get_device_type
 from system.log import info
 from system.common.training_metrics import build_epoch_result, build_step_metrics
+from system.losses import LossFactory
 
 
 class DenseNetModel:
@@ -95,10 +96,19 @@ class DenseNetModel:
             gamma = params.get('gamma', gamma)
         return optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
 
-    def get_criterion(self) -> nn.Module:
-        if self.task == 'multi_label':
-            return nn.BCEWithLogitsLoss()
-        return nn.CrossEntropyLoss()
+    def get_criterion(self) -> Optional[nn.Module]:
+        """Get criterion based on config or task for DenseNet."""
+        try:
+            training_config = SETTINGS['training']
+            loss_type = training_config.get('loss_type', 'cross_entropy')
+            
+            # Use the factory to create the loss function
+            return LossFactory.create(loss_type, device=self.device)
+        except Exception as e:
+            # Fallback to default behavior if config fails
+            if self.task == 'multi_label':
+                return nn.BCEWithLogitsLoss()
+            return nn.CrossEntropyLoss()
 
     def train_epoch(self, train_loader: DataLoader, optimizer: optim.Optimizer,
                    criterion: nn.Module, scheduler: Optional[optim.lr_scheduler._LRScheduler] = None,

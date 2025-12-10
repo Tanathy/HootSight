@@ -57,10 +57,8 @@ def persist_project_labels(project_name: str, labels: Dict[int, str], task: str,
 
     manifest_path = _manifest_path(project_name, base_dir)
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
-
-    # Convert int keys to string for JSON compatibility
+    
     labels_json = {str(k): v for k, v in labels.items()}
-
     payload: Dict[str, Any] = {
         "project": project_name,
         "task": task,
@@ -102,12 +100,9 @@ def load_project_labels(project_name: str, base_override: Optional[str] = None) 
 
     labels = data.get('labels') or {}
     
-    # Handle both dict and legacy list format
     if isinstance(labels, dict):
-        # Convert string keys back to int
         return {int(k): str(v) for k, v in labels.items()}
     elif isinstance(labels, list):
-        # Legacy list format - convert to dict
         return {idx: str(name) for idx, name in enumerate(labels)}
     else:
         warning(f"Invalid label manifest format for {project_name}, ignoring")

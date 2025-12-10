@@ -101,6 +101,17 @@ class LossFactory:
         return cls.create_loss(loss_name, custom_params)
 
     @classmethod
+    def create(cls, loss_name: str, device: Optional[Any] = None, **kwargs) -> nn.Module:
+        """Factory method to create a loss function.
+        
+        Args:
+            loss_name: Name of the loss function
+            device: Optional device (ignored as losses are moved to device by caller)
+            **kwargs: Additional parameters for the loss function
+        """
+        return cls.create_loss(loss_name, custom_params=kwargs)
+
+    @classmethod
     def _get_loss_description(cls, loss_name: str) -> str:
         desc_key = f"losses.{loss_name}_desc"
         return ""

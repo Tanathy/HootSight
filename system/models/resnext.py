@@ -17,6 +17,7 @@ from system.log import info, success, warning, error
 from system.coordinator_settings import SETTINGS
 from system.device import get_device, get_device_type, create_grad_scaler, autocast_context
 from system.common.training_metrics import build_step_metrics, build_epoch_result
+from system.losses import LossFactory
 
 
 class ResNeXtModel:
@@ -114,11 +115,19 @@ class ResNeXtModel:
         
         return optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
 
-    def get_criterion(self) -> nn.Module:
-        """Get criterion based on task for ResNeXt."""
-        if self.task == 'multi_label':
-            return nn.BCEWithLogitsLoss()
-        return nn.CrossEntropyLoss()
+    def get_criterion(self) -> Optional[nn.Module]:
+        """Get criterion based on config or task for ResNeXt."""
+        try:
+            training_config = SETTINGS['training']
+            loss_type = training_config.get('loss_type', 'cross_entropy')
+            
+            # Use the factory to create the loss function
+            return LossFactory.create(loss_type, device=self.device)
+        except Exception as e:
+            # Fallback to default behavior if config fails
+            if self.task == 'multi_label':
+                return nn.BCEWithLogitsLoss()
+            return nn.CrossEntropyLoss()
 
     def train_epoch(self, train_loader: DataLoader, optimizer: optim.Optimizer,
                    criterion: nn.Module, scheduler: Optional[optim.lr_scheduler._LRScheduler] = None,

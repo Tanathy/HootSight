@@ -1,6 +1,6 @@
-"""EfficientNet module for Hootsight.
+"""Vision Transformer (ViT) module for Hootsight.
 
-Provides comprehensive EfficientNet model support including training, evaluation,
+Provides comprehensive ViT model support including training, evaluation,
 and model-specific utilities for image classification tasks.
 """
 
@@ -17,20 +17,19 @@ from system.log import info, success, warning, error
 from system.coordinator_settings import SETTINGS
 from system.device import get_device, get_device_type, create_grad_scaler, autocast_context
 from system.common.training_metrics import build_step_metrics, build_epoch_result
-from system.losses import LossFactory
 
 
-class EfficientNetModel:
-    """EfficientNet model wrapper with training and evaluation capabilities."""
+class ViTModel:
+    """Vision Transformer model wrapper with training and evaluation capabilities."""
 
-    def __init__(self, model_name: str = 'efficientnet_b0', num_classes: int = 10, pretrained: bool = True, task: str = 'classification'):
-        """Initialize EfficientNet model.
+    def __init__(self, model_name: str = 'vit_b_16', num_classes: int = 10, pretrained: bool = True, task: str = 'classification'):
+        """Initialize ViT model.
 
         Args:
-            model_name: Name of EfficientNet variant
+            model_name: Name of ViT variant ('vit_b_16', 'vit_b_32', 'vit_l_16', 'vit_l_32')
             num_classes: Number of output classes
             pretrained: Whether to use pretrained weights
-            task: Task type ('classification', 'detection', 'segmentation')
+            task: Task type ('classification', 'multi_label')
         """
         self.model_name = model_name
         self.num_classes = num_classes
@@ -55,61 +54,50 @@ class EfficientNetModel:
         info(f"Initialized {model_name} model for {task} with {num_classes} classes on {self.device}")
 
     def _create_model(self) -> nn.Module:
-        """Create EfficientNet model based on model_name and task."""
+        """Create ViT model based on model_name and task."""
         if self.task in ('classification', 'multi_label'):
-            # Map model names to their weight classes for the new torchvision API
             weights_map = {
-                # EfficientNet V1
-                'efficientnet_b0': models.EfficientNet_B0_Weights.DEFAULT,
-                'efficientnet_b1': models.EfficientNet_B1_Weights.DEFAULT,
-                'efficientnet_b2': models.EfficientNet_B2_Weights.DEFAULT,
-                'efficientnet_b3': models.EfficientNet_B3_Weights.DEFAULT,
-                'efficientnet_b4': models.EfficientNet_B4_Weights.DEFAULT,
-                'efficientnet_b5': models.EfficientNet_B5_Weights.DEFAULT,
-                'efficientnet_b6': models.EfficientNet_B6_Weights.DEFAULT,
-                'efficientnet_b7': models.EfficientNet_B7_Weights.DEFAULT,
-                # EfficientNet V2
-                'efficientnet_v2_s': models.EfficientNet_V2_S_Weights.DEFAULT,
-                'efficientnet_v2_m': models.EfficientNet_V2_M_Weights.DEFAULT,
-                'efficientnet_v2_l': models.EfficientNet_V2_L_Weights.DEFAULT
+                'vit_b_16': models.ViT_B_16_Weights.DEFAULT,
+                'vit_b_32': models.ViT_B_32_Weights.DEFAULT,
+                'vit_l_16': models.ViT_L_16_Weights.DEFAULT,
+                'vit_l_32': models.ViT_L_32_Weights.DEFAULT,
+                'vit_h_14': models.ViT_H_14_Weights.DEFAULT
             }
             
             model_map = {
-                # EfficientNet V1
-                'efficientnet_b0': models.efficientnet_b0,
-                'efficientnet_b1': models.efficientnet_b1,
-                'efficientnet_b2': models.efficientnet_b2,
-                'efficientnet_b3': models.efficientnet_b3,
-                'efficientnet_b4': models.efficientnet_b4,
-                'efficientnet_b5': models.efficientnet_b5,
-                'efficientnet_b6': models.efficientnet_b6,
-                'efficientnet_b7': models.efficientnet_b7,
-                # EfficientNet V2
-                'efficientnet_v2_s': models.efficientnet_v2_s,
-                'efficientnet_v2_m': models.efficientnet_v2_m,
-                'efficientnet_v2_l': models.efficientnet_v2_l
+                'vit_b_16': models.vit_b_16,
+                'vit_b_32': models.vit_b_32,
+                'vit_l_16': models.vit_l_16,
+                'vit_l_32': models.vit_l_32,
+                'vit_h_14': models.vit_h_14
             }
 
             if self.model_name not in model_map:
-                raise ValueError(f"Unsupported EfficientNet variant: {self.model_name}")
+                raise ValueError(f"Unsupported ViT variant: {self.model_name}")
 
             weights = weights_map.get(self.model_name) if self.pretrained else None
             model = model_map[self.model_name](weights=weights)
 
             # Modify final classifier for custom number of classes
-            # EfficientNet uses Linear layer as final classifier
-            classifier_layer = model.classifier[1]
-            if isinstance(classifier_layer, nn.Linear):
-                num_features = classifier_layer.in_features
-                model.classifier[1] = nn.Linear(num_features, self.num_classes)
+            # ViT uses 'heads' Sequential block containing 'head' Linear layer
+            # (heads): Sequential(
+            #   (head): Linear(in_features=768, out_features=1000, bias=True)
+            # )
+            if hasattr(model, 'heads') and hasattr(model.heads, 'head') and isinstance(model.heads.head, nn.Linear):
+                in_features = model.heads.head.in_features
+                model.heads.head = nn.Linear(in_features, self.num_classes)
+            else:
+                 # Fallback or error
+                 raise ValueError(f"Could not find classifier head in {self.model_name}")
 
         else:
-            raise ValueError(f"EfficientNet currently only supports classification task, got: {self.task}")
+            raise ValueError(f"Unsupported task: {self.task}. ViT currently supports 'classification' and 'multi_label'.")
 
         return model
 
     def get_optimizer(self, lr: float = 0.001, weight_decay: float = 1e-4) -> optim.Optimizer:
-        """Get AdamW optimizer configured for EfficientNet."""
+        """Get AdamW optimizer configured for ViT."""
+        # Try to get from config first
         try:
             training_config = SETTINGS['training']
         except Exception:
@@ -119,11 +107,12 @@ class EfficientNetModel:
             params = optimizer_config.get('params', {})
             lr = params.get('lr', lr)
             weight_decay = params.get('weight_decay', weight_decay)
-
+        
         return optim.AdamW(self.model.parameters(), lr=lr, weight_decay=weight_decay)
 
     def get_scheduler(self, optimizer: optim.Optimizer, step_size: int = 7, gamma: float = 0.1) -> optim.lr_scheduler.StepLR:
-        """Get StepLR scheduler configured for EfficientNet."""
+        """Get StepLR scheduler configured for ViT."""
+        # Try to get from config first
         try:
             training_config = SETTINGS['training']
         except Exception:
@@ -133,25 +122,35 @@ class EfficientNetModel:
             params = scheduler_config.get('params', {})
             step_size = params.get('step_size', step_size)
             gamma = params.get('gamma', gamma)
-
+        
         return optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
 
     def get_criterion(self) -> Optional[nn.Module]:
-        """Get criterion based on config or task for EfficientNet."""
+        """Get loss criterion based on task."""
+        # Try to get from config first
         try:
             training_config = SETTINGS['training']
-            loss_type = training_config.get('loss_type', 'cross_entropy')
-            
-            # Use the factory to create the loss function
-            return LossFactory.create(loss_type, device=self.device)
-        except Exception as e:
-            # Fallback to default behavior if config fails
-            if self.task == 'multi_label':
-                return nn.BCEWithLogitsLoss()
+            loss_type = training_config.get('loss_type')
+            if loss_type:
+                from system.losses import LossFactory
+                loss_params = training_config.get('loss_params', {})
+                reduction = training_config.get('loss_reduction')
+                if reduction:
+                    loss_params['reduction'] = reduction
+                
+                return LossFactory.create_loss(loss_type, loss_params)
+        except Exception:
+            pass
+
+        if self.task == 'classification':
             return nn.CrossEntropyLoss()
+        elif self.task == 'multi_label':
+            return nn.BCEWithLogitsLoss()
+        else:
+            raise ValueError(f"Unsupported task for criterion: {self.task}")
 
     def train_epoch(self, train_loader: DataLoader, optimizer: optim.Optimizer,
-                   criterion: nn.Module, scheduler: Optional[optim.lr_scheduler._LRScheduler] = None,
+                   criterion: Optional[nn.Module], scheduler: Optional[optim.lr_scheduler._LRScheduler] = None,
                    progress: Optional[Callable[[str, int, int, int, Dict[str, Any]], None]] = None,
                    epoch_index: Optional[int] = None, should_stop: Optional[Callable[[], bool]] = None) -> Dict[str, float]:
         """Train model for one epoch.
@@ -161,11 +160,9 @@ class EfficientNetModel:
             optimizer: Optimizer
             criterion: Loss function
             scheduler: Learning rate scheduler (optional)
-            progress: Optional progress callback
-            epoch_index: Current epoch index
 
         Returns:
-            dict: Training metrics (loss, accuracy)
+            dict: Training metrics
         """
         self.model.train()
         total_loss = 0.0
@@ -174,9 +171,11 @@ class EfficientNetModel:
         steps_total = len(train_loader)
         steps_completed = 0
 
-        for step_idx, (inputs, targets) in enumerate(train_loader, start=1):
+        for step_idx, batch in enumerate(train_loader, start=1):
             if should_stop and should_stop():
                 break
+            
+            inputs, targets = batch
             inputs = inputs.to(self.device, non_blocking=True)
             if self.channels_last:
                 try:
@@ -186,66 +185,76 @@ class EfficientNetModel:
             targets = targets.to(self.device, non_blocking=True)
 
             optimizer.zero_grad()
+            
             if self.use_amp and self._scaler is not None:
                 with autocast_context(True):
                     outputs = self.model(inputs)
-                    loss = criterion(outputs, targets.float() if self.task == 'multi_label' else targets)
+                    if criterion is not None:
+                        if self.task == 'multi_label':
+                             loss = criterion(outputs, targets.float())
+                        else:
+                             loss = criterion(outputs, targets)
+                    else:
+                        raise ValueError("Criterion required")
                 self._scaler.scale(loss).backward()
                 self._scaler.step(optimizer)
                 self._scaler.update()
             else:
                 outputs = self.model(inputs)
-                loss = criterion(outputs, targets.float() if self.task == 'multi_label' else targets)
+                if criterion is not None:
+                    if self.task == 'multi_label':
+                         loss = criterion(outputs, targets.float())
+                    else:
+                         loss = criterion(outputs, targets)
+                else:
+                    raise ValueError("Criterion required")
                 loss.backward()
                 optimizer.step()
 
             loss_value = float(loss.item())
             total_loss += loss_value
-            if self.task != 'multi_label':
+            
+            if self.task == 'classification':
                 _, predicted = outputs.max(1)
                 total += targets.size(0)
                 correct += predicted.eq(targets).sum().item()
+            
             if progress:
                 try:
-                    running_loss = total_loss / step_idx if step_idx else loss_value
-                    running_acc = 100.0 * correct / total if self.task != 'multi_label' and total > 0 else None
+                    running_loss = total_loss / step_idx
+                    accuracy = 100.0 * correct / total if total > 0 else 0.0
                     metrics_payload = build_step_metrics(
                         loss=loss_value,
                         running_loss=running_loss,
                         phase='train',
                         optimizer=optimizer,
-                        accuracy=running_acc
+                        accuracy=accuracy if self.task == 'classification' else None
                     )
                     progress('train', epoch_index or 0, step_idx, steps_total, metrics_payload)
                 except Exception:
                     pass
 
             steps_completed = step_idx
-            if should_stop and should_stop():
-                break
 
         if scheduler:
             scheduler.step()
 
         avg_loss = total_loss / steps_completed if steps_completed else 0.0
-        if self.task == 'multi_label':
-            return build_epoch_result(avg_loss=avg_loss, phase='train', optimizer=optimizer)
-        accuracy = 100. * correct / total if total > 0 else 0.0
-        return build_epoch_result(avg_loss=avg_loss, phase='train', optimizer=optimizer, accuracy=accuracy)
 
-    def validate(self, val_loader: DataLoader, criterion: nn.Module,
-                progress: Optional[Callable[[str, int, int, int, Dict[str, Any]], None]] = None,
-                epoch_index: Optional[int] = None, should_stop: Optional[Callable[[], bool]] = None) -> Dict[str, float]:
+        if self.task == 'classification':
+            accuracy = 100. * correct / total if total else 0.0
+            return build_epoch_result(avg_loss, 'train', optimizer, accuracy)
+        else:
+            return build_epoch_result(avg_loss, 'train', optimizer)
+
+    def validate(self, val_loader: DataLoader, criterion: Optional[nn.Module],
+                 progress: Optional[Callable[[str, int, int, int, Dict[str, Any]], None]] = None,
+                 epoch_index: Optional[int] = None, should_stop: Optional[Callable[[], bool]] = None) -> Dict[str, float]:
         """Validate model on validation set.
 
         Args:
             val_loader: Validation data loader
             criterion: Loss function
-            progress: Optional progress callback
-            epoch_index: Current epoch index
-
-        Returns:
-            dict: Validation metrics (loss, accuracy)
         """
         self.model.eval()
         total_loss = 0.0
@@ -255,9 +264,11 @@ class EfficientNetModel:
         steps_completed = 0
 
         with torch.no_grad():
-            for step_idx, (inputs, targets) in enumerate(val_loader, start=1):
+            for step_idx, batch in enumerate(val_loader, start=1):
                 if should_stop and should_stop():
                     break
+                
+                inputs, targets = batch
                 inputs = inputs.to(self.device, non_blocking=True)
                 if self.channels_last:
                     try:
@@ -269,39 +280,55 @@ class EfficientNetModel:
                 if self.use_amp and self._scaler is not None:
                     with autocast_context(True):
                         outputs = self.model(inputs)
-                        loss = criterion(outputs, targets.float() if self.task == 'multi_label' else targets)
+                        if criterion is not None:
+                            if self.task == 'multi_label':
+                                loss = criterion(outputs, targets.float())
+                            else:
+                                loss = criterion(outputs, targets)
+                        else:
+                            raise ValueError("Criterion required")
                 else:
                     outputs = self.model(inputs)
-                    loss = criterion(outputs, targets.float() if self.task == 'multi_label' else targets)
+                    if criterion is not None:
+                        if self.task == 'multi_label':
+                            loss = criterion(outputs, targets.float())
+                        else:
+                            loss = criterion(outputs, targets)
+                    else:
+                        raise ValueError("Criterion required")
 
                 loss_value = float(loss.item())
                 total_loss += loss_value
-                if self.task != 'multi_label':
+
+                if self.task == 'classification':
                     _, predicted = outputs.max(1)
                     total += targets.size(0)
                     correct += predicted.eq(targets).sum().item()
+
                 if progress:
                     try:
-                        running_loss = total_loss / step_idx if step_idx else loss_value
-                        running_acc = 100.0 * correct / total if self.task != 'multi_label' and total > 0 else None
+                        running_loss = total_loss / step_idx
+                        accuracy = 100.0 * correct / total if total > 0 else 0.0
                         metrics_payload = build_step_metrics(
                             loss=loss_value,
                             running_loss=running_loss,
                             phase='val',
-                            accuracy=running_acc
+                            optimizer=None,
+                            accuracy=accuracy if self.task == 'classification' else None
                         )
                         progress('val', epoch_index or 0, step_idx, steps_total, metrics_payload)
                     except Exception:
                         pass
+                
                 steps_completed = step_idx
-                if should_stop and should_stop():
-                    break
 
         avg_loss = total_loss / steps_completed if steps_completed else 0.0
-        if self.task == 'multi_label':
-            return build_epoch_result(avg_loss=avg_loss, phase='val')
-        accuracy = 100. * correct / total if total > 0 else 0.0
-        return build_epoch_result(avg_loss=avg_loss, phase='val', accuracy=accuracy)
+
+        if self.task == 'classification':
+            accuracy = 100. * correct / total if total else 0.0
+            return build_epoch_result(avg_loss, 'val', None, accuracy)
+        else:
+            return build_epoch_result(avg_loss, 'val', None)
 
     def save_checkpoint(self, path: str, epoch: int, optimizer: optim.Optimizer,
                        scheduler: Optional[optim.lr_scheduler._LRScheduler] = None,
@@ -323,7 +350,6 @@ class EfficientNetModel:
             'optimizer_state_dict': optimizer.state_dict(),
             'model_name': self.model_name,
             'num_classes': self.num_classes,
-            'task': self.task,
             'labels': labels or {}
         }
 
@@ -336,26 +362,32 @@ class EfficientNetModel:
         torch.save(checkpoint, path)
         info(f"Checkpoint saved to {path} with {len(labels or {})} labels")
 
-    def load_checkpoint(self, path: str) -> Dict[str, Any]:
+    def load_checkpoint(self, path: str) -> Tuple[int, Dict[str, Any]]:
         """Load model checkpoint.
 
         Args:
             path: Path to checkpoint file
 
         Returns:
-            dict: Checkpoint information
+            tuple: (epoch, checkpoint_data)
         """
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Checkpoint not found: {path}")
+            
         checkpoint = torch.load(path, map_location=self.device)
-        self.model.load_state_dict(checkpoint['model_state_dict'])
-        info(f"Checkpoint loaded from {path}")
-        return checkpoint
+        
+        # Load model weights
+        if 'model_state_dict' in checkpoint:
+            self.model.load_state_dict(checkpoint['model_state_dict'])
+        else:
+            # Fallback for older checkpoints or raw weights
+            self.model.load_state_dict(checkpoint)
+            
+        epoch = checkpoint.get('epoch', 0)
+        return epoch, checkpoint
 
     def get_model_info(self) -> Dict[str, Any]:
-        """Get model information.
-
-        Returns:
-            dict: Model information including parameters count
-        """
+        """Get model information."""
         total_params = sum(p.numel() for p in self.model.parameters())
         trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
 
@@ -363,67 +395,12 @@ class EfficientNetModel:
             'model_name': self.model_name,
             'num_classes': self.num_classes,
             'pretrained': self.pretrained,
-            'task': self.task,
             'device': str(self.device),
             'total_parameters': total_params,
             'trainable_parameters': trainable_params
         }
 
 
-def create_efficientnet_model(model_name: str = 'efficientnet_b0', num_classes: int = 10, pretrained: bool = True, task: str = 'classification') -> EfficientNetModel:
-    """Create EfficientNet model instance.
-
-    Args:
-        model_name: Name of EfficientNet variant
-        num_classes: Number of output classes
-        pretrained: Whether to use pretrained weights
-        task: Task type
-
-    Returns:
-        EfficientNetModel: Initialized model instance
-    """
-    return EfficientNetModel(model_name, num_classes, pretrained, task)
-
-
-def get_supported_efficientnet_variants() -> List[str]:
-    """Get list of supported EfficientNet variants."""
-    return [
-        'efficientnet_b0', 'efficientnet_b1', 'efficientnet_b2', 'efficientnet_b3',
-        'efficientnet_b4', 'efficientnet_b5', 'efficientnet_b6', 'efficientnet_b7',
-        'efficientnet_v2_s', 'efficientnet_v2_m', 'efficientnet_v2_l'
-    ]
-
-
-def get_efficientnet_config(model_name: str) -> Dict[str, Any]:
-    """Get default configuration for EfficientNet variant.
-
-    Args:
-        model_name: Name of EfficientNet variant
-
-    Returns:
-        dict: Default configuration
-    """
-    # Get from config first
-    models_config = SETTINGS.get('models', {}).get('efficientnet', {}).get('variants', {})
-    if model_name in models_config:
-        return models_config[model_name]
-
-    # Fallback to hardcoded values (approximate parameter counts)
-    configs = {
-        'efficientnet_b0': {'params': 5.3e6, 'recommended_batch_size': 32},
-        'efficientnet_b1': {'params': 7.8e6, 'recommended_batch_size': 24},
-        'efficientnet_b2': {'params': 9.1e6, 'recommended_batch_size': 20},
-        'efficientnet_b3': {'params': 12.2e6, 'recommended_batch_size': 16},
-        'efficientnet_b4': {'params': 19.3e6, 'recommended_batch_size': 12},
-        'efficientnet_b5': {'params': 30.4e6, 'recommended_batch_size': 8},
-        'efficientnet_b6': {'params': 43.0e6, 'recommended_batch_size': 6},
-        'efficientnet_b7': {'params': 66.3e6, 'recommended_batch_size': 4},
-        'efficientnet_v2_s': {'params': 21.5e6, 'recommended_batch_size': 12},
-        'efficientnet_v2_m': {'params': 54.1e6, 'recommended_batch_size': 6},
-        'efficientnet_v2_l': {'params': 118.0e6, 'recommended_batch_size': 3}
-    }
-
-    if model_name not in configs:
-        raise ValueError(f"Unsupported EfficientNet variant: {model_name}")
-
-    return configs[model_name]
+def create_vit_model(model_name: str = 'vit_b_16', num_classes: int = 10, pretrained: bool = True, task: str = 'classification') -> ViTModel:
+    """Factory function to create ViT model."""
+    return ViTModel(model_name, num_classes, pretrained, task)

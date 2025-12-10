@@ -131,7 +131,6 @@ def get_scheduler_for_training(optimizer: Optimizer,
                     if isinstance(selected, dict):
                         scheduler_params.update(selected)
                 
-                # Only apply step_size/gamma overrides for schedulers that use them
                 schedulers_with_step_size = ('step_lr', 'multi_step_lr')
                 schedulers_with_gamma = ('step_lr', 'multi_step_lr', 'exponential_lr')
                 
